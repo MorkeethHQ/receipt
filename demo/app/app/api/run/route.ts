@@ -7,7 +7,7 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-async function tryInfer(prompt: string): Promise<{ response: string; source: string }> {
+async function tryInfer(prompt: string): Promise<{ response: string; source: string; attested: boolean }> {
   try {
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
@@ -19,12 +19,13 @@ async function tryInfer(prompt: string): Promise<{ response: string; source: str
     });
     if (res.ok) {
       const data = await res.json();
-      return { response: data.response, source: '0g-compute' };
+      return { response: data.response, source: '0g-compute', attested: !!data.attested };
     }
   } catch {}
   return {
     response: 'Analysis: The RECEIPT project implements a cryptographic proof layer using ed25519 signatures and SHA-256 hash chains. The architecture supports multi-agent verification with tamper detection at every step.',
     source: 'simulated',
+    attested: false,
   };
 }
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
         send('status', { message: 'Agent A initialized', agentId: agentA.agentId });
 
         await sleep(300);
-        const r1 = agentA.readFile('README.md', 'RECEIPT — Proof layer for agent work. Signed, hash-linked receipts for verifiable agent handoffs.');
+        const r1 = agentA.readFile('README.md', 'R.E.C.E.I.P.T. — Record of Every Computational Event with Immutable Proof and Trust. Proof layer for agent work.');
         send('receipt', { index: 0, receipt: r1, agent: 'A' });
 
         await sleep(400);
@@ -50,9 +51,10 @@ export async function POST(request: Request) {
         send('receipt', { index: 1, receipt: r2, agent: 'A' });
 
         await sleep(500);
-        const { response: llmResponse, source } = await tryInfer('Analyze the RECEIPT proof layer architecture');
-        const r3 = agentA.callLlm('Analyze the RECEIPT proof layer architecture', llmResponse);
-        send('receipt', { index: 2, receipt: r3, agent: 'A', llmSource: source });
+        send('status', { message: 'Agent A: Requesting 0G Compute TEE inference...' });
+        const { response: llmResponse, source, attested } = await tryInfer('Analyze the R.E.C.E.I.P.T. proof layer architecture');
+        const r3 = agentA.callLlm('Analyze the R.E.C.E.I.P.T. proof layer architecture', llmResponse);
+        send('receipt', { index: 2, receipt: r3, agent: 'A', llmSource: source, teeAttested: attested });
 
         await sleep(300);
         const r4 = agentA.decide(

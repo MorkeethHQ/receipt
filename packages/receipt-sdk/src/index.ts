@@ -10,3 +10,23 @@ export { storeChainOn0G, computeMerkleRoot } from './integrations/0g-storage';
 export { inferWithAttestation, type ZGComputeConfig, type ZGInferenceResult } from './integrations/0g-compute';
 export { createAxlClient, type AxlConfig, type AxlPeerInfo, type AxlMessage } from './integrations/axl';
 export { createKeeperHubClient, type KeeperHubConfig, type Workflow, type WorkflowNode, type WorkflowEdge } from './integrations/keeperhub';
+
+export {
+  listFineTuningProviders,
+  listFineTuningModels,
+  createFineTuningTask,
+  getFineTuningTaskStatus,
+  uploadDatasetToTEE,
+  createFineTuningAttestation,
+  type FineTuningConfig,
+  type FineTuningTaskResult,
+  type FineTuningProvider,
+  type FineTuningModel,
+} from './integrations/0g-fine-tuning';
+
+export {
+  receiptsToTrainingData,
+  trainingDataToJsonl,
+  chainToFineTuningDataset,
+  type TrainingExample,
+} from './integrations/training-data';

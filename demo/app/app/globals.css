@@ -22,11 +22,15 @@ body {
 
 @keyframes screen-shake {
   0%, 100% { transform: translateX(0); }
-  10% { transform: translateX(-8px) rotate(-0.5deg); }
+  5% { transform: translateX(-10px) rotate(-1deg); }
+  10% { transform: translateX(8px) rotate(0.8deg); }
+  15% { transform: translateX(-6px) rotate(-0.5deg); }
   20% { transform: translateX(6px) rotate(0.5deg); }
-  30% { transform: translateX(-4px); }
-  40% { transform: translateX(4px); }
-  50% { transform: translateX(-2px); }
+  25% { transform: translateX(-5px); }
+  30% { transform: translateX(4px); }
+  35% { transform: translateX(-3px); }
+  40% { transform: translateX(2px); }
+  50% { transform: translateX(-1px); }
 }
 
 @keyframes fabrication-flash {
@@ -36,6 +40,23 @@ body {
   50% { opacity: 0.6; }
   70% { opacity: 0.3; }
   100% { opacity: 0.25; }
+}
+
+@keyframes fabrication-flash-long {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  15% { opacity: 0.5; }
+  25% { opacity: 0.9; }
+  40% { opacity: 0.4; }
+  55% { opacity: 0.7; }
+  70% { opacity: 0.3; }
+  85% { opacity: 0.5; }
+  100% { opacity: 0.2; }
+}
+
+@keyframes tamper-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.2), inset 0 0 15px rgba(239, 68, 68, 0.03); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5), inset 0 0 30px rgba(239, 68, 68, 0.08); }
 }
 
 @keyframes glitch-text {
@@ -73,9 +94,10 @@ body {
   100% { border-color: var(--red); }
 }
 
-.screen-shake { animation: screen-shake 0.5s ease-in-out; }
+.screen-shake { animation: screen-shake 2.5s ease-in-out; }
 .fabrication-flash { animation: fabrication-flash 2.5s ease-out forwards; }
-.glitch-text { animation: glitch-text 0.15s infinite; }
+.fabrication-flash-long { animation: fabrication-flash-long 3s ease-out forwards; }
+.glitch-text { animation: glitch-text 0.1s infinite; }
 .scan-line {
   position: absolute;
   width: 100%;
@@ -87,3 +109,15 @@ body {
 .flash-green { animation: flash-green 0.6s ease-out; }
 .flash-red { animation: flash-red 0.6s ease-out; }
 .pulse-in { animation: pulse-in 0.3s ease-out; }
+
+@keyframes typing-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.typing-dots { animation: typing-blink 1.2s ease-in-out infinite; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1a1a2a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }

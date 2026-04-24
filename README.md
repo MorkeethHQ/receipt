@@ -1,4 +1,6 @@
-# RECEIPT
+# R.E.C.E.I.P.T.
+
+### Record of Every Computational Event with Immutable Proof and Trust
 
 **Proof layer for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs.
 
@@ -36,9 +38,12 @@ Agent A                    Agent B
 
 ### 0G (Track 1: Framework/Tooling + Track 2: Autonomous Agents)
 
-- **0G Compute** — TEE-attested inference via Intel TDX hardware enclaves. LLM calls in the receipt chain carry attestation metadata proving the inference ran in a trusted execution environment.
+Full 0G stack integration across all four pillars:
+
+- **0G Compute** — TEE-attested inference via Intel TDX hardware enclaves. LLM calls in the receipt chain carry attestation metadata proving the inference ran in a trusted execution environment. Tries multiple providers with automatic fallback.
 - **0G Storage** — Content-addressed persistence. Receipt chains serialize to bytes, get Merkle-treed, and the root hash becomes the `storageRef` passed to the anchor contract.
 - **0G Chain** — `ReceiptAnchor.sol` deployed on 0G Mainnet (chain ID 16661). `anchorRoot(bytes32, bytes32)` stores the chain root hash + storage reference permanently.
+- **0G Fine-Tuning** — Receipt chains convert to JSONL training data via `chainToFineTuningDataset()`. Agent behavior (decisions, inferences, actions) becomes training examples that can fine-tune models on 0G's decentralized GPU network. The SDK wraps the full fine-tuning lifecycle: `listFineTuningProviders()`, `createFineTuningTask()`, `getFineTuningTaskStatus()`, `uploadDatasetToTEE()`. Compatible with Qwen2.5-0.5B-Instruct and Qwen3-32B on 0G Compute.
 
 ### Gensyn AXL (P2P Agent Communication)
 
