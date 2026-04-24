@@ -29,6 +29,12 @@ interface VerificationResult {
   error?: string;
 }
 
+interface TamperDetail {
+  index: number;
+  field: string;
+  detail: string;
+}
+
 type Phase = 'idle' | 'agentA' | 'handoff' | 'verifying' | 'agentB' | 'done';
 type ViewMode = 'demo' | 'explorer';
 
@@ -57,6 +63,7 @@ export default function Home() {
   const [agentACount, setAgentACount] = useState(0);
   const [fabricationDetected, setFabricationDetected] = useState(false);
   const [tamperedIds, setTamperedIds] = useState<Set<string>>(new Set());
+  const [tamperDetails, setTamperDetails] = useState<Record<string, TamperDetail>>({});
   const [chainRootHash, setChainRootHash] = useState<string | null>(null);
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ txHash: string; chain: string } | null>(null);
@@ -69,9 +76,16 @@ export default function Home() {
   const [trainingData, setTrainingData] = useState<{ jsonl: string; stats: any } | null>(null);
   const [showTraining, setShowTraining] = useState(false);
   const [agenticId, setAgenticId] = useState<{ metadataHash: string; status: string; tokenId?: string; txHash?: string } | null>(null);
+  const [axlPhase, setAxlPhase] = useState<'idle' | 'discovering' | 'packaging' | 'transmitting' | 'verifying' | 'complete'>('idle');
+  const [axlPeers, setAxlPeers] = useState(0);
+  const [axlPacketPos, setAxlPacketPos] = useState(0);
+  const [trainingPipelineStage, setTrainingPipelineStage] = useState<'idle' | 'converting' | 'jsonl' | 'uploading' | 'training' | 'complete'>('idle');
+  const [selectedModel, setSelectedModel] = useState<string>('Qwen2.5-0.5B');
+  const [trainingExamples, setTrainingExamples] = useState<Array<{ input: string; output: string; type: string }>>([]);
   const shakeRef = useRef<HTMLDivElement>(null);
   const agentARef = useRef<HTMLDivElement>(null);
   const agentBRef = useRef<HTMLDivElement>(null);
+  const axlTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     agentARef.current?.scrollTo({ top: agentARef.current.scrollHeight, behavior: 'smooth' });
@@ -80,6 +94,47 @@ export default function Home() {
   useEffect(() => {
     agentBRef.current?.scrollTo({ top: agentBRef.current.scrollHeight, behavior: 'smooth' });
   }, [receipts, verifications]);
+
+  // AXL P2P simulation — triggers on handoff phase
+  useEffect(() => {
+    if (phase === 'handoff' || phase === 'verifying') {
+      // Start AXL discovery animation
+      setAxlPhase('discovering');
+      setAxlPeers(0);
+      const t1 = setTimeout(() => setAxlPeers(1), 300);
+      const t2 = setTimeout(() => setAxlPeers(2), 700);
+      const t3 = setTimeout(() => setAxlPeers(3), 1100);
+      const t4 = setTimeout(() => {
+        setAxlPhase('packaging');
+      }, 1500);
+      const t5 = setTimeout(() => {
+        setAxlPhase('transmitting');
+        // Animate packet position
+        let pos = 0;
+        axlTimerRef.current = setInterval(() => {
+          pos += 2;
+          setAxlPacketPos(pos);
+          if (pos >= 100) {
+            if (axlTimerRef.current) clearInterval(axlTimerRef.current);
+            setAxlPhase('verifying');
+          }
+        }, 30);
+      }, 2500);
+      const t6 = setTimeout(() => {
+        setAxlPhase('complete');
+      }, 5500);
+      return () => {
+        [t1, t2, t3, t4, t5, t6].forEach(clearTimeout);
+        if (axlTimerRef.current) clearInterval(axlTimerRef.current);
+      };
+    } else if (phase === 'agentB' || phase === 'done') {
+      setAxlPhase('complete');
+    } else if (phase === 'idle') {
+      setAxlPhase('idle');
+      setAxlPeers(0);
+      setAxlPacketPos(0);
+    }
+  }, [phase === 'handoff' || phase === 'verifying' ? 'handoff' : phase]);
 
   const agentAReceipts = receipts.slice(0, agentACount || receipts.length);
   const agentBReceipts = agentACount > 0 ? receipts.slice(agentACount) : [];
@@ -92,6 +147,7 @@ export default function Home() {
     setAgentACount(0);
     setFabricationDetected(false);
     setTamperedIds(new Set());
+    setTamperDetails({});
     setChainRootHash(null);
     setExpandedReceipt(null);
     setAnchor(null);
@@ -102,6 +158,8 @@ export default function Home() {
     setTrainingData(null);
     setShowTraining(false);
     setAgenticId(null);
+    setTrainingPipelineStage('idle');
+    setTrainingExamples([]);
 
     const res = await fetch('/api/run', {
       method: 'POST',
@@ -150,7 +208,14 @@ export default function Home() {
         setTamperedIds((prev) => {
           const next = new Set(prev);
           setReceipts((receipts) => {
-            if (receipts[data.index]) next.add(receipts[data.index].id);
+            if (receipts[data.index]) {
+              const rid = receipts[data.index].id;
+              next.add(rid);
+              setTamperDetails((prev) => ({
+                ...prev,
+                [rid]: { index: data.index, field: data.field, detail: data.detail },
+              }));
+            }
             return receipts;
           });
           return next;
@@ -232,6 +297,97 @@ export default function Home() {
     try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; }
   };
 
+  const renderAxlSection = () => {
+    if (receipts.length === 0 || phase === 'idle') return null;
+    const bundleReceiptCount = agentACount > 0 ? agentACount : receipts.length;
+    const bundleHash = chainRootHash ? chainRootHash.slice(0, 16) : receipts.length > 0 ? receipts[receipts.length - 1].id.slice(0, 16) : '...';
+    const senderKey = receipts.length > 0 ? receipts[0].agentId.slice(0, 20) : '...';
+    const showAxl = axlPhase !== 'idle';
+    return (
+      <div style={{ width: '100%', padding: '0.8rem', background: '#060610', borderTop: '1px solid #0d2a1a', borderBottom: '1px solid #0d2a1a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.7rem' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: showAxl ? '#00ff88' : '#1a3a2a', boxShadow: showAxl ? '0 0 8px rgba(0, 255, 136, 0.5)' : 'none', transition: 'all 0.3s' }} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#00ff88', letterSpacing: '0.08em' }}>GENSYN AXL P2P</span>
+          <span style={{ fontSize: '0.55rem', color: '#2a5a3a', marginLeft: '0.3rem' }}>Agent-to-Agent Transport Layer</span>
+          {axlPhase !== 'idle' && axlPhase !== 'complete' && (
+            <span className="typing-dots" style={{ fontSize: '0.55rem', color: '#00ff88', marginLeft: 'auto' }}>
+              {axlPhase === 'discovering' ? 'discovering peers...' : axlPhase === 'packaging' ? 'packaging bundle...' : axlPhase === 'transmitting' ? 'transmitting...' : 'verifying...'}
+            </span>
+          )}
+          {axlPhase === 'complete' && (
+            <span className="axl-verify-check" style={{ fontSize: '0.55rem', color: '#00ff88', marginLeft: 'auto', fontWeight: 600 }}>Handoff complete</span>
+          )}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px', gap: '0', alignItems: 'center', minHeight: '120px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+            <div className={axlPhase === 'packaging' || axlPhase === 'transmitting' ? 'axl-node-active' : ''} style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'radial-gradient(circle at 30% 30%, #1a3a2a, #0a1a10)', border: `2px solid ${axlPhase !== 'idle' ? '#00ff88' : '#1a3a2a'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#00ff88', transition: 'border-color 0.5s', position: 'relative' }}>
+              A
+              {axlPhase === 'packaging' && (<div style={{ position: 'absolute', inset: '-4px', borderRadius: '50%', border: '1px solid #00ff8844', animation: 'axl-pulse-ring 1.5s ease-in-out infinite' }} />)}
+            </div>
+            <span style={{ fontSize: '0.55rem', color: '#2a5a3a', fontWeight: 600 }}>Sender</span>
+            <div style={{ padding: '0.15rem 0.35rem', borderRadius: '3px', background: '#0a1a10', border: '1px solid #0d2a1a', fontSize: '0.5rem', color: '#00ff8888', fontFamily: 'monospace' }}>peer:self</div>
+          </div>
+          <div style={{ position: 'relative', padding: '0 0.5rem' }}>
+            <svg width="100%" height="120" viewBox="0 0 400 120" style={{ position: 'absolute', top: 0, left: 0 }}>
+              {axlPeers >= 1 && (<g className="axl-fade-up"><circle cx="120" cy="25" r="4" fill="#00ff8833" stroke="#00ff8844" strokeWidth="1" /><line x1="120" y1="25" x2="200" y2="60" stroke="#00ff8818" strokeWidth="1" strokeDasharray="3 3"><animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" repeatCount="indefinite" /></line></g>)}
+              {axlPeers >= 2 && (<g className="axl-fade-up"><circle cx="280" cy="30" r="4" fill="#00ff8833" stroke="#00ff8844" strokeWidth="1" /><line x1="280" y1="30" x2="200" y2="60" stroke="#00ff8818" strokeWidth="1" strokeDasharray="3 3"><animate attributeName="stroke-dashoffset" from="20" to="0" dur="2.5s" repeatCount="indefinite" /></line></g>)}
+              {axlPeers >= 3 && (<g className="axl-fade-up"><circle cx="200" cy="100" r="4" fill="#00ff8833" stroke="#00ff8844" strokeWidth="1" /><line x1="200" y1="100" x2="200" y2="60" stroke="#00ff8818" strokeWidth="1" strokeDasharray="3 3"><animate attributeName="stroke-dashoffset" from="20" to="0" dur="1.8s" repeatCount="indefinite" /></line></g>)}
+              <circle cx="200" cy="60" r="8" fill="#00ff8822" stroke="#00ff8855" strokeWidth="1.5" />
+              <text x="200" y="64" textAnchor="middle" fill="#00ff8888" fontSize="7" fontFamily="monospace">AXL</text>
+              <line x1="0" y1="60" x2="400" y2="60" stroke="#00ff8815" strokeWidth="1" />
+              <line x1="0" y1="60" x2="400" y2="60" stroke="#00ff8833" strokeWidth="1" strokeDasharray="6 4"><animate attributeName="stroke-dashoffset" from="20" to="0" dur="1s" repeatCount="indefinite" /></line>
+            </svg>
+            {axlPhase === 'transmitting' && (
+              <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: `${Math.min(axlPacketPos, 95)}%`, transition: 'left 0.03s linear', zIndex: 2 }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '2px', background: '#00ff88', boxShadow: '0 0 12px #00ff88, 0 0 24px rgba(0, 255, 136, 0.4)', transform: 'rotate(45deg)' }} />
+              </div>
+            )}
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '120px', gap: '0.2rem' }}>
+              {axlPhase === 'discovering' && (
+                <div className="axl-fade-up" style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', background: '#0a1a10cc', border: '1px solid #00ff8833', fontSize: '0.6rem', color: '#00ff88', textAlign: 'center', backdropFilter: 'blur(4px)' }}>
+                  Discovered {axlPeers} peer{axlPeers !== 1 ? 's' : ''} on AXL network
+                </div>
+              )}
+              {(axlPhase === 'packaging' || axlPhase === 'transmitting' || axlPhase === 'verifying' || axlPhase === 'complete') && (
+                <div className="axl-fade-up" style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', background: '#0a1a10cc', border: '1px solid #00ff8833', fontSize: '0.55rem', fontFamily: 'monospace', textAlign: 'center', backdropFilter: 'blur(4px)', minWidth: '180px' }}>
+                  <div style={{ color: '#00ff88', fontWeight: 700, fontSize: '0.6rem', marginBottom: '0.25rem', letterSpacing: '0.05em' }}>HANDOFF BUNDLE</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <div><span style={{ color: '#1a5a3a' }}>receipts  </span><span style={{ color: '#00ff88cc' }}>{bundleReceiptCount}</span></div>
+                    <div><span style={{ color: '#1a5a3a' }}>rootHash  </span><span style={{ color: '#00ff8899', wordBreak: 'break-all' }}>{bundleHash}...</span></div>
+                    <div><span style={{ color: '#1a5a3a' }}>pubKey    </span><span style={{ color: '#00ff8866' }}>{senderKey}...</span></div>
+                  </div>
+                  {axlPhase === 'complete' && (
+                    <div className="axl-verify-check" style={{ marginTop: '0.3rem', paddingTop: '0.25rem', borderTop: '1px solid #00ff8822', color: '#00ff88', fontWeight: 700, fontSize: '0.55rem' }}>RECEIVED + VERIFIED</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+            <div className={axlPhase === 'verifying' || axlPhase === 'complete' ? 'axl-node-active' : ''} style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'radial-gradient(circle at 30% 30%, #1a3a2a, #0a1a10)', border: `2px solid ${axlPhase === 'verifying' || axlPhase === 'complete' ? '#00ff88' : '#1a3a2a'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#00ff88', transition: 'border-color 0.5s', position: 'relative' }}>
+              B
+              {axlPhase === 'verifying' && (<div style={{ position: 'absolute', inset: '-4px', borderRadius: '50%', border: '1px solid #00ff8844', animation: 'axl-pulse-ring 1s ease-in-out infinite' }} />)}
+              {axlPhase === 'complete' && (<div className="axl-verify-check" style={{ position: 'absolute', top: '-4px', right: '-4px', width: '14px', height: '14px', borderRadius: '50%', background: '#00ff88', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', color: '#0a0a0a', fontWeight: 900 }}>ok</div>)}
+            </div>
+            <span style={{ fontSize: '0.55rem', color: '#2a5a3a', fontWeight: 600 }}>Receiver</span>
+            <div style={{ padding: '0.15rem 0.35rem', borderRadius: '3px', background: '#0a1a10', border: '1px solid #0d2a1a', fontSize: '0.5rem', color: '#00ff8888', fontFamily: 'monospace' }}>peer:{axlPeers >= 1 ? 'found' : '...'}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.4rem', borderTop: '1px solid #0d2a1a', fontSize: '0.5rem', color: '#1a5a3a' }}>
+          <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <span>Protocol: <span style={{ color: '#00ff8888' }}>Gensyn AXL</span></span>
+            <span>Transport: <span style={{ color: '#00ff8888' }}>HTTP P2P</span></span>
+            <span>Crypto: <span style={{ color: '#00ff8888' }}>ed25519 + SHA-256</span></span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <span>Peers: <span style={{ color: '#00ff8888' }}>{axlPeers}</span></span>
+            <span>Status: <span style={{ color: axlPhase === 'complete' ? '#00ff88' : '#00ff8888' }}>{axlPhase === 'idle' ? 'offline' : axlPhase === 'discovering' ? 'discovering' : axlPhase === 'packaging' ? 'packaging' : axlPhase === 'transmitting' ? 'transmitting' : axlPhase === 'verifying' ? 'verifying' : 'delivered'}</span></span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderExplorerView = () => {
     if (receipts.length === 0) {
       return (
@@ -278,12 +434,62 @@ export default function Home() {
           </div>
         )}
 
+        {/* Fabrication detection banner */}
+        {fabricationDetected && tamperedIds.size > 0 && (
+          <div style={{
+            marginBottom: '1.2rem', padding: '0.7rem 0.9rem',
+            background: '#1a0808', borderRadius: '6px',
+            border: '2px solid #ef4444',
+            boxShadow: '0 0 20px rgba(239, 68, 68, 0.15), inset 0 0 20px rgba(239, 68, 68, 0.05)',
+            animation: 'tamper-pulse 3s ease-in-out infinite',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem',
+            }}>
+              <span style={{
+                fontSize: '1.1rem', color: '#ef4444', fontWeight: 800,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                FABRICATION DETECTED
+              </span>
+              <span style={{
+                fontSize: '0.6rem', padding: '0.15rem 0.5rem', borderRadius: '3px',
+                background: '#3a0a0a', border: '1px solid #ef4444',
+                color: '#ef4444', fontWeight: 700,
+              }}>
+                {tamperedIds.size} receipt{tamperedIds.size > 1 ? 's' : ''} tampered
+              </span>
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#ff8888', lineHeight: 1.5 }}>
+              Agent A lied about receipt {(() => {
+                const indices = Object.values(tamperDetails).map(d => `#${d.index}`);
+                return indices.length > 0 ? indices.join(', ') : `#${verifications.findIndex(v => !v.valid)}`;
+              })()}
+              {' '} — signature verification failed. The output hash in the receipt does not match the data that was actually signed.
+            </div>
+            {Object.values(tamperDetails).map((td) => (
+              <div key={td.index} style={{
+                marginTop: '0.4rem', padding: '0.4rem 0.5rem', borderRadius: '4px',
+                background: '#0a0408', border: '1px solid #ef444433',
+                fontSize: '0.6rem', color: '#cc6666', fontFamily: 'monospace',
+              }}>
+                <span style={{ color: '#ef4444', fontWeight: 700 }}>receipt #{td.index}</span>
+                <span style={{ color: '#555' }}> . </span>
+                <span style={{ color: '#888' }}>{td.field}</span>
+                <span style={{ color: '#555' }}> : </span>
+                <span style={{ color: '#cc6666' }}>{td.detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Receipt chain */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {receipts.map((receipt, i) => {
             const meta = receiptMeta[receipt.id];
             const verification = verifications.find(v => v.receiptId === receipt.id);
             const isTampered = tamperedIds.has(receipt.id);
+            const tamperInfo = tamperDetails[receipt.id];
             const isHandoff = agentACount > 0 && i === agentACount;
             const agentColor = meta?.agent === 'A' ? '#3b82f6' : '#a855f7';
             const agentLabel = meta?.agent === 'A' ? 'Agent A · Researcher' : 'Agent B · Builder';
@@ -327,9 +533,10 @@ export default function Home() {
                   <div style={{
                     flex: 1, marginBottom: '0.4rem',
                     background: isTampered ? '#1a0808' : '#0c0c14',
-                    border: `1px solid ${isTampered ? '#ef4444' : '#1a1a2a'}`,
+                    border: isTampered ? '2px solid #ef4444' : '1px solid #1a1a2a',
                     borderRadius: '6px',
                     animation: isTampered ? 'tamper-pulse 2s ease-in-out infinite' : 'none',
+                    boxShadow: isTampered ? '0 0 16px rgba(239, 68, 68, 0.25), 0 0 4px rgba(239, 68, 68, 0.4)' : 'none',
                   }}>
                     {/* Block header */}
                     <div style={{
@@ -362,8 +569,13 @@ export default function Home() {
                         </span>
                       )}
                       {isTampered && (
-                        <span style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '3px', background: '#3a0a0a', border: '1px solid #ef4444', color: '#ef4444', fontWeight: 700 }}>
-                          FABRICATED
+                        <span style={{
+                          fontSize: '0.6rem', padding: '0.15rem 0.5rem', borderRadius: '3px',
+                          background: '#3a0a0a', border: '1px solid #ef4444', color: '#ef4444',
+                          fontWeight: 700, letterSpacing: '0.05em',
+                          animation: 'tamper-pulse 2s ease-in-out infinite',
+                        }}>
+                          TAMPERED
                         </span>
                       )}
                       {verification && (
@@ -392,17 +604,34 @@ export default function Home() {
                         <div><span style={{ color: '#555' }}>time      </span><span style={{ color: '#666' }}>{new Date(receipt.timestamp).toISOString()}</span></div>
                         <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a' }}>
                           <div><span style={{ color: '#555' }}>inputHash </span><span style={{ color: '#888', wordBreak: 'break-all' }}>{receipt.inputHash}</span></div>
-                          <div><span style={{ color: '#555' }}>outputHash</span> <span style={{ color: isTampered ? '#ef4444' : '#888', wordBreak: 'break-all' }}>{receipt.outputHash}</span></div>
+                          <div><span style={{ color: '#555' }}>outputHash</span> <span style={{ color: isTampered ? '#ef4444' : '#888', wordBreak: 'break-all', textDecoration: isTampered ? 'line-through' : 'none' }}>{receipt.outputHash}</span></div>
                         </div>
                         <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a' }}>
                           <div><span style={{ color: '#555' }}>signature </span><span style={{ color: '#555', wordBreak: 'break-all' }}>{receipt.signature}</span></div>
                         </div>
                         {/* Verification checks */}
                         {verification && (
-                          <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a', display: 'flex', gap: '0.8rem' }}>
-                            <span>sig: <span style={{ color: verification.checks.signatureValid ? '#22c55e' : '#ef4444' }}>{verification.checks.signatureValid ? 'ok' : 'FAIL'}</span></span>
-                            <span>chain: <span style={{ color: verification.checks.chainLinkValid ? '#22c55e' : '#ef4444' }}>{verification.checks.chainLinkValid ? 'ok' : 'BROKEN'}</span></span>
-                            <span>time: <span style={{ color: verification.checks.timestampValid ? '#22c55e' : '#ef4444' }}>{verification.checks.timestampValid ? 'ok' : 'FAIL'}</span></span>
+                          <div style={{
+                            marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a',
+                            display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
+                          }}>
+                            {[
+                              { label: 'sig', ok: verification.checks.signatureValid, fail: 'FAIL' },
+                              { label: 'chain', ok: verification.checks.chainLinkValid, fail: 'BROKEN' },
+                              { label: 'time', ok: verification.checks.timestampValid, fail: 'FAIL' },
+                            ].map((check) => (
+                              <span key={check.label} style={{
+                                padding: '0.1rem 0.35rem', borderRadius: '3px',
+                                background: check.ok ? '#0a1a0a' : '#1a0808',
+                                border: `1px solid ${check.ok ? '#22c55e33' : '#ef444444'}`,
+                                fontSize: '0.55rem',
+                              }}>
+                                <span style={{ color: '#666' }}>{check.label}: </span>
+                                <span style={{ color: check.ok ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
+                                  {check.ok ? 'ok' : check.fail}
+                                </span>
+                              </span>
+                            ))}
                           </div>
                         )}
                         {/* Chain link */}
@@ -456,6 +685,106 @@ export default function Home() {
                         )}
                       </div>
                     </div>
+
+                    {/* Tamper diff view — only shown for tampered receipts */}
+                    {isTampered && tamperInfo && (
+                      <div style={{
+                        borderTop: '2px solid #ef444444',
+                        padding: '0.5rem 0.7rem',
+                        background: '#120404',
+                      }}>
+                        {/* Tamper detail explanation */}
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: '0.4rem',
+                          marginBottom: '0.4rem',
+                        }}>
+                          <span style={{
+                            fontSize: '0.55rem', fontWeight: 700, color: '#ef4444',
+                            textTransform: 'uppercase', letterSpacing: '0.08em',
+                          }}>
+                            Tamper Analysis
+                          </span>
+                          <span style={{
+                            fontSize: '0.55rem', color: '#888', fontStyle: 'italic',
+                          }}>
+                            — {tamperInfo.detail}
+                          </span>
+                        </div>
+
+                        {/* Side-by-side diff */}
+                        <div style={{
+                          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem',
+                        }}>
+                          {/* Expected (what the signature covers) */}
+                          <div style={{
+                            padding: '0.4rem 0.5rem', borderRadius: '4px',
+                            background: '#0a1208', border: '1px solid #22c55e33',
+                          }}>
+                            <div style={{
+                              fontSize: '0.5rem', color: '#22c55e', fontWeight: 700,
+                              textTransform: 'uppercase', letterSpacing: '0.08em',
+                              marginBottom: '0.3rem',
+                            }}>
+                              Expected (signed)
+                            </div>
+                            <div style={{
+                              fontFamily: 'monospace', fontSize: '0.55rem', color: '#22c55e',
+                              wordBreak: 'break-all', lineHeight: 1.5, opacity: 0.8,
+                            }}>
+                              <span style={{ color: '#555' }}>{tamperInfo.field}: </span>
+                              SHA-256 of actual {receipt.action.type === 'api_call' ? 'API response' : 'output'} data
+                            </div>
+                            <div style={{
+                              marginTop: '0.2rem', fontFamily: 'monospace', fontSize: '0.5rem',
+                              color: '#555', fontStyle: 'italic',
+                            }}>
+                              (original hash was signed by ed25519 key)
+                            </div>
+                          </div>
+
+                          {/* Actual (tampered value) */}
+                          <div style={{
+                            padding: '0.4rem 0.5rem', borderRadius: '4px',
+                            background: '#1a0808', border: '1px solid #ef444444',
+                          }}>
+                            <div style={{
+                              fontSize: '0.5rem', color: '#ef4444', fontWeight: 700,
+                              textTransform: 'uppercase', letterSpacing: '0.08em',
+                              marginBottom: '0.3rem',
+                            }}>
+                              Actual (tampered)
+                            </div>
+                            <div style={{
+                              fontFamily: 'monospace', fontSize: '0.55rem', color: '#ef4444',
+                              wordBreak: 'break-all', lineHeight: 1.5,
+                            }}>
+                              <span style={{ color: '#555' }}>{tamperInfo.field}: </span>
+                              {receipt.outputHash}
+                            </div>
+                            <div style={{
+                              marginTop: '0.2rem', fontFamily: 'monospace', fontSize: '0.5rem',
+                              color: '#ef444488',
+                            }}>
+                              = SHA-256({'"{"stars":99999,"fake":true}"'})
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Signature mismatch explanation */}
+                        <div style={{
+                          marginTop: '0.4rem', padding: '0.3rem 0.5rem', borderRadius: '4px',
+                          background: '#0a0408', border: '1px dashed #ef444433',
+                          fontSize: '0.55rem', color: '#aa5555', lineHeight: 1.5,
+                          fontFamily: 'monospace',
+                        }}>
+                          verify(signature, payload_with_tampered_hash, pubkey) = <span style={{ color: '#ef4444', fontWeight: 700 }}>false</span>
+                          <br />
+                          <span style={{ color: '#666' }}>The ed25519 signature was computed over the original data.</span>
+                          <br />
+                          <span style={{ color: '#666' }}>Changing the outputHash invalidates the signature — tamper detected.</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

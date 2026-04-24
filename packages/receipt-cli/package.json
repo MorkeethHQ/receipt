@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "receipt-agent": "dist/cli.js"
+    "receipt-cli": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
+    "start": "npx tsx src/cli.ts",
     "dev": "tsc --watch"
   },
   "dependencies": {
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.4.0"
   }
 }
