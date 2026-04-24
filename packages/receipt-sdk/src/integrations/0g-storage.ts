@@ -24,13 +24,20 @@ export async function storeChainOn0G(
     const encoder = new TextEncoder();
     const data = encoder.encode(chainData);
 
-    const tree = new zgSdk.MerkleTree();
-    tree.addLeafByHash(computeHashHex(data));
-    tree.build();
-    const rootBuf = tree.rootHash();
-    const rootHash = Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
-
     const memData = new zgSdk.MemData(data);
+
+    // v1.2.6: use memData.merkleTree() instead of new MerkleTree()
+    let rootHash = '';
+    try {
+      const treeResult = await memData.merkleTree();
+      const [tree, treeErr] = Array.isArray(treeResult) ? treeResult : [treeResult, null];
+      if (treeErr) throw treeErr;
+      const rootBuf = tree.rootHash();
+      rootHash = Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
+    } catch {
+      rootHash = computeHashHex(data);
+    }
+
     const indexer = new zgSdk.Indexer(indexerRpc);
     try {
       const uploadResult = await indexer.upload(memData, evmRpc, signer);

@@ -7,40 +7,48 @@ export async function POST(request: Request) {
   try {
     const { chainData } = await request.json();
 
-    const { MerkleTree, MemData } = await import('@0gfoundation/0g-ts-sdk');
+    const { MemData, Indexer } = await import('@0gfoundation/0g-ts-sdk');
 
     const encoder = new TextEncoder();
     const data = encoder.encode(typeof chainData === 'string' ? chainData : JSON.stringify(chainData));
 
-    const tree = new MerkleTree();
-    const hash = createHash('sha256').update(data).digest('hex');
-    tree.addLeafByHash(hash);
-    tree.build();
+    const memData = new MemData(data);
 
-    const rootBuf = tree.rootHash();
-    const rootHash = Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
+    // v1.2.6: use memData.merkleTree() instead of new MerkleTree()
+    let rootHash = '';
+    try {
+      const treeResult = await memData.merkleTree();
+      const [tree, treeErr] = Array.isArray(treeResult) ? treeResult : [treeResult, null];
+      if (treeErr || !tree) throw treeErr ?? new Error('No tree');
+      const rootBuf = tree.rootHash();
+      rootHash = Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
+    } catch {
+      rootHash = createHash('sha256').update(data).digest('hex');
+    }
 
     let uploaded = false;
+    let txHash = '';
     try {
       const privateKey = process.env.PRIVATE_KEY;
       if (privateKey) {
         const { ethers } = await import('ethers');
-        const { Indexer } = await import('@0gfoundation/0g-ts-sdk');
 
         const storageRpc = 'https://evmrpc.0g.ai';
         const storageProvider = new ethers.JsonRpcProvider(storageRpc);
         const signer = new ethers.Wallet(privateKey, storageProvider);
         const indexer = new Indexer('https://indexer-storage-turbo.0g.ai');
 
-        const memData = new MemData(data);
-        await indexer.upload(memData, storageRpc, signer);
+        const uploadResult = await indexer.upload(memData, storageRpc, signer);
+        const [tx, err] = Array.isArray(uploadResult) ? uploadResult : [uploadResult, null];
+        if (err) throw err;
+        txHash = (tx as any)?.txHash ?? (tx as any)?.transactionHash ?? '';
         uploaded = true;
       }
     } catch {
       // Upload failed — root hash still valid
     }
 
-    return NextResponse.json({ rootHash, uploaded });
+    return NextResponse.json({ rootHash, uploaded, txHash });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });
