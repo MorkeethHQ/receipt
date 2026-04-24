@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     const reqProcessor = (broker as any).inference.requestProcessor;
     const resProcessor = (broker as any).inference.responseProcessor;
 
+    const errors: string[] = [];
     for (const p of PROVIDERS) {
       try {
         const headers = await reqProcessor.getRequestHeaders(p.addr, 'chatbot', prompt);
@@ -41,13 +42,21 @@ export async function POST(request: Request) {
             messages: [{ role: 'user', content: prompt }],
             max_tokens: 200,
           }),
+          signal: AbortSignal.timeout(15000),
         });
 
-        if (!apiRes.ok) continue;
+        if (!apiRes.ok) {
+          const body = await apiRes.text().catch(() => '');
+          errors.push(`${p.name}: HTTP ${apiRes.status} ${body.slice(0, 200)}`);
+          continue;
+        }
 
         const result: any = await apiRes.json();
         const response = result.choices?.[0]?.message?.content ?? '';
-        if (!response) continue;
+        if (!response) {
+          errors.push(`${p.name}: empty response`);
+          continue;
+        }
 
         let attested = false;
         try {
@@ -61,12 +70,13 @@ export async function POST(request: Request) {
           provider: p.name,
           teeType: 'TDX',
         });
-      } catch {
+      } catch (e: unknown) {
+        errors.push(`${p.name}: ${e instanceof Error ? e.message : String(e)}`);
         continue;
       }
     }
 
-    return NextResponse.json({ error: 'All 0G Compute providers unavailable', providers: PROVIDERS.length }, { status: 503 });
+    return NextResponse.json({ error: 'All 0G Compute providers unavailable', providers: PROVIDERS.length, details: errors }, { status: 503 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });
