@@ -8,8 +8,17 @@ export { verifyReceipt, verifyChain, type VerificationResult } from './verify';
 export { anchorOnChain, type AnchorConfig } from './integrations/0g-chain';
 export { storeChainOn0G, computeMerkleRoot } from './integrations/0g-storage';
 export { inferWithAttestation, type ZGComputeConfig, type ZGInferenceResult } from './integrations/0g-compute';
-export { createAxlClient, type AxlConfig, type AxlPeerInfo, type AxlMessage } from './integrations/axl';
-export { createKeeperHubClient, type KeeperHubConfig, type Workflow, type WorkflowNode, type WorkflowEdge } from './integrations/keeperhub';
+export { createAxlClient, AxlTransport, type AxlConfig, type AxlPeerInfo, type AxlMessage, type AxlHandoffPayload } from './integrations/axl';
+export {
+  createKeeperHubClient,
+  KeeperHubError,
+  type KeeperHubConfig,
+  type KeeperHubClient,
+  type Workflow,
+  type WorkflowNode,
+  type WorkflowEdge,
+  type WorkflowExecution,
+} from './integrations/keeperhub';
 
 export {
   listFineTuningProviders,

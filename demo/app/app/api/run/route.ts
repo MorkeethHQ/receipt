@@ -186,25 +186,63 @@ export async function POST(request: Request) {
         const allReceipts = agentB.getReceipts();
         const rootHash = agentB.getChain().computeRootHash();
 
-        // === AGENTIC ID (ERC-7857) ===
+        // === AGENTIC ID (ERC-7857) — inlined to avoid Vercel self-fetch ===
         await sleep(200);
         send('status', { message: 'Minting Agentic ID (ERC-7857)...' });
         try {
-          const baseUrl = process.env.VERCEL_URL
-            ? `https://${process.env.VERCEL_URL}`
-            : 'http://localhost:3000';
-          const idRes = await fetch(`${baseUrl}/api/agentic-id`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              agentId: agentA.agentId,
-              publicKey: agentA.getPublicKey(),
-              chainRootHash: rootHash,
-              receiptCount: allReceipts.length,
-            }),
-          });
-          const idData = await idRes.json();
-          send('agentic_id', idData);
+          const { ethers } = await import('ethers');
+          const metadataHash = ethers.keccak256(
+            ethers.toUtf8Bytes(
+              JSON.stringify({
+                agentId: agentA.agentId,
+                ed25519PublicKey: agentA.getPublicKey(),
+                chainRootHash: rootHash,
+                receiptCount: allReceipts.length,
+                standard: 'ERC-7857',
+                capabilities: ['file_read', 'api_call', 'llm_call', 'decision', 'output'],
+                timestamp: Date.now(),
+              }),
+            ),
+          );
+
+          const privateKey = process.env.PRIVATE_KEY;
+          const contractAddress = process.env.AGENT_NFT_ADDRESS;
+
+          if (privateKey && contractAddress) {
+            const AGENT_NFT_ABI = [
+              'function mint(tuple(string dataDescription, bytes32 dataHash)[] iDatas, address to) external returns (uint256)',
+              'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
+            ];
+            const network = new ethers.Network('0g-mainnet', 16661);
+            const provider = new ethers.JsonRpcProvider('https://evmrpc.0g.ai', network, { staticNetwork: true });
+            const wallet = new ethers.Wallet(privateKey, provider);
+            const contract = new ethers.Contract(ethers.getAddress(contractAddress), AGENT_NFT_ABI, wallet);
+            const iDatas = [
+              { dataDescription: 'receipt-agent-v1', dataHash: metadataHash },
+              { dataDescription: 'chain-root', dataHash: rootHash.startsWith('0x') ? rootHash : `0x${rootHash}` },
+            ];
+            const tx = await contract.mint(iDatas, wallet.address);
+            const txReceipt = await tx.wait();
+            const transferLog = txReceipt.logs?.find(
+              (l: any) => l.topics?.[0] === ethers.id('Transfer(address,address,uint256)'),
+            );
+            const tokenId = transferLog ? ethers.toBigInt(transferLog.topics[3]).toString() : null;
+            send('agentic_id', {
+              tokenId, txHash: txReceipt.hash, metadataHash,
+              agentId: agentA.agentId, standard: 'ERC-7857', status: 'minted',
+              chain: '0g-mainnet', chainId: 16661,
+            });
+          } else {
+            const rootHashHex = rootHash?.startsWith('0x') ? rootHash : `0x${rootHash ?? '0'.repeat(64)}`;
+            send('agentic_id', {
+              tokenId: null, metadataHash,
+              agentId: agentA.agentId, standard: 'ERC-7857', status: 'simulated',
+              iDatas: [
+                { dataDescription: 'receipt-agent-v1', dataHash: metadataHash },
+                { dataDescription: 'chain-root', dataHash: rootHashHex },
+              ],
+            });
+          }
         } catch {}
 
         // Trust score computation

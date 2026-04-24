@@ -44,11 +44,15 @@ export async function GET() {
       };
     }
 
-    return NextResponse.json({
+    const data = {
       inference: { count: inference.length, services: inference },
       fineTuning: { count: fineTuning.length, services: fineTuning },
       models,
-    });
+    };
+    return new Response(
+      JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });
