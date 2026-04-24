@@ -96,20 +96,18 @@ export default function Home() {
   }, [receipts, verifications]);
 
   // AXL P2P simulation — triggers on handoff phase
+  const axlStartedRef = useRef(false);
   useEffect(() => {
-    if (phase === 'handoff' || phase === 'verifying') {
-      // Start AXL discovery animation
+    if ((phase === 'handoff' || phase === 'verifying') && !axlStartedRef.current) {
+      axlStartedRef.current = true;
       setAxlPhase('discovering');
       setAxlPeers(0);
       const t1 = setTimeout(() => setAxlPeers(1), 300);
       const t2 = setTimeout(() => setAxlPeers(2), 700);
       const t3 = setTimeout(() => setAxlPeers(3), 1100);
-      const t4 = setTimeout(() => {
-        setAxlPhase('packaging');
-      }, 1500);
+      const t4 = setTimeout(() => { setAxlPhase('packaging'); }, 1500);
       const t5 = setTimeout(() => {
         setAxlPhase('transmitting');
-        // Animate packet position
         let pos = 0;
         axlTimerRef.current = setInterval(() => {
           pos += 2;
@@ -120,9 +118,7 @@ export default function Home() {
           }
         }, 30);
       }, 2500);
-      const t6 = setTimeout(() => {
-        setAxlPhase('complete');
-      }, 5500);
+      const t6 = setTimeout(() => { setAxlPhase('complete'); }, 5500);
       return () => {
         [t1, t2, t3, t4, t5, t6].forEach(clearTimeout);
         if (axlTimerRef.current) clearInterval(axlTimerRef.current);
@@ -130,11 +126,12 @@ export default function Home() {
     } else if (phase === 'agentB' || phase === 'done') {
       setAxlPhase('complete');
     } else if (phase === 'idle') {
+      axlStartedRef.current = false;
       setAxlPhase('idle');
       setAxlPeers(0);
       setAxlPacketPos(0);
     }
-  }, [phase === 'handoff' || phase === 'verifying' ? 'handoff' : phase]);
+  }, [phase]);
 
   const agentAReceipts = receipts.slice(0, agentACount || receipts.length);
   const agentBReceipts = agentACount > 0 ? receipts.slice(agentACount) : [];
@@ -792,6 +789,11 @@ export default function Home() {
           })}
         </div>
 
+        {/* AXL P2P Network Visualization */}
+        <div style={{ margin: '1rem -2rem 0', width: 'calc(100% + 4rem)' }}>
+          {renderAxlSection()}
+        </div>
+
         {/* Actions bar */}
         {phase === 'done' && (
           <div style={{
@@ -1095,10 +1097,16 @@ export default function Home() {
       {viewMode === 'explorer' && renderExplorerView()}
 
       {viewMode === 'demo' && <div style={{
+        display: 'flex', flexDirection: 'column',
+        height: 'calc(100vh - 160px)',
+        overflow: 'hidden',
+      }}>
+      <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         gap: 0,
-        height: 'calc(100vh - 160px)',
+        flex: 1,
+        minHeight: 0,
         overflow: 'hidden',
       }}>
         {/* Agent A Panel */}
@@ -1331,41 +1339,204 @@ export default function Home() {
             </div>
           )}
 
-          {/* Training Data Export */}
+          {/* Training Loop Pipeline */}
           {phase === 'done' && !fabricationDetected && receipts.length > 0 && (
-            <button
-              onClick={async () => {
-                if (trainingData) { setShowTraining(!showTraining); return; }
-                const res = await fetch('/api/training-data', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ receipts }),
-                });
-                const data = await res.json();
-                setTrainingData(data);
-                setShowTraining(true);
-              }}
-              style={{
-                marginTop: '0.3rem', padding: '0.25rem 0.5rem', borderRadius: '4px',
-                border: '1px solid #a855f733', background: 'transparent',
-                color: '#a855f7', fontSize: '0.55rem',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              {showTraining ? 'Hide' : 'Export'} Training Data
-            </button>
-          )}
-
-          {showTraining && trainingData && (
-            <div className="pulse-in" style={{
-              marginTop: '0.3rem', padding: '0.3rem', borderRadius: '4px',
-              background: '#0a0a14', border: '1px solid #a855f733',
-              fontSize: '0.5rem', color: '#666', textAlign: 'center',
-              width: '100%',
-            }}>
-              <div>{trainingData.stats.total} examples</div>
-              <div>JSONL for 0G Fine-Tuning</div>
-              <div style={{ color: '#a855f7' }}>Qwen2.5 / Qwen3 compatible</div>
+            <div className="pulse-in" style={{ marginTop: '0.5rem', width: '100%' }}>
+              <div style={{
+                fontSize: '0.55rem', color: '#00ff88', textTransform: 'uppercase',
+                letterSpacing: '0.1em', textAlign: 'center', marginBottom: '0.3rem',
+                fontWeight: 600,
+              }}>
+                Training Pipeline
+              </div>
+              <div style={{
+                padding: '0.4rem', borderRadius: '6px',
+                background: '#0a0a14', border: '1px solid #00ff8833', width: '100%',
+              }}>
+                {(() => {
+                  const stages = [
+                    { key: 'converting', label: 'Receipts' },
+                    { key: 'jsonl', label: 'JSONL' },
+                    { key: 'uploading', label: 'Upload' },
+                    { key: 'training', label: 'Train' },
+                    { key: 'complete', label: 'Done' },
+                  ] as const;
+                  const stageOrder = ['idle', 'converting', 'jsonl', 'uploading', 'training', 'complete'];
+                  const currentIdx = stageOrder.indexOf(trainingPipelineStage);
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      {stages.map((s) => {
+                        const sIdx = stageOrder.indexOf(s.key);
+                        const isActive = sIdx === currentIdx;
+                        const isDone = sIdx < currentIdx;
+                        return (
+                          <div key={s.key} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.3rem',
+                            padding: '0.15rem 0.25rem', borderRadius: '3px',
+                            background: isActive ? '#00ff8812' : 'transparent',
+                            transition: 'all 0.3s ease',
+                          }}>
+                            <div style={{
+                              width: '6px', height: '6px', borderRadius: '50%',
+                              background: isDone ? '#00ff88' : isActive ? '#00ff88' : '#333',
+                              boxShadow: isActive ? '0 0 6px #00ff88' : 'none',
+                              animation: isActive ? 'training-pulse 1.5s ease-in-out infinite' : 'none',
+                              flexShrink: 0,
+                            }} />
+                            <span style={{
+                              fontSize: '0.5rem',
+                              color: isDone ? '#00ff88' : isActive ? '#00ff88' : '#444',
+                              fontWeight: isActive ? 600 : 400,
+                            }}>{s.label}</span>
+                            {isDone && <span style={{ fontSize: '0.45rem', color: '#00ff8866', marginLeft: 'auto' }}>~</span>}
+                            {isActive && <span style={{ fontSize: '0.45rem', color: '#00ff88', marginLeft: 'auto', animation: 'training-blink 1s step-end infinite' }}>...</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+                {trainingPipelineStage !== 'idle' && trainingPipelineStage !== 'complete' && (
+                  <div style={{ marginTop: '0.3rem', height: '2px', borderRadius: '1px', background: '#1a1a2a', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: '1px', background: 'linear-gradient(90deg, transparent, #00ff88, transparent)', animation: 'training-flow 1.2s ease-in-out infinite' }} />
+                  </div>
+                )}
+                {trainingData && (
+                  <div style={{
+                    marginTop: '0.3rem', padding: '0.2rem 0.3rem', borderRadius: '3px',
+                    background: '#080810', border: '1px solid #1a1a2a',
+                    fontSize: '0.48rem', color: '#666', fontFamily: 'monospace', textAlign: 'center',
+                  }}>
+                    <span style={{ color: '#00ff88' }}>{receipts.length}</span> receipts
+                    <span style={{ color: '#444' }}>{' -> '}</span>
+                    <span style={{ color: '#00ff88' }}>{trainingData.stats.total}</span> examples
+                    <span style={{ color: '#444' }}>{' -> '}</span>
+                    <span style={{ color: '#00ff88' }}>{(new Blob([trainingData.jsonl]).size / 1024).toFixed(1)}KB</span> JSONL
+                  </div>
+                )}
+                {trainingExamples.length > 0 && showTraining && (
+                  <div style={{ marginTop: '0.3rem' }}>
+                    <div style={{ fontSize: '0.45rem', color: '#555', marginBottom: '0.15rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Training Examples
+                    </div>
+                    <div style={{ maxHeight: '100px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      {trainingExamples.slice(0, 4).map((ex, i) => (
+                        <div key={i} style={{
+                          padding: '0.15rem 0.25rem', borderRadius: '3px',
+                          background: '#080810', border: '1px solid #1a1a2a',
+                          fontSize: '0.45rem', lineHeight: 1.4,
+                        }}>
+                          <span style={{
+                            color: '#00ff8888', fontSize: '0.4rem', padding: '0 0.15rem',
+                            borderRadius: '2px', background: '#00ff8811', border: '1px solid #00ff8822',
+                          }}>{ex.type}</span>
+                          <div style={{ color: '#888', marginTop: '0.1rem' }}>
+                            <span style={{ color: '#555' }}>in: </span>
+                            {ex.input.length > 40 ? ex.input.slice(0, 40) + '...' : ex.input}
+                          </div>
+                          <div style={{ color: '#00ff8888' }}>
+                            <span style={{ color: '#555' }}>out: </span>
+                            {ex.output.length > 40 ? ex.output.slice(0, 40) + '...' : ex.output}
+                          </div>
+                        </div>
+                      ))}
+                      {trainingExamples.length > 4 && (
+                        <div style={{ fontSize: '0.43rem', color: '#444', textAlign: 'center' }}>+{trainingExamples.length - 4} more</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {trainingData && (
+                  <div style={{ marginTop: '0.3rem' }}>
+                    <div style={{ fontSize: '0.45rem', color: '#555', marginBottom: '0.15rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Model</div>
+                    <div style={{ display: 'flex', gap: '0.2rem' }}>
+                      {['Qwen2.5-0.5B', 'Qwen3-0.6B'].map((model) => (
+                        <button key={model} onClick={() => setSelectedModel(model)} style={{
+                          flex: 1, padding: '0.2rem 0.15rem', borderRadius: '3px',
+                          border: `1px solid ${selectedModel === model ? '#00ff8844' : '#222'}`,
+                          background: selectedModel === model ? '#00ff8812' : 'transparent',
+                          color: selectedModel === model ? '#00ff88' : '#555',
+                          fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s',
+                        }}>{model}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {trainingPipelineStage === 'complete' && (
+                  <div className="pulse-in" style={{
+                    marginTop: '0.3rem', padding: '0.3rem', borderRadius: '4px',
+                    background: '#00ff8808', border: '1px solid #00ff8833', textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: '0.6rem', color: '#00ff88', fontWeight: 700 }}>~</div>
+                    <div style={{ fontSize: '0.45rem', color: '#00ff88', fontWeight: 600, marginTop: '0.1rem' }}>Submitted to 0G</div>
+                    <div style={{ fontSize: '0.4rem', color: '#00ff8866', marginTop: '0.1rem' }}>{selectedModel} fine-tuning job queued</div>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.2rem', marginTop: '0.3rem' }}>
+                {trainingPipelineStage === 'idle' && (
+                  <button onClick={async () => {
+                    setTrainingPipelineStage('converting');
+                    setShowTraining(true);
+                    let td = trainingData;
+                    if (!td) {
+                      const res = await fetch('/api/training-data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ receipts }),
+                      });
+                      td = await res.json();
+                      setTrainingData(td);
+                    }
+                    if (td) {
+                      const lines = td.jsonl.split('\n').filter(Boolean);
+                      const examples = lines.map((line: string) => {
+                        try {
+                          const parsed = JSON.parse(line);
+                          const msgs = parsed.messages || [];
+                          const userMsg = msgs.find((m: any) => m.role === 'user');
+                          const assistantMsg = msgs.find((m: any) => m.role === 'assistant');
+                          const systemMsg = msgs.find((m: any) => m.role === 'system');
+                          const type = systemMsg?.content?.includes('decision') ? 'decision'
+                            : systemMsg?.content?.includes('reads') ? 'file_read'
+                            : systemMsg?.content?.includes('APIs') ? 'api_call'
+                            : systemMsg?.content?.includes('outputs') ? 'output' : 'llm_call';
+                          return { input: userMsg?.content || '', output: assistantMsg?.content || '', type };
+                        } catch { return { input: '', output: '', type: 'unknown' }; }
+                      }).filter((e: any) => e.input);
+                      setTrainingExamples(examples);
+                    }
+                    await new Promise(r => setTimeout(r, 800));
+                    setTrainingPipelineStage('jsonl');
+                    await new Promise(r => setTimeout(r, 1000));
+                    setTrainingPipelineStage('uploading');
+                    await new Promise(r => setTimeout(r, 1200));
+                    setTrainingPipelineStage('training');
+                    await new Promise(r => setTimeout(r, 1500));
+                    setTrainingPipelineStage('complete');
+                  }} style={{
+                    flex: 1, padding: '0.25rem 0.3rem', borderRadius: '4px',
+                    border: '1px solid #00ff8844', background: '#00ff8812',
+                    color: '#00ff88', fontSize: '0.5rem',
+                    cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, transition: 'all 0.2s',
+                  }}>Submit to 0G Fine-Tuning</button>
+                )}
+                {trainingPipelineStage !== 'idle' && trainingPipelineStage !== 'complete' && (
+                  <div style={{
+                    flex: 1, padding: '0.25rem 0.3rem', borderRadius: '4px',
+                    border: '1px solid #00ff8822', background: '#00ff8808',
+                    color: '#00ff8888', fontSize: '0.5rem', textAlign: 'center',
+                    fontFamily: 'inherit', animation: 'training-blink 1.5s ease-in-out infinite',
+                  }}>Processing...</div>
+                )}
+                {trainingPipelineStage === 'complete' && (
+                  <button onClick={() => { setTrainingPipelineStage('idle'); setShowTraining(false); setTrainingExamples([]); }} style={{
+                    flex: 1, padding: '0.25rem 0.3rem', borderRadius: '4px',
+                    border: '1px solid #333', background: 'transparent',
+                    color: '#555', fontSize: '0.5rem', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>Reset</button>
+                )}
+              </div>
             </div>
           )}
 
@@ -1458,6 +1629,11 @@ export default function Home() {
             {agentBReceipts.map((r, i) => renderBubble(r, i, 'right'))}
           </div>
         </div>
+      </div>
+      {/* AXL P2P Network Visualization */}
+      <div style={{ flexShrink: 0, overflowY: 'auto' }}>
+        {renderAxlSection()}
+      </div>
       </div>}
 
       {/* Bottom bar */}
