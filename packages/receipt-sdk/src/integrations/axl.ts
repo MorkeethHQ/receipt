@@ -6,6 +6,7 @@ export interface AxlConfig {
 
 export interface AxlPeerInfo {
   peerId: string;
+  publicKey: string;
   peers: string[];
 }
 
@@ -21,7 +22,14 @@ export function createAxlClient(config?: AxlConfig) {
     async topology(): Promise<AxlPeerInfo> {
       const res = await fetch(`${baseUrl}/topology`);
       if (!res.ok) throw new Error(`AXL topology error: ${res.status}`);
-      return res.json() as Promise<AxlPeerInfo>;
+      const data: any = await res.json();
+      return {
+        peerId: data.our_ipv6 ?? data.peerId ?? '',
+        publicKey: data.our_public_key ?? '',
+        peers: (data.peers ?? [])
+          .filter((p: any) => p.up !== false)
+          .map((p: any) => p.public_key ?? p),
+      };
     },
 
     async send(peerId: string, data: Uint8Array): Promise<void> {
