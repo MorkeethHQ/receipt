@@ -22,9 +22,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No Base contract address configured' }, { status: 500 });
     }
 
-    const provider = new ethers.JsonRpcProvider('https://sepolia.base.org', undefined, { staticNetwork: true });
+    const network = new ethers.Network('base-sepolia', 84532);
+    const provider = new ethers.JsonRpcProvider('https://sepolia.base.org', network, { staticNetwork: true });
     const wallet = new ethers.Wallet(privateKey, provider);
-    const contract = new ethers.Contract(contractAddress, RECEIPT_ANCHOR_ABI, wallet);
+    const contract = new ethers.Contract(ethers.getAddress(contractAddress), RECEIPT_ANCHOR_ABI, wallet);
 
     const rootHashBytes = rootHash.startsWith('0x') ? rootHash : `0x${rootHash}`;
     const storageRefBytes = storageRef
