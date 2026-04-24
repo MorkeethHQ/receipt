@@ -9,6 +9,9 @@
     "dev": "cd demo/app && npm run dev"
   },
   "devDependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "solc": "^0.8.34"
   },
   "dependencies": {
