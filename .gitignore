@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+*.local
+.next
+.turbo
+cache
+typechain-types
+artifacts
+package-lock.json

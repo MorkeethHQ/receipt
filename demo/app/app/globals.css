@@ -1,0 +1,89 @@
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #2a2a2a;
+  --text: #ededed;
+  --text-dim: #888;
+  --accent: #3b82f6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --purple: #a855f7;
+  --orange: #f97316;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  min-height: 100vh;
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-8px) rotate(-0.5deg); }
+  20% { transform: translateX(6px) rotate(0.5deg); }
+  30% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  50% { transform: translateX(-2px); }
+}
+
+@keyframes fabrication-flash {
+  0% { opacity: 0; }
+  10% { opacity: 0.8; }
+  30% { opacity: 0.4; }
+  50% { opacity: 0.6; }
+  70% { opacity: 0.3; }
+  100% { opacity: 0.25; }
+}
+
+@keyframes glitch-text {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, -2px); }
+  80% { transform: translate(1px, 1px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes scan-line {
+  0% { top: -5%; }
+  100% { top: 105%; }
+}
+
+@keyframes flash-green {
+  0% { background: rgba(34, 197, 94, 0.3); }
+  100% { background: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background: rgba(239, 68, 68, 0.3); }
+  100% { background: transparent; }
+}
+
+@keyframes pulse-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes chain-break {
+  0% { border-color: var(--green); }
+  50% { border-color: var(--red); transform: scale(1.02); }
+  100% { border-color: var(--red); }
+}
+
+.screen-shake { animation: screen-shake 0.5s ease-in-out; }
+.fabrication-flash { animation: fabrication-flash 2.5s ease-out forwards; }
+.glitch-text { animation: glitch-text 0.15s infinite; }
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(transparent, rgba(239, 68, 68, 0.4), transparent);
+  animation: scan-line 0.8s linear infinite;
+  pointer-events: none;
+}
+.flash-green { animation: flash-green 0.6s ease-out; }
+.flash-red { animation: flash-red 0.6s ease-out; }
+.pulse-in { animation: pulse-in 0.3s ease-out; }
