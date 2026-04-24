@@ -265,12 +265,56 @@ export async function POST(request: Request) {
           },
         });
 
+        // === 0G Storage + Chain Anchor ===
+        await sleep(200);
+        send('status', { message: 'Storing receipt chain on 0G Storage...' });
+        let storageResult: { rootHash?: string; uploaded?: boolean } = {};
+        let anchorResult: { txHash?: string; chain?: string } = {};
+        try {
+          const chainJson = JSON.stringify(allReceipts, (_, v) => typeof v === 'bigint' ? v.toString() : v);
+          const { createHash } = await import('crypto');
+          const dataHash = createHash('sha256').update(chainJson).digest('hex');
+          storageResult = { rootHash: dataHash, uploaded: false };
+
+          const pk = process.env.PRIVATE_KEY;
+          if (pk) {
+            try {
+              const { storeChainOn0G } = await import('@receipt/sdk/integrations/0g-storage');
+              const sr = await storeChainOn0G(
+                chainJson,
+                'https://indexer-storage-testnet-turbo.0g.ai',
+                'https://evmrpc-testnet.0g.ai',
+                pk,
+              );
+              storageResult = sr;
+            } catch {}
+
+            try {
+              const { anchorOnChain } = await import('@receipt/sdk/integrations/0g-chain');
+              const ar = await anchorOnChain(rootHash, storageResult.rootHash ?? null, {
+                rpc: 'https://evmrpc.0g.ai',
+                contractAddress: process.env.OG_CONTRACT_ADDRESS ?? '',
+                privateKey: pk,
+                chainId: 16661,
+              });
+              anchorResult = { txHash: ar.txHash, chain: '0G Mainnet' };
+            } catch {}
+          }
+        } catch {}
+        send('storage', {
+          ...storageResult,
+          anchor: anchorResult,
+          chainLength: allReceipts.length,
+        });
+
         send('done', {
           receipts: allReceipts,
           agentACount: 5,
           agentBCount: 4,
           rootHash,
           fabricated: false,
+          storage: storageResult,
+          anchor: anchorResult,
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
