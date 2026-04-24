@@ -109,9 +109,9 @@ npx tsx demo/agents/builder.ts
 
 ## Contract Deployment
 
-Contract addresses (deployed during hackathon):
-- **0G Mainnet:** `TBD` (deploy pending)
-- **Base Sepolia:** `TBD` (deploy pending)
+Contract addresses (deployed fresh during hackathon):
+- **0G Mainnet:** `0x8228af81d872d027632C8f55a53EbE7bf5872667`
+- **Base Sepolia:** `0x3118063e34ED57DB38872C2f213257E7fe90010C`
 
 Wallet: `0x4fD66BdA6d792bE89d1fAeaF9F287AcaCaDBDce6`
 
