@@ -169,7 +169,7 @@ async function main() {
   // Step 4: Output
   const rb4 = agentB.produceOutput('Implementation plan', JSON.stringify({
     plan: 'Multi-chain anchoring',
-    chains: ['0G Mainnet (16661)', 'Base Sepolia (84532)'],
+    chains: ['0G Mainnet (16661)'],
     verified_handoff: true,
     received_from: bundle.agentId,
     transport: 'gensyn-axl-a2a',

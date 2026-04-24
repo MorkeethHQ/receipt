@@ -10,15 +10,16 @@ export { storeChainOn0G, computeMerkleRoot } from './integrations/0g-storage';
 export { inferWithAttestation, type ZGComputeConfig, type ZGInferenceResult } from './integrations/0g-compute';
 export { createAxlClient, AxlTransport, type AxlConfig, type AxlPeerInfo, type AxlMessage, type AxlHandoffPayload } from './integrations/axl';
 export {
-  createKeeperHubClient,
-  KeeperHubError,
-  type KeeperHubConfig,
-  type KeeperHubClient,
-  type Workflow,
-  type WorkflowNode,
-  type WorkflowEdge,
-  type WorkflowExecution,
-} from './integrations/keeperhub';
+  registerParentName,
+  registerSubname,
+  setTextRecords,
+  resolveAgent,
+  ENS_SEPOLIA,
+  type EnsConfig,
+  type AgentTextRecords,
+  type EnsRegistrationResult,
+  type ResolvedAgent,
+} from './integrations/ens-identity';
 
 export {
   listFineTuningProviders,

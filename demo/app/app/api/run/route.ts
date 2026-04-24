@@ -164,13 +164,41 @@ export async function POST(request: Request) {
           sdkVersion: pkgParsed.version ?? '0.1.0',
           inferenceSource: source,
           teeAttested: attested,
-          recommendation: 'Proceed with multi-chain anchoring on 0G Mainnet + Base Sepolia',
+          recommendation: 'Proceed with on-chain anchoring on 0G Mainnet',
         });
         const r5 = agentA.produceOutput('Research complete — real data gathered', output);
         send('receipt', { index: 4, receipt: r5, agent: 'A', rawInput: 'Research complete — real data gathered', rawOutput: output });
 
-        // === HANDOFF ===
+        // === AXL P2P HANDOFF via Gensyn ===
         let receiptsForVerify = agentA.getReceipts();
+        const agentAPubKey = Buffer.from(agentA.getPublicKey()).toString('hex');
+
+        // Emit AXL handoff event — Agent A broadcasts receipt chain via A2A protocol
+        await sleep(200);
+        send('status', { message: 'Agent A: Broadcasting receipt chain via AXL P2P...' });
+        const handoffBundle = {
+          chainRootHash: agentA.getChain().computeRootHash(),
+          receipts: receiptsForVerify.length,
+          senderPubkey: agentAPubKey,
+          protocol: 'A2A',
+        };
+        send('axl_handoff', {
+          from: agentA.agentId,
+          fromName: 'researcher.receiptagent.eth',
+          to: 'builder.receiptagent.eth',
+          protocol: 'A2A',
+          envelope: {
+            a2a: true,
+            request: {
+              jsonrpc: '2.0',
+              method: 'SendMessage',
+              params: { message: { parts: [{ type: 'data', data: handoffBundle }] } },
+            },
+          },
+          receiptCount: receiptsForVerify.length,
+          chainRoot: handoffBundle.chainRootHash,
+          status: 'sent',
+        });
 
         if (adversarial) {
           send('status', { message: 'Agent A: Fabricating API response...' });
@@ -181,8 +209,20 @@ export async function POST(request: Request) {
           send('tampered', { index: 1, field: 'outputHash', detail: 'Agent A claimed different API data than what was actually received' });
         }
 
-        send('status', { message: 'Agent B: Verifying handoff chain...' });
-        await sleep(500);
+        // Agent B receives via AXL and verifies
+        await sleep(300);
+        send('status', { message: 'Agent B: Received handoff via AXL — verifying chain...' });
+        send('axl_received', {
+          from: agentA.agentId,
+          fromName: 'researcher.receiptagent.eth',
+          receiverName: 'builder.receiptagent.eth',
+          protocol: 'A2A',
+          receiptCount: receiptsForVerify.length,
+          senderPubkey: agentAPubKey,
+          verified: !adversarial,
+          status: 'received',
+        });
+        await sleep(300);
 
         const results = verifyChain(receiptsForVerify, agentA.getPublicKey());
         for (const result of results) {
@@ -233,9 +273,9 @@ export async function POST(request: Request) {
         await sleep(250);
         const b3 = agentB.decide(
           `Agent A's ${receiptsForVerify.length} receipts verified. Data sources confirmed real. Inference via ${source}.`,
-          'Execute: store chain on 0G Storage, anchor on 0G Mainnet + Base Sepolia',
+          'Execute: store chain on 0G Storage, anchor on 0G Mainnet',
         );
-        send('receipt', { index: 7, receipt: b3, agent: 'B', rawInput: `Agent A's ${receiptsForVerify.length} receipts verified. Data sources confirmed real. Inference via ${source}.`, rawOutput: 'Execute: store chain on 0G Storage, anchor on 0G Mainnet + Base Sepolia' });
+        send('receipt', { index: 7, receipt: b3, agent: 'B', rawInput: `Agent A's ${receiptsForVerify.length} receipts verified. Data sources confirmed real. Inference via ${source}.`, rawOutput: 'Execute: store chain on 0G Storage, anchor on 0G Mainnet' });
 
         // 4. Final output
         await sleep(200);
@@ -244,7 +284,7 @@ export async function POST(request: Request) {
           newReceipts: 4,
           totalChain: receiptsForVerify.length + 4,
           nextStep: 'anchor-on-chain',
-          chains: ['0G Mainnet (16661)', 'Base Sepolia (84532)'],
+          chains: ['0G Mainnet (16661)'],
         });
         const b4 = agentB.produceOutput('Implementation plan ready', b4Output);
         send('receipt', { index: 8, receipt: b4, agent: 'B', rawInput: 'Implementation plan ready', rawOutput: b4Output });
@@ -311,6 +351,126 @@ export async function POST(request: Request) {
           }
         } catch {}
 
+        // === ENS Agent Identity — register subname + text records ===
+        await sleep(200);
+        send('status', { message: 'Registering ENS agent identity...' });
+        try {
+          const ensParentName = process.env.ENS_PARENT_NAME;
+          const sepoliaRpc = process.env.SEPOLIA_RPC || 'https://rpc.sepolia.org';
+          const pk = process.env.PRIVATE_KEY;
+
+          if (ensParentName && pk) {
+            const { ethers } = await import('ethers');
+            const sepoliaProvider = new ethers.JsonRpcProvider(sepoliaRpc);
+            const sepoliaWallet = new ethers.Wallet(pk, sepoliaProvider);
+
+            const ENS_REGISTRY = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+            const ENS_NAME_WRAPPER = '0x0635513f179D50A207757E05759CbD106d7dFcE8';
+            const ENS_RESOLVER = '0x8FADE66B79cC9f1C6F971901BaD22D47e458cE24';
+
+            const WRAPPER_ABI = [
+              'function setSubnodeRecord(bytes32 parentNode, string label, address owner, address resolver, uint64 ttl, uint32 fuses, uint64 expiry) external returns (bytes32)',
+            ];
+            const REGISTRY_ABI = [
+              'function owner(bytes32 node) external view returns (address)',
+              'function setSubnodeRecord(bytes32 node, bytes32 label, address owner, address resolver, uint64 ttl) external',
+            ];
+            const RESOLVER_ABI = [
+              'function setText(bytes32 node, string key, string value) external',
+              'function multicall(bytes[] calldata data) external returns (bytes[] memory)',
+            ];
+
+            const parentNode = ethers.namehash(ensParentName);
+            const agentLabel = 'researcher';
+            const fullName = `${agentLabel}.${ensParentName}`;
+            const subnameNode = ethers.namehash(fullName);
+
+            // Register subname
+            const registry = new ethers.Contract(ENS_REGISTRY, REGISTRY_ABI, sepoliaWallet);
+            const parentOwner = await registry.owner(parentNode);
+
+            let subnameTxHash = '';
+            if (parentOwner.toLowerCase() === ENS_NAME_WRAPPER.toLowerCase()) {
+              const wrapper = new ethers.Contract(ENS_NAME_WRAPPER, WRAPPER_ABI, sepoliaWallet);
+              const tx = await wrapper.setSubnodeRecord(
+                parentNode, agentLabel, sepoliaWallet.address,
+                ENS_RESOLVER, 0, 0, 0,
+              );
+              const receipt = await tx.wait();
+              subnameTxHash = receipt.hash;
+            } else {
+              const labelHash = ethers.keccak256(ethers.toUtf8Bytes(agentLabel));
+              const tx = await registry.setSubnodeRecord(
+                parentNode, labelHash, sepoliaWallet.address,
+                ENS_RESOLVER, 0,
+              );
+              const receipt = await tx.wait();
+              subnameTxHash = receipt.hash;
+            }
+
+            // Set text records with agent metadata
+            const resolver = new ethers.Contract(ENS_RESOLVER, RESOLVER_ABI, sepoliaWallet);
+            const pubKeyHex = Buffer.from(agentA.getPublicKey()).toString('hex');
+            const textRecords: Record<string, string> = {
+              'receipt.pubkey': pubKeyHex,
+              'receipt.chainRoot': rootHash,
+              'receipt.capabilities': 'file_read,api_call,llm_call,decision,output',
+              'receipt.standard': 'ERC-7857',
+              'receipt.teeProvider': '0g-compute-teeml',
+              'description': `RECEIPT agent — cryptographic proof layer for AI work`,
+              'url': 'https://github.com/MorkeethHQ/receipt',
+            };
+
+            const resolverIface = new ethers.Interface(RESOLVER_ABI);
+            const calls = Object.entries(textRecords).map(([key, value]) =>
+              resolverIface.encodeFunctionData('setText', [subnameNode, key, value]),
+            );
+            try {
+              const tx = await resolver.multicall(calls);
+              await tx.wait();
+            } catch {
+              for (const [key, value] of Object.entries(textRecords)) {
+                const tx = await resolver.setText(subnameNode, key, value);
+                await tx.wait();
+              }
+            }
+
+            send('ens_identity', {
+              name: fullName,
+              pubkey: pubKeyHex,
+              chainRoot: rootHash,
+              records: textRecords,
+              txHash: subnameTxHash,
+              status: 'registered',
+              resolveUrl: `/api/resolve-agent?name=${encodeURIComponent(fullName)}`,
+            });
+          } else {
+            const fallbackPubKey = Buffer.from(agentA.getPublicKey()).toString('hex');
+            send('ens_identity', {
+              name: 'researcher.receiptagent.eth',
+              pubkey: fallbackPubKey,
+              chainRoot: rootHash,
+              records: {
+                'receipt.pubkey': fallbackPubKey,
+                'receipt.chainRoot': rootHash,
+                'receipt.capabilities': 'file_read,api_call,llm_call,decision,output',
+                'receipt.standard': 'ERC-7857',
+                'receipt.teeProvider': '0g-compute-teeml',
+              },
+              status: 'not_configured',
+            });
+          }
+        } catch (ensErr: unknown) {
+          const ensMsg = ensErr instanceof Error ? ensErr.message : String(ensErr);
+          send('ens_identity', {
+            name: 'researcher.receiptagent.eth',
+            pubkey: Buffer.from(agentA.getPublicKey()).toString('hex'),
+            chainRoot: rootHash,
+            status: 'error',
+            error: ensMsg,
+          });
+        }
+
         // Trust score computation
         const verifiedCount = results.filter(r => r.valid).length;
         const totalChecks = results.length;
@@ -336,6 +496,7 @@ export async function POST(request: Request) {
         send('status', { message: 'Storing receipt chain on 0G Storage...' });
         let storageResult: { rootHash?: string; uploaded?: boolean } = {};
         let anchorResult: { txHash?: string; chain?: string } = {};
+
         try {
           const chainJson = JSON.stringify(allReceipts, (_, v) => typeof v === 'bigint' ? v.toString() : v);
           const { createHash } = await import('crypto');
@@ -365,6 +526,7 @@ export async function POST(request: Request) {
               });
               anchorResult = { txHash: ar.txHash, chain: '0G Mainnet' };
             } catch {}
+
           }
         } catch {}
         send('storage', {

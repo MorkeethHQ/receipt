@@ -34,7 +34,6 @@ interface ChainConfig {
 
 const CHAINS: ChainConfig[] = [
   { name: '0G Mainnet', rpc: 'https://evmrpc.0g.ai', chainId: 16661 },
-  { name: 'Base Sepolia', rpc: 'https://sepolia.base.org', chainId: 84532 },
 ];
 
 async function deploy(chain: ChainConfig, privateKey: string) {

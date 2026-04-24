@@ -17,6 +17,7 @@ interface Receipt {
 interface ReceiptMeta {
   llmSource?: string;
   teeAttested?: boolean;
+  teeMetadata?: { provider?: string; providerAddress?: string; teeType?: string; chatId?: string; teeSigEndpoint?: string };
   agent?: string;
   rawInput?: string;
   rawOutput?: string;
@@ -52,17 +53,20 @@ export default function Dashboard() {
   const [tamperDetails, setTamperDetails] = useState<Record<string, { index: number; field: string; detail: string }>>({});
   const [trustScore, setTrustScore] = useState<number | null>(null);
   const [statusLog, setStatusLog] = useState<string[]>([]);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   const [selectedAgent, setSelectedAgent] = useState<'A' | 'B'>('A');
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
 
-  const [anchor, setAnchor] = useState<{ txHash: string; chain: string } | null>(null);
   const [anchor0g, setAnchor0g] = useState<{ txHash: string; chain: string } | null>(null);
   const [storage, setStorage] = useState<{ rootHash?: string; uploaded?: boolean } | null>(null);
   const [anchoring, setAnchoring] = useState(false);
   const [trainingData, setTrainingData] = useState<{ jsonl: string; stats: any } | null>(null);
   const [loadingTraining, setLoadingTraining] = useState(false);
   const [agenticId, setAgenticId] = useState<{ metadataHash: string; status: string; tokenId?: string; txHash?: string } | null>(null);
+  const [ensIdentity, setEnsIdentity] = useState<{ name: string; pubkey?: string; chainRoot?: string; records?: Record<string, string>; txHash?: string; status: string; error?: string } | null>(null);
+  const [axlHandoff, setAxlHandoff] = useState<{ from?: string; fromName?: string; to?: string; protocol?: string; receiptCount?: number; chainRoot?: string; status?: string; envelope?: any } | null>(null);
+  const [axlReceived, setAxlReceived] = useState<{ fromName?: string; receiverName?: string; protocol?: string; senderPubkey?: string; verified?: boolean; status?: string } | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -104,13 +108,16 @@ export default function Dashboard() {
     setTamperDetails({});
     setChainRootHash(null);
     setExpandedReceipt(null);
-    setAnchor(null);
     setAnchor0g(null);
     setStorage(null);
     setStatusLog([]);
     setTrustScore(null);
     setTrainingData(null);
     setAgenticId(null);
+    setEnsIdentity(null);
+    setAxlHandoff(null);
+    setAxlReceived(null);
+    setPipelineError(null);
     setSelectedAgent('A');
 
     try {
@@ -152,6 +159,7 @@ export default function Dashboard() {
           [data.receipt.id]: {
             llmSource: data.llmSource,
             teeAttested: data.teeAttested,
+            teeMetadata: data.teeMetadata,
             agent: data.agent,
             rawInput: data.rawInput,
             rawOutput: data.rawOutput,
@@ -195,6 +203,18 @@ export default function Dashboard() {
       case 'agentic_id':
         setAgenticId(data);
         break;
+      case 'ens_identity':
+        setEnsIdentity(data);
+        break;
+      case 'axl_handoff':
+        setAxlHandoff(data);
+        break;
+      case 'axl_received':
+        setAxlReceived(data);
+        break;
+      case 'error':
+        setPipelineError(data.message);
+        break;
       case 'storage':
         if (data.rootHash) setStorage({ rootHash: data.rootHash, uploaded: data.uploaded });
         if (data.anchor?.txHash) setAnchor0g(data.anchor);
@@ -214,12 +234,10 @@ export default function Dashboard() {
       const storeData = await storeRes.json();
       if (storeData.rootHash) setStorage(storeData);
       const storageRef = storeData.rootHash || null;
-      const [baseRes, ogRes] = await Promise.allSettled([
-        fetch('/api/anchor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rootHash: chainRootHash, storageRef }) }).then(r => r.json()),
-        fetch('/api/anchor-0g', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rootHash: chainRootHash, storageRef }) }).then(r => r.json()),
-      ]);
-      if (baseRes.status === 'fulfilled' && baseRes.value.txHash) setAnchor(baseRes.value);
-      if (ogRes.status === 'fulfilled' && ogRes.value.txHash) setAnchor0g(ogRes.value);
+      try {
+        const ogRes = await fetch('/api/anchor-0g', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rootHash: chainRootHash, storageRef }) }).then(r => r.json());
+        if (ogRes.txHash) setAnchor0g(ogRes);
+      } catch {}
     } catch {}
     setAnchoring(false);
   }, [chainRootHash, receipts]);
@@ -301,7 +319,6 @@ export default function Dashboard() {
       setTamperedIds(new Set());
       setTamperDetails({});
       setChainRootHash(null);
-      setAnchor(null);
       setAnchor0g(null);
       setStorage(null);
       setTrustScore(null);
@@ -584,7 +601,45 @@ export default function Dashboard() {
                 Fabrication detected
               </div>
             )}
+            {pipelineError && (
+              <div style={{
+                marginTop: '0.5rem', padding: '0.4rem 0.5rem', borderRadius: '4px',
+                background: '#fef2f2', border: '1px solid #fecaca',
+                fontSize: '0.65rem', color: 'var(--red)',
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.15rem' }}>Pipeline Error</div>
+                <div style={{ ...mono, fontSize: '0.58rem', wordBreak: 'break-all' }}>{pipelineError}</div>
+              </div>
+            )}
           </div>
+
+          {/* 0G Integration Pillars */}
+          {hasData && (
+            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
+                0G Integration
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                {[
+                  { label: 'Compute', active: receipts.some(r => receiptMeta[r.id]?.llmSource === '0g-compute') },
+                  { label: 'Storage', active: !!storage?.rootHash },
+                  { label: 'Chain', active: !!anchor0g?.txHash },
+                  { label: 'Fine-Tune', active: !!trainingData },
+                  { label: 'ERC-7857', active: agenticId?.status === 'minted' },
+                ].map(p => (
+                  <div key={p.label} style={{
+                    ...mono, fontSize: '0.55rem', padding: '0.2rem 0.4rem', borderRadius: '3px',
+                    background: p.active ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg)',
+                    color: p.active ? 'var(--green)' : 'var(--text-dim)',
+                    border: `1px solid ${p.active ? 'rgba(34, 197, 94, 0.3)' : 'var(--border)'}`,
+                    fontWeight: p.active ? 600 : 400,
+                  }}>
+                    {p.active ? '✓ ' : ''}{p.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Agent Cards */}
           <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
@@ -676,7 +731,7 @@ export default function Dashboard() {
           )}
 
           {/* Anchoring Results */}
-          {(anchor || anchor0g || storage) && (
+          {(anchor0g || storage) && (
             <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
               <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.6rem' }}>
                 On-Chain Anchors
@@ -693,12 +748,97 @@ export default function Dashboard() {
                   <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--green)', wordBreak: 'break-all' }}>{anchor0g.txHash}</div>
                 </div>
               )}
-              {anchor?.txHash && (
-                <div>
-                  <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>Base Sepolia</div>
-                  <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--green)', wordBreak: 'break-all' }}>{anchor.txHash}</div>
+            </div>
+          )}
+
+          {/* AXL P2P Handoff */}
+          {(axlHandoff || axlReceived) && (
+            <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.6rem' }}>
+                Gensyn AXL Network
+              </div>
+              {/* Topology visualization */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginBottom: '0.6rem', padding: '0.5rem 0' }}>
+                {/* Agent A node */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    background: 'var(--agent-a)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
+                    boxShadow: axlHandoff ? '0 0 8px var(--agent-a)' : 'none',
+                  }}>A</div>
+                  <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+                    {axlHandoff?.fromName?.split('.')[0] || 'researcher'}
+                  </div>
                 </div>
-              )}
+
+                {/* Connection line with packet animation */}
+                <div style={{ flex: 1, position: 'relative', height: '2px', margin: '0 0.3rem' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--border)' }} />
+                  {axlHandoff && (
+                    <div style={{
+                      position: 'absolute', top: '-3px',
+                      width: '8px', height: '8px', borderRadius: '50%',
+                      background: axlReceived?.verified ? 'var(--green)' : 'var(--amber)',
+                      animation: axlReceived ? 'none' : 'none',
+                      left: axlReceived ? '100%' : '50%',
+                      transform: 'translateX(-50%)',
+                      transition: 'left 0.5s ease',
+                    }} />
+                  )}
+                  <div style={{
+                    position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)',
+                    ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
+                  }}>
+                    A2A Protocol
+                  </div>
+                </div>
+
+                {/* Agent B node */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    background: axlReceived ? 'var(--agent-b)' : 'var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
+                    boxShadow: axlReceived?.verified ? '0 0 8px var(--agent-b)' : 'none',
+                    transition: 'all 0.3s ease',
+                  }}>B</div>
+                  <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+                    {axlHandoff?.to?.split('.')[0] || 'builder'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Handoff details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.55rem' }}>
+                {axlHandoff && (
+                  <>
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <span style={{ color: 'var(--text-dim)', minWidth: '5rem' }}>Protocol</span>
+                      <span style={{ ...mono, color: 'var(--green)' }}>{axlHandoff.protocol}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <span style={{ color: 'var(--text-dim)', minWidth: '5rem' }}>Receipts</span>
+                      <span style={{ ...mono, color: 'var(--text-muted)' }}>{axlHandoff.receiptCount}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <span style={{ color: 'var(--text-dim)', minWidth: '5rem' }}>Chain Root</span>
+                      <span style={{ ...mono, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                        {axlHandoff.chainRoot ? axlHandoff.chainRoot.slice(0, 24) + '...' : '—'}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {axlReceived && (
+                  <div style={{ display: 'flex', gap: '0.3rem' }}>
+                    <span style={{ color: 'var(--text-dim)', minWidth: '5rem' }}>Verified</span>
+                    <span style={{ ...mono, color: axlReceived.verified ? 'var(--green)' : 'var(--red, #ef4444)', fontWeight: 600 }}>
+                      {axlReceived.verified ? 'Chain verified' : 'Verification failed'}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -720,6 +860,46 @@ export default function Dashboard() {
               {agenticId.txHash && (
                 <div style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
                   tx: {agenticId.txHash}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ENS Agent Identity */}
+          {ensIdentity && (
+            <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.6rem' }}>
+                ENS Agent Identity
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                <div style={{
+                  ...mono, fontSize: '0.75rem', fontWeight: 700,
+                  color: ensIdentity.status === 'registered' ? 'var(--green)' : 'var(--text-muted)',
+                }}>
+                  {ensIdentity.name}
+                </div>
+              </div>
+              {ensIdentity.records && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.3rem' }}>
+                  {Object.entries(ensIdentity.records).slice(0, 5).map(([key, value]) => (
+                    <div key={key} style={{ display: 'flex', gap: '0.3rem', fontSize: '0.55rem' }}>
+                      <span style={{ color: 'var(--text-dim)', minWidth: '7rem' }}>{key}</span>
+                      <span style={{ ...mono, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                        {String(value).length > 40 ? String(value).slice(0, 40) + '...' : value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{
+                fontSize: '0.6rem', fontWeight: 600,
+                color: ensIdentity.status === 'registered' ? 'var(--green)' : ensIdentity.status === 'error' ? 'var(--red, #ef4444)' : 'var(--amber)',
+              }}>
+                {ensIdentity.status === 'registered' ? 'Registered on Sepolia' : ensIdentity.status === 'error' ? 'Registration failed' : 'Identity computed'}
+              </div>
+              {ensIdentity.txHash && (
+                <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.15rem', wordBreak: 'break-all' }}>
+                  tx: {ensIdentity.txHash}
                 </div>
               )}
             </div>
@@ -840,10 +1020,10 @@ export default function Dashboard() {
                         </span>
                         {receipt.action.type === 'llm_call' && meta?.teeAttested && (
                           <span style={{
-                            ...mono, fontSize: '0.55rem', fontWeight: 600, padding: '0.1rem 0.35rem',
+                            ...mono, fontSize: '0.55rem', fontWeight: 700, padding: '0.1rem 0.35rem',
                             borderRadius: '3px', background: '#f0fdf4', color: 'var(--green)',
                             border: '1px solid #bbf7d0',
-                          }}>TEE TDX</span>
+                          }}>TEE VERIFIED</span>
                         )}
                         {receipt.action.type === 'llm_call' && meta?.llmSource === '0g-compute' && !meta?.teeAttested && (
                           <span style={{
@@ -935,6 +1115,15 @@ export default function Dashboard() {
                                   {c.label}: {c.ok ? 'PASS' : 'FAIL'}
                                 </span>
                               ))}
+                            </div>
+                          )}
+                          {meta?.teeMetadata && (
+                            <div style={{ marginTop: '0.4rem', padding: '0.4rem', background: '#f0fdf4', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                              <div style={{ fontWeight: 600, color: 'var(--green)', marginBottom: '0.2rem' }}>TEE Attestation</div>
+                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>provider</span>{meta.teeMetadata.provider}</div>
+                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>address</span>{meta.teeMetadata.providerAddress}</div>
+                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>teeType</span>{meta.teeMetadata.teeType}</div>
+                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>chatId</span>{meta.teeMetadata.chatId}</div>
                             </div>
                           )}
                           {isTampered && tamperDetails[receipt.id] && (
@@ -1043,7 +1232,7 @@ export default function Dashboard() {
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', gap: '0.8rem' }}>
-          {['0G Compute', '0G Storage', '0G Chain', '0G Fine-Tuning', 'ERC-7857', 'Gensyn AXL', 'KeeperHub'].map(tag => (
+          {['0G Compute', '0G Storage', '0G Chain', '0G Fine-Tuning', 'ERC-7857', 'ENS Identity', 'Gensyn AXL'].map(tag => (
             <span key={tag}>{tag}</span>
           ))}
         </div>
