@@ -27,10 +27,10 @@ export async function POST(request: Request) {
         const { ethers } = await import('ethers');
         const { Indexer } = await import('@0gfoundation/0g-ts-sdk');
 
-        const storageRpc = 'https://evmrpc-testnet.0g.ai';
+        const storageRpc = 'https://evmrpc.0g.ai';
         const storageProvider = new ethers.JsonRpcProvider(storageRpc);
         const signer = new ethers.Wallet(privateKey, storageProvider);
-        const indexer = new Indexer('https://indexer-storage-testnet-turbo.0g.ai');
+        const indexer = new Indexer('https://indexer-storage-turbo.0g.ai');
 
         const memData = new MemData(data);
         await indexer.upload(memData, storageRpc, signer);

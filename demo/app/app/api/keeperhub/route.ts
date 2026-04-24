@@ -112,8 +112,8 @@ export async function POST(request: Request) {
         try {
           const storageResult = await storeChainOn0G(
             chain.serialize(),
-            'https://indexer-storage-testnet-turbo.0g.ai',
-            'https://evmrpc-testnet.0g.ai',
+            'https://indexer-storage-turbo.0g.ai',
+            'https://evmrpc.0g.ai',
             process.env.PRIVATE_KEY ?? '',
           );
           storageRef = storageResult.rootHash || null;

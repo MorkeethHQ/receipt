@@ -33,8 +33,11 @@ export async function storeChainOn0G(
     const memData = new zgSdk.MemData(data);
     const indexer = new zgSdk.Indexer(indexerRpc);
     try {
-      await indexer.upload(memData, evmRpc, signer);
-      return { rootHash, uploaded: true };
+      const uploadResult = await indexer.upload(memData, evmRpc, signer);
+      const [tx, err] = Array.isArray(uploadResult) ? uploadResult : [uploadResult, null];
+      if (err) throw err;
+      const txHash = tx?.txHash ?? tx?.transactionHash ?? '';
+      return { rootHash, uploaded: true, txHash };
     } catch (uploadErr: unknown) {
       const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
       return { rootHash, uploaded: false, error: `Upload failed (root hash computed): ${msg}` };

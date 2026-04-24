@@ -221,6 +221,165 @@ export class AxlTransport {
     throw new Error(`Timeout waiting for AXL handoff after ${timeoutMs}ms`);
   }
 
+  /**
+   * Send a handoff bundle via A2A protocol envelope.
+   * Routes through AXL's multiplexer to the peer's A2A server.
+   */
+  async sendHandoffA2A(
+    peerId: string,
+    receipts: import('../types').Receipt[],
+    publicKey: Uint8Array,
+    bundle: HandoffBundle,
+  ): Promise<any> {
+    const payload: AxlHandoffPayload = {
+      bundle: { ...bundle, receipts },
+      senderPublicKey: publicKeyToHex(publicKey),
+    };
+
+    const a2aEnvelope = {
+      a2a: true,
+      request: {
+        jsonrpc: '2.0',
+        method: 'SendMessage',
+        id: Date.now().toString(),
+        params: {
+          message: {
+            role: 'user',
+            parts: [{
+              type: 'data',
+              data: payload,
+            }],
+          },
+        },
+      },
+    };
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(JSON.stringify(a2aEnvelope));
+
+    const res = await this.fetchSafe(`${this.baseUrl}/send`, {
+      method: 'POST',
+      headers: { 'X-Destination-Peer-Id': peerId },
+      body: data,
+    });
+    if (!res.ok) throw new Error(`AXL A2A send error: ${res.status}`);
+    return a2aEnvelope;
+  }
+
+  /**
+   * Receive a handoff via A2A protocol envelope.
+   * Unwraps the A2A envelope to extract the receipt bundle.
+   */
+  async receiveHandoffA2A(): Promise<{
+    fromPeerId: string;
+    bundle: HandoffBundle;
+    senderPublicKey: string;
+  } | null> {
+    const res = await fetch(`${this.baseUrl}/recv`);
+    if (res.status === 204 || res.status === 404) return null;
+    if (!res.ok) throw new Error(`AXL A2A recv error: ${res.status}`);
+
+    const fromPeerId = res.headers.get('X-From-Peer-Id') ?? 'unknown';
+    const raw = new Uint8Array(await res.arrayBuffer());
+    const decoder = new TextDecoder();
+    const parsed = JSON.parse(decoder.decode(raw));
+
+    // Unwrap A2A envelope
+    if (parsed.a2a && parsed.request?.params?.message?.parts) {
+      const dataPart = parsed.request.params.message.parts.find(
+        (p: any) => p.type === 'data',
+      );
+      if (dataPart?.data) {
+        const payload = dataPart.data as AxlHandoffPayload;
+        return {
+          fromPeerId,
+          bundle: payload.bundle,
+          senderPublicKey: payload.senderPublicKey,
+        };
+      }
+    }
+
+    // Unwrap standard AxlHandoffPayload
+    if (parsed.senderPublicKey && parsed.bundle) {
+      return {
+        fromPeerId,
+        bundle: parsed.bundle,
+        senderPublicKey: parsed.senderPublicKey,
+      };
+    }
+
+    // Legacy format
+    return {
+      fromPeerId,
+      bundle: parsed as HandoffBundle,
+      senderPublicKey: '',
+    };
+  }
+
+  /**
+   * Send an MCP tool call to a remote peer's MCP service.
+   * Uses the /mcp/{peer_id}/{service} endpoint for synchronous request-response.
+   */
+  async callMcpTool(
+    peerId: string,
+    service: string,
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<any> {
+    const body = {
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      id: Date.now().toString(),
+      params: {
+        name: toolName,
+        arguments: args,
+      },
+    };
+
+    const res = await this.fetchSafe(`${this.baseUrl}/mcp/${peerId}/${service}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`AXL MCP call error: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Fetch a remote peer's A2A agent card.
+   * Returns the peer's capabilities and supported skills.
+   */
+  async getAgentCard(peerId: string): Promise<any> {
+    const res = await this.fetchSafe(`${this.baseUrl}/a2a/${peerId}`);
+    if (!res.ok) throw new Error(`AXL A2A agent card error: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Broadcast a handoff bundle to ALL discovered peers via A2A.
+   * Returns results for each peer (success or error).
+   */
+  async broadcastHandoff(
+    receipts: import('../types').Receipt[],
+    publicKey: Uint8Array,
+    bundle: HandoffBundle,
+  ): Promise<{ peerId: string; success: boolean; error?: string }[]> {
+    const peers = await this.discoverPeers();
+    const results = [];
+
+    for (const peerId of peers) {
+      try {
+        await this.sendHandoffA2A(peerId, receipts, publicKey, bundle);
+        results.push({ peerId, success: true });
+      } catch (err: any) {
+        results.push({ peerId, success: false, error: err.message });
+      }
+    }
+
+    return results;
+  }
+
   /** Fetch with graceful connection error handling. */
   private async fetchSafe(url: string, init?: RequestInit): Promise<Response> {
     try {

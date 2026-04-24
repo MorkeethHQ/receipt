@@ -14,62 +14,79 @@ const PROVIDER_ADDRESSES = [
   '0x25F8f01cA76060ea40895472b1b79f76613Ca497',
 ];
 
-async function tryInfer(prompt: string): Promise<{ response: string; source: string; attested: boolean }> {
-  const privateKey = process.env.PRIVATE_KEY;
-  if (!privateKey) {
-    return { response: fallbackResponse(), source: 'simulated', attested: false };
-  }
-
-  try {
-    const { createZGComputeNetworkBroker } = await import('@0glabs/0g-serving-broker');
-    const { ethers } = await import('ethers');
-
-    const network = new ethers.Network('0g-mainnet', 16661);
-    const provider = new ethers.JsonRpcProvider('https://evmrpc.0g.ai', network, { staticNetwork: network });
-    const wallet = new ethers.Wallet(privateKey, provider);
-    const broker = await createZGComputeNetworkBroker(wallet);
-
-    for (const addr of PROVIDER_ADDRESSES) {
-      try {
-        const { endpoint, model } = await broker.inference.getServiceMetadata(addr);
-        const headers = await broker.inference.getRequestHeaders(addr);
-
-        const apiRes = await fetch(`${endpoint}/chat/completions`, {
-          method: 'POST',
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 200,
-          }),
-          signal: AbortSignal.timeout(15000),
-        });
-
-        if (!apiRes.ok) continue;
-
-        const result: any = await apiRes.json();
-        const response = result.choices?.[0]?.message?.content ?? '';
-        if (!response) continue;
-
-        let attested = false;
-        try {
-          const chatID = apiRes.headers.get('ZG-Res-Key') || result.id;
-          const usage = result.usage ? JSON.stringify(result.usage) : '';
-          attested = !!(await broker.inference.processResponse(addr, chatID, usage));
-        } catch {}
-
-        return { response, source: '0g-compute', attested };
-      } catch {
-        continue;
-      }
-    }
-  } catch {}
-
-  return { response: fallbackResponse(), source: 'simulated', attested: false };
+interface InferResult {
+  response: string;
+  source: string;
+  attested: boolean;
+  provider: string;
+  providerAddress: string;
+  teeType: string;
+  chatId: string;
+  teeSigEndpoint: string;
 }
 
-function fallbackResponse(): string {
-  return 'Analysis: The R.E.C.E.I.P.T. project implements a cryptographic proof layer using ed25519 signatures and SHA-256 hash chains. Architecture supports multi-agent verification with tamper detection. Recommended: deploy with multi-chain anchoring for maximum verifiability.';
+async function tryInfer(prompt: string): Promise<InferResult> {
+  const privateKey = process.env.PRIVATE_KEY;
+  if (!privateKey) throw new Error('PRIVATE_KEY not configured');
+
+  const { createZGComputeNetworkBroker } = await import('@0glabs/0g-serving-broker');
+  const { ethers } = await import('ethers');
+
+  const network = new ethers.Network('0g-mainnet', 16661);
+  const provider = new ethers.JsonRpcProvider('https://evmrpc.0g.ai', network, { staticNetwork: network });
+  const wallet = new ethers.Wallet(privateKey, provider);
+  const broker = await createZGComputeNetworkBroker(wallet);
+
+  const errors: string[] = [];
+  for (const addr of PROVIDER_ADDRESSES) {
+    try {
+      const { endpoint, model } = await broker.inference.getServiceMetadata(addr);
+      const headers = await broker.inference.getRequestHeaders(addr);
+
+      const apiRes = await fetch(`${endpoint}/chat/completions`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 200,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!apiRes.ok) {
+        errors.push(`${model}: HTTP ${apiRes.status}`);
+        continue;
+      }
+
+      const result: any = await apiRes.json();
+      const response = result.choices?.[0]?.message?.content ?? '';
+      if (!response) { errors.push(`${model}: empty response`); continue; }
+
+      const chatId = apiRes.headers.get('ZG-Res-Key') || result.id || '';
+      let attested = false;
+      try {
+        const usage = result.usage ? JSON.stringify(result.usage) : '';
+        attested = !!(await broker.inference.processResponse(addr, chatId, usage));
+      } catch {}
+
+      return {
+        response,
+        source: '0g-compute',
+        attested,
+        provider: model,
+        providerAddress: addr,
+        teeType: 'TeeML',
+        chatId,
+        teeSigEndpoint: `${endpoint}/signature/${chatId}?model=${encodeURIComponent(model)}`,
+      };
+    } catch (e: unknown) {
+      errors.push(`${addr.slice(0,10)}: ${e instanceof Error ? e.message : String(e)}`);
+      continue;
+    }
+  }
+
+  throw new Error(`All 0G Compute providers failed: ${errors.join('; ')}`);
 }
 
 async function fetchReal(url: string, fallback: string): Promise<string> {
@@ -122,9 +139,15 @@ export async function POST(request: Request) {
         send('status', { message: 'Agent A: Requesting 0G Compute inference...' });
         const pkgParsed = (() => { try { return JSON.parse(pkgData); } catch { return { name: '@receipt/sdk' }; } })();
         const inferPrompt = `Analyze this TypeScript SDK: ${pkgParsed.name} v${pkgParsed.version ?? '0.1.0'}. It uses ed25519 signing and SHA-256 hashing for agent receipt chains. What are the key security properties?`;
-        const { response: llmResponse, source, attested } = await tryInfer(inferPrompt);
+        const inferResult = await tryInfer(inferPrompt);
+        const { response: llmResponse, source, attested, provider: llmProvider, providerAddress, teeType, chatId, teeSigEndpoint } = inferResult;
         const r3 = agentA.callLlm(inferPrompt, llmResponse);
-        send('receipt', { index: 2, receipt: r3, agent: 'A', llmSource: source, teeAttested: attested, rawInput: inferPrompt, rawOutput: llmResponse.slice(0, 500) });
+        send('receipt', {
+          index: 2, receipt: r3, agent: 'A',
+          llmSource: source, teeAttested: attested,
+          teeMetadata: { provider: llmProvider, providerAddress, teeType, chatId, teeSigEndpoint },
+          rawInput: inferPrompt, rawOutput: llmResponse.slice(0, 500),
+        });
 
         // 4. REAL decision based on gathered data
         await sleep(300);
@@ -325,8 +348,8 @@ export async function POST(request: Request) {
               const { storeChainOn0G } = await import('@receipt/sdk/integrations/0g-storage');
               const sr = await storeChainOn0G(
                 chainJson,
-                'https://indexer-storage-testnet-turbo.0g.ai',
-                'https://evmrpc-testnet.0g.ai',
+                'https://indexer-storage-turbo.0g.ai',
+                'https://evmrpc.0g.ai',
                 pk,
               );
               storageResult = sr;

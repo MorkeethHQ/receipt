@@ -49,5 +49,6 @@ export interface AnchorResult {
 export interface StorageResult {
   rootHash: string;
   uploaded: boolean;
+  txHash?: string;
   error?: string;
 }
