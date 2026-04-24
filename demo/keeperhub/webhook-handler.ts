@@ -31,7 +31,7 @@ export async function handleWebhook(payload: WebhookPayload) {
     const storageResult = await storeChainOn0G(
       chain.serialize(),
       'https://indexer-storage-testnet-turbo.0g.ai',
-      'https://evmrpc-testnet-galileo.0g.ai',
+      'https://evmrpc-testnet.0g.ai',
       process.env.PRIVATE_KEY ?? '',
     );
     storageRef = storageResult.rootHash || null;
