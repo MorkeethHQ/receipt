@@ -18,6 +18,8 @@ interface ReceiptMeta {
   llmSource?: string;
   teeAttested?: boolean;
   agent?: string;
+  rawInput?: string;
+  rawOutput?: string;
 }
 
 interface VerificationResult {
@@ -28,6 +30,7 @@ interface VerificationResult {
 }
 
 type Phase = 'idle' | 'agentA' | 'handoff' | 'verifying' | 'agentB' | 'done';
+type ViewMode = 'demo' | 'explorer';
 
 const ACTION_LABELS: Record<string, string> = {
   file_read: 'Reading file',
@@ -46,6 +49,7 @@ const ACTION_ICONS: Record<string, string> = {
 };
 
 export default function Home() {
+  const [viewMode, setViewMode] = useState<ViewMode>('demo');
   const [phase, setPhase] = useState<Phase>('idle');
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [receiptMeta, setReceiptMeta] = useState<Record<string, ReceiptMeta>>({});
@@ -60,6 +64,11 @@ export default function Home() {
   const [storage, setStorage] = useState<{ rootHash: string; uploaded: boolean } | null>(null);
   const [adversarial, setAdversarial] = useState(false);
   const [anchoring, setAnchoring] = useState(false);
+  const [statusLog, setStatusLog] = useState<string[]>([]);
+  const [trustScore, setTrustScore] = useState<number | null>(null);
+  const [trainingData, setTrainingData] = useState<{ jsonl: string; stats: any } | null>(null);
+  const [showTraining, setShowTraining] = useState(false);
+  const [agenticId, setAgenticId] = useState<{ metadataHash: string; status: string; tokenId?: string; txHash?: string } | null>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
   const agentARef = useRef<HTMLDivElement>(null);
   const agentBRef = useRef<HTMLDivElement>(null);
@@ -88,6 +97,11 @@ export default function Home() {
     setAnchor(null);
     setAnchor0g(null);
     setStorage(null);
+    setStatusLog([]);
+    setTrustScore(null);
+    setTrainingData(null);
+    setShowTraining(false);
+    setAgenticId(null);
 
     const res = await fetch('/api/run', {
       method: 'POST',
@@ -128,7 +142,7 @@ export default function Home() {
         setReceipts((prev) => [...prev, data.receipt]);
         setReceiptMeta((prev) => ({
           ...prev,
-          [data.receipt.id]: { llmSource: data.llmSource, teeAttested: data.teeAttested, agent: data.agent },
+          [data.receipt.id]: { llmSource: data.llmSource, teeAttested: data.teeAttested, agent: data.agent, rawInput: data.rawInput, rawOutput: data.rawOutput },
         }));
         if (data.agent === 'B' && !data.isFirst) setPhase('agentB');
         break;
@@ -165,11 +179,18 @@ export default function Home() {
         break;
       case 'status':
         if (data.message?.includes('Verifying')) setPhase('handoff');
+        if (data.message) setStatusLog((prev) => [...prev.slice(-8), data.message]);
         break;
       case 'done':
         setAgentACount(data.agentACount);
         if (data.rootHash) setChainRootHash(data.rootHash);
         if (data.fabricated) setFabricationDetected(true);
+        break;
+      case 'trust_score':
+        setTrustScore(data.score);
+        break;
+      case 'agentic_id':
+        setAgenticId(data);
         break;
     }
   }, []);
@@ -206,6 +227,334 @@ export default function Home() {
     } catch {}
     setAnchoring(false);
   }, [chainRootHash, receipts]);
+
+  const formatData = (raw: string) => {
+    try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; }
+  };
+
+  const renderExplorerView = () => {
+    if (receipts.length === 0) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 160px)', color: '#333', fontSize: '0.85rem' }}>
+          Run agents to see the receipt chain explorer
+        </div>
+      );
+    }
+
+    const agents = [...new Set(receipts.map(r => r.agentId))];
+
+    return (
+      <div style={{ height: 'calc(100vh - 160px)', overflowY: 'auto', padding: '1.5rem 2rem 4rem' }}>
+        {/* Chain overview */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '0.5rem', marginBottom: '1.2rem',
+        }}>
+          {[
+            { label: 'Receipts', value: String(receipts.length), color: '#ededed' },
+            { label: 'Agents', value: String(agents.length), color: '#ededed' },
+            { label: 'Verified', value: `${verifications.filter(v => v.valid).length}/${verifications.length}`, color: verifications.length > 0 ? (verifications.every(v => v.valid) ? '#22c55e' : '#ef4444') : '#555' },
+            { label: 'Trust Score', value: trustScore !== null ? String(trustScore) : '--', color: trustScore !== null ? (trustScore >= 80 ? '#22c55e' : trustScore >= 50 ? '#f59e0b' : '#ef4444') : '#555' },
+            { label: 'Crypto', value: 'ed25519 + SHA-256', color: '#888' },
+          ].map((stat) => (
+            <div key={stat.label} style={{
+              padding: '0.6rem 0.7rem', background: '#0c0c14', borderRadius: '6px',
+              border: '1px solid #1a1a2a',
+            }}>
+              <div style={{ fontSize: '0.55rem', color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: stat.color, marginTop: '0.15rem' }}>{stat.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Root hash */}
+        {chainRootHash && (
+          <div style={{
+            marginBottom: '1.2rem', padding: '0.5rem 0.7rem', background: '#0c0c14',
+            borderRadius: '6px', border: '1px solid #1a1a2a', fontFamily: 'monospace', fontSize: '0.65rem',
+          }}>
+            <span style={{ color: '#555' }}>chain root </span>
+            <span style={{ color: '#22c55e', wordBreak: 'break-all' }}>{chainRootHash}</span>
+          </div>
+        )}
+
+        {/* Receipt chain */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {receipts.map((receipt, i) => {
+            const meta = receiptMeta[receipt.id];
+            const verification = verifications.find(v => v.receiptId === receipt.id);
+            const isTampered = tamperedIds.has(receipt.id);
+            const isHandoff = agentACount > 0 && i === agentACount;
+            const agentColor = meta?.agent === 'A' ? '#3b82f6' : '#a855f7';
+            const agentLabel = meta?.agent === 'A' ? 'Agent A · Researcher' : 'Agent B · Builder';
+
+            return (
+              <div key={receipt.id}>
+                {isHandoff && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.8rem 0', margin: '0.2rem 0',
+                  }}>
+                    <div style={{ flex: 1, height: '1px', background: `${agentColor}44` }} />
+                    <span style={{
+                      fontSize: '0.65rem', color: '#a855f7', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      padding: '0.2rem 0.6rem', borderRadius: '4px',
+                      border: '1px solid #a855f733', background: '#0c0c14',
+                    }}>
+                      Handoff verified — Agent B continues
+                    </span>
+                    <div style={{ flex: 1, height: '1px', background: `${agentColor}44` }} />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 0 }}>
+                  {/* Chain spine */}
+                  <div style={{ width: '36px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    {i > 0 && !isHandoff && <div style={{ width: '2px', height: '6px', background: isTampered ? '#ef444466' : `${agentColor}33` }} />}
+                    {isHandoff && i > 0 && <div style={{ width: '2px', height: '6px', background: '#a855f733' }} />}
+                    <div style={{
+                      width: '14px', height: '14px', borderRadius: '50%',
+                      background: isTampered ? '#ef4444' : agentColor,
+                      border: `2px solid ${isTampered ? '#ef4444' : agentColor}`,
+                      boxShadow: isTampered ? '0 0 8px rgba(239,68,68,0.5)' : `0 0 4px ${agentColor}44`,
+                      flexShrink: 0,
+                    }} />
+                    {i < receipts.length - 1 && <div style={{ width: '2px', flex: 1, minHeight: '6px', background: `${agentColor}33` }} />}
+                  </div>
+
+                  {/* Receipt block */}
+                  <div style={{
+                    flex: 1, marginBottom: '0.4rem',
+                    background: isTampered ? '#1a0808' : '#0c0c14',
+                    border: `1px solid ${isTampered ? '#ef4444' : '#1a1a2a'}`,
+                    borderRadius: '6px',
+                    animation: isTampered ? 'tamper-pulse 2s ease-in-out infinite' : 'none',
+                  }}>
+                    {/* Block header */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+                      padding: '0.5rem 0.7rem',
+                      borderBottom: '1px solid #1a1a2a',
+                    }}>
+                      <span style={{ fontSize: '0.7rem', color: '#555', fontFamily: 'monospace', fontWeight: 700 }}>#{i}</span>
+                      <span style={{
+                        fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '3px',
+                        background: `${agentColor}12`, border: `1px solid ${agentColor}33`,
+                        color: agentColor, fontWeight: 600,
+                      }}>
+                        {agentLabel}
+                      </span>
+                      <span style={{
+                        fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '3px',
+                        background: '#0a0a12', border: '1px solid #222', color: '#999', fontWeight: 500,
+                      }}>
+                        {receipt.action.type}
+                      </span>
+                      {receipt.action.type === 'llm_call' && (
+                        <span style={{
+                          fontSize: '0.55rem', padding: '0.1rem 0.4rem', borderRadius: '3px',
+                          background: meta?.teeAttested ? '#0a2a1a' : '#2a1a0a',
+                          border: `1px solid ${meta?.teeAttested ? '#22c55e' : '#f59e0b'}`,
+                          color: meta?.teeAttested ? '#22c55e' : '#f59e0b', fontWeight: 600,
+                        }}>
+                          {meta?.teeAttested ? 'TEE Intel TDX' : meta?.llmSource === '0g-compute' ? '0G Compute' : 'Simulated'}
+                        </span>
+                      )}
+                      {isTampered && (
+                        <span style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '3px', background: '#3a0a0a', border: '1px solid #ef4444', color: '#ef4444', fontWeight: 700 }}>
+                          FABRICATED
+                        </span>
+                      )}
+                      {verification && (
+                        <span style={{
+                          marginLeft: 'auto', fontSize: '0.6rem', padding: '0.15rem 0.5rem', borderRadius: '3px',
+                          background: verification.valid ? '#0a1a0a' : '#1a0808',
+                          border: `1px solid ${verification.valid ? '#22c55e33' : '#ef444444'}`,
+                          color: verification.valid ? '#22c55e' : '#ef4444', fontWeight: 600,
+                        }}>
+                          {verification.valid ? 'VERIFIED' : 'FAILED'}
+                          {verification.valid ? '' : ` — ${verification.error}`}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Block body — two columns */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                      {/* Left: cryptographic fields */}
+                      <div style={{
+                        padding: '0.5rem 0.7rem', borderRight: '1px solid #1a1a2a',
+                        fontFamily: 'monospace', fontSize: '0.6rem', lineHeight: 1.7,
+                      }}>
+                        <div><span style={{ color: '#555' }}>id        </span><span style={{ color: '#888' }}>{receipt.id}</span></div>
+                        <div><span style={{ color: '#555' }}>prevId    </span><span style={{ color: receipt.prevId ? '#666' : '#333' }}>{receipt.prevId ?? 'null'}</span></div>
+                        <div><span style={{ color: '#555' }}>agentId   </span><span style={{ color: '#666' }}>{receipt.agentId}</span></div>
+                        <div><span style={{ color: '#555' }}>time      </span><span style={{ color: '#666' }}>{new Date(receipt.timestamp).toISOString()}</span></div>
+                        <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a' }}>
+                          <div><span style={{ color: '#555' }}>inputHash </span><span style={{ color: '#888', wordBreak: 'break-all' }}>{receipt.inputHash}</span></div>
+                          <div><span style={{ color: '#555' }}>outputHash</span> <span style={{ color: isTampered ? '#ef4444' : '#888', wordBreak: 'break-all' }}>{receipt.outputHash}</span></div>
+                        </div>
+                        <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a' }}>
+                          <div><span style={{ color: '#555' }}>signature </span><span style={{ color: '#555', wordBreak: 'break-all' }}>{receipt.signature}</span></div>
+                        </div>
+                        {/* Verification checks */}
+                        {verification && (
+                          <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a', display: 'flex', gap: '0.8rem' }}>
+                            <span>sig: <span style={{ color: verification.checks.signatureValid ? '#22c55e' : '#ef4444' }}>{verification.checks.signatureValid ? 'ok' : 'FAIL'}</span></span>
+                            <span>chain: <span style={{ color: verification.checks.chainLinkValid ? '#22c55e' : '#ef4444' }}>{verification.checks.chainLinkValid ? 'ok' : 'BROKEN'}</span></span>
+                            <span>time: <span style={{ color: verification.checks.timestampValid ? '#22c55e' : '#ef4444' }}>{verification.checks.timestampValid ? 'ok' : 'FAIL'}</span></span>
+                          </div>
+                        )}
+                        {/* Chain link */}
+                        {receipt.prevId && (
+                          <div style={{ marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid #1a1a2a', color: '#444' }}>
+                            {receipt.prevId.slice(0, 8)}...
+                            <span style={{ color: agentColor }}> → </span>
+                            {receipt.id.slice(0, 8)}...
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: raw data */}
+                      <div style={{ padding: '0.5rem 0.7rem', fontSize: '0.6rem' }}>
+                        <div style={{ color: '#555', marginBottom: '0.3rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.55rem' }}>
+                          {receipt.action.description}
+                        </div>
+                        {meta?.rawInput && (
+                          <>
+                            <div style={{ color: '#444', fontSize: '0.55rem', marginBottom: '0.15rem' }}>INPUT</div>
+                            <div style={{
+                              padding: '0.3rem 0.4rem', borderRadius: '4px', background: '#080810',
+                              border: '1px solid #1a1a2a', fontFamily: 'monospace',
+                              color: '#777', maxHeight: '80px', overflowY: 'auto',
+                              whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.4, fontSize: '0.58rem',
+                            }}>
+                              {meta.rawInput}
+                            </div>
+                          </>
+                        )}
+                        {meta?.rawOutput && (
+                          <>
+                            <div style={{ color: '#444', fontSize: '0.55rem', marginTop: '0.3rem', marginBottom: '0.15rem' }}>
+                              OUTPUT <span style={{ fontWeight: 400, color: '#333' }}>→ SHA-256 → {receipt.outputHash.slice(0, 12)}...</span>
+                            </div>
+                            <div style={{
+                              padding: '0.3rem 0.4rem', borderRadius: '4px',
+                              background: isTampered ? '#1a0808' : '#080810',
+                              border: `1px solid ${isTampered ? '#ef444433' : '#1a1a2a'}`,
+                              fontFamily: 'monospace',
+                              color: isTampered ? '#ef8888' : '#777',
+                              maxHeight: '100px', overflowY: 'auto',
+                              whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.4, fontSize: '0.58rem',
+                            }}>
+                              {formatData(meta.rawOutput)}
+                            </div>
+                          </>
+                        )}
+                        {!meta?.rawInput && !meta?.rawOutput && (
+                          <div style={{ color: '#333', fontStyle: 'italic', fontSize: '0.6rem' }}>No raw data captured</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Actions bar */}
+        {phase === 'done' && (
+          <div style={{
+            marginTop: '1rem', padding: '0.7rem 0.8rem', background: '#0c0c14',
+            borderRadius: '6px', border: '1px solid #1a1a2a',
+            display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center',
+          }}>
+            {agenticId && (
+              <div style={{ padding: '0.3rem 0.6rem', background: '#080810', borderRadius: '4px', border: '1px solid #3b82f622' }}>
+                <span style={{ fontSize: '0.6rem', color: '#3b82f6', fontWeight: 600 }}>ERC-7857 </span>
+                <span style={{ fontSize: '0.55rem', color: '#555', fontFamily: 'monospace' }}>{agenticId.metadataHash.slice(0, 16)}...</span>
+              </div>
+            )}
+            {!fabricationDetected && chainRootHash && (
+              <button onClick={storeAndAnchor} disabled={anchoring} style={{
+                padding: '0.35rem 0.7rem', borderRadius: '4px', border: '1px solid #22c55e33',
+                background: 'transparent', color: anchoring ? '#444' : '#22c55e',
+                fontSize: '0.65rem', cursor: anchoring ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              }}>
+                {anchoring ? 'Anchoring...' : 'Anchor on-chain'}
+              </button>
+            )}
+            {(anchor || anchor0g || storage) && (
+              <div style={{ fontSize: '0.6rem', color: '#555' }}>
+                {storage && <span>Storage: ok | </span>}
+                {anchor0g && <span>0G: {anchor0g.txHash.slice(0, 10)}... | </span>}
+                {anchor && <span>Base: {anchor.txHash.slice(0, 10)}...</span>}
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                if (trainingData) { setShowTraining(!showTraining); return; }
+                const res = await fetch('/api/training-data', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ receipts }),
+                });
+                const d = await res.json();
+                setTrainingData(d);
+                setShowTraining(true);
+              }}
+              style={{
+                padding: '0.35rem 0.7rem', borderRadius: '4px', border: '1px solid #a855f733',
+                background: 'transparent', color: '#a855f7', fontSize: '0.65rem',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {showTraining ? 'Hide' : 'Export'} Training JSONL
+            </button>
+            <button
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(receipts, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'receipt-chain.json'; a.click();
+                URL.revokeObjectURL(url);
+              }}
+              style={{
+                padding: '0.35rem 0.7rem', borderRadius: '4px', border: '1px solid #333',
+                background: 'transparent', color: '#555', fontSize: '0.65rem',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Download JSON
+            </button>
+          </div>
+        )}
+
+        {/* Training data preview */}
+        {showTraining && trainingData && (
+          <div style={{
+            marginTop: '0.5rem', padding: '0.7rem 0.8rem', background: '#0c0c14',
+            borderRadius: '6px', border: '1px solid #a855f722',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.65rem', color: '#a855f7', fontWeight: 600 }}>0G Fine-Tuning Dataset</span>
+              <span style={{ fontSize: '0.55rem', color: '#555' }}>{trainingData.stats.total} examples · Qwen2.5 / Qwen3</span>
+            </div>
+            <div style={{
+              padding: '0.4rem', borderRadius: '4px', background: '#080810',
+              border: '1px solid #1a1a2a', fontFamily: 'monospace', fontSize: '0.55rem',
+              color: '#888', maxHeight: '160px', overflowY: 'auto', whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all', lineHeight: 1.5,
+            }}>
+              {trainingData.jsonl.split('\n').slice(0, 3).join('\n')}
+              {trainingData.stats.total > 3 && `\n... (${trainingData.stats.total - 3} more)`}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderBubble = (receipt: Receipt, i: number, side: 'left' | 'right') => {
     const meta = receiptMeta[receipt.id];
@@ -362,6 +711,31 @@ export default function Home() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {/* View tabs */}
+            <div style={{
+              display: 'flex', borderRadius: '6px', overflow: 'hidden',
+              border: '1px solid #2a2a2a', marginRight: '0.5rem',
+            }}>
+              {(['demo', 'explorer'] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  style={{
+                    padding: '0.3rem 0.7rem', border: 'none',
+                    background: viewMode === mode ? '#222' : 'transparent',
+                    color: viewMode === mode ? '#ededed' : '#555',
+                    fontSize: '0.7rem', fontFamily: 'inherit',
+                    cursor: 'pointer', fontWeight: viewMode === mode ? 600 : 400,
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <a href="/verify" style={{ fontSize: '0.7rem', color: '#555', textDecoration: 'none', borderBottom: '1px dashed #333', marginRight: '0.5rem' }}>
+              Verify
+            </a>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#888', fontSize: '0.8rem', cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -389,7 +763,9 @@ export default function Home() {
         </div>
       </header>
 
-      <div style={{
+      {viewMode === 'explorer' && renderExplorerView()}
+
+      {viewMode === 'demo' && <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         gap: 0,
@@ -441,6 +817,49 @@ export default function Home() {
           {phase === 'idle' && (
             <div style={{ color: '#333', fontSize: '0.7rem', textAlign: 'center' }}>
               Press Run to start
+            </div>
+          )}
+
+          {/* Chain linkage visualization during agent A */}
+          {phase === 'agentA' && receipts.length > 0 && (
+            <div style={{
+              width: '100%', padding: '0 0.3rem',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem',
+            }}>
+              <div style={{ fontSize: '0.55rem', color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.2rem' }}>
+                Chain
+              </div>
+              {receipts.map((r, i) => (
+                <div key={r.id} className="pulse-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: '#3b82f6', boxShadow: i === receipts.length - 1 ? '0 0 6px #3b82f6' : 'none',
+                  }} />
+                  {i < receipts.length - 1 && (
+                    <div style={{ width: '1px', height: '8px', background: '#3b82f633' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {statusLog.length > 0 && phase !== 'idle' && !fabricationDetected && phase !== 'verifying' && phase !== 'handoff' && !(phase === 'agentB' || phase === 'done') && (
+            <div style={{
+              width: '100%', padding: '0 0.3rem',
+              display: 'flex', flexDirection: 'column', gap: '0.2rem',
+            }}>
+              <div style={{ fontSize: '0.6rem', color: '#555', textAlign: 'center', marginBottom: '0.3rem' }}>
+                LIVE
+              </div>
+              {statusLog.slice(-5).map((msg, i) => (
+                <div key={i} className="pulse-in" style={{
+                  fontSize: '0.55rem', color: i === statusLog.slice(-5).length - 1 ? '#888' : '#444',
+                  textAlign: 'center', lineHeight: 1.4,
+                  transition: 'color 0.3s',
+                }}>
+                  {msg.replace(/^Agent [AB]: /, '')}
+                </div>
+              ))}
             </div>
           )}
 
@@ -535,6 +954,104 @@ export default function Home() {
               {anchor && <div>Base: tx {anchor.txHash.slice(0, 8)}...</div>}
             </div>
           )}
+
+          {/* Trust Score */}
+          {trustScore !== null && (
+            <div className="pulse-in" style={{
+              marginTop: '0.5rem', padding: '0.5rem', borderRadius: '6px',
+              background: '#0a0a14', border: `1px solid ${trustScore >= 80 ? '#22c55e33' : trustScore >= 50 ? '#f59e0b33' : '#ef444433'}`,
+              textAlign: 'center', width: '100%',
+            }}>
+              <div style={{ fontSize: '0.55rem', color: '#555', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>
+                Trust Score
+              </div>
+              <div style={{
+                fontSize: '1.4rem', fontWeight: 700,
+                color: trustScore >= 80 ? '#22c55e' : trustScore >= 50 ? '#f59e0b' : '#ef4444',
+              }}>
+                {trustScore}
+              </div>
+              <div style={{ fontSize: '0.5rem', color: '#444', marginTop: '0.2rem' }}>
+                chain + provenance + TEE
+              </div>
+            </div>
+          )}
+
+          {/* Agentic ID (ERC-7857) */}
+          {agenticId && (
+            <div className="pulse-in" style={{
+              marginTop: '0.3rem', padding: '0.4rem', borderRadius: '6px',
+              background: '#0a0a14', border: '1px solid #3b82f633',
+              textAlign: 'center', width: '100%',
+            }}>
+              <div style={{ fontSize: '0.55rem', color: '#555', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.2rem' }}>
+                Agentic ID
+              </div>
+              <div style={{ fontSize: '0.65rem', color: '#3b82f6', fontWeight: 600 }}>
+                ERC-7857
+              </div>
+              <div style={{ fontSize: '0.5rem', color: '#555', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+                {agenticId.metadataHash.slice(0, 14)}...
+              </div>
+              <div style={{
+                fontSize: '0.5rem', marginTop: '0.15rem',
+                color: agenticId.status === 'minted' ? '#22c55e' : '#f59e0b',
+              }}>
+                {agenticId.status === 'minted' ? `Minted #${agenticId.tokenId}` : 'Identity computed'}
+              </div>
+            </div>
+          )}
+
+          {/* Training Data Export */}
+          {phase === 'done' && !fabricationDetected && receipts.length > 0 && (
+            <button
+              onClick={async () => {
+                if (trainingData) { setShowTraining(!showTraining); return; }
+                const res = await fetch('/api/training-data', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ receipts }),
+                });
+                const data = await res.json();
+                setTrainingData(data);
+                setShowTraining(true);
+              }}
+              style={{
+                marginTop: '0.3rem', padding: '0.25rem 0.5rem', borderRadius: '4px',
+                border: '1px solid #a855f733', background: 'transparent',
+                color: '#a855f7', fontSize: '0.55rem',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {showTraining ? 'Hide' : 'Export'} Training Data
+            </button>
+          )}
+
+          {showTraining && trainingData && (
+            <div className="pulse-in" style={{
+              marginTop: '0.3rem', padding: '0.3rem', borderRadius: '4px',
+              background: '#0a0a14', border: '1px solid #a855f733',
+              fontSize: '0.5rem', color: '#666', textAlign: 'center',
+              width: '100%',
+            }}>
+              <div>{trainingData.stats.total} examples</div>
+              <div>JSONL for 0G Fine-Tuning</div>
+              <div style={{ color: '#a855f7' }}>Qwen2.5 / Qwen3 compatible</div>
+            </div>
+          )}
+
+          {/* Verify link */}
+          {phase === 'done' && !fabricationDetected && (
+            <a
+              href="/verify"
+              style={{
+                marginTop: '0.3rem', fontSize: '0.55rem', color: '#555',
+                textDecoration: 'none', borderBottom: '1px dashed #333',
+              }}
+            >
+              Open public verifier
+            </a>
+          )}
         </div>
 
         {/* Agent B Panel */}
@@ -612,7 +1129,7 @@ export default function Home() {
             {agentBReceipts.map((r, i) => renderBubble(r, i, 'right'))}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Bottom bar */}
       <div style={{
@@ -622,13 +1139,18 @@ export default function Home() {
         justifyContent: 'space-between', fontSize: '0.65rem', color: '#444',
       }}>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {['0G Compute', '0G Storage', '0G Chain', '0G Fine-Tuning', 'Gensyn AXL', 'KeeperHub'].map((tag) => (
+          {['0G Compute', '0G Storage', '0G Chain', '0G Fine-Tuning', '0G Agentic ID', 'Gensyn AXL', 'KeeperHub'].map((tag) => (
             <span key={tag}>{tag}</span>
           ))}
         </div>
-        <div>
-          {receipts.length > 0 && `${receipts.length} receipts`}
-          {chainRootHash && ` | root: ${chainRootHash.slice(0, 12)}...`}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {statusLog.length > 0 && phase !== 'idle' && phase !== 'done' && (
+            <span className="typing-dots" style={{ color: '#666', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {statusLog[statusLog.length - 1]}
+            </span>
+          )}
+          {receipts.length > 0 && <span>{receipts.length} receipts</span>}
+          {chainRootHash && <span>root: {chainRootHash.slice(0, 12)}...</span>}
         </div>
       </div>
     </div>
