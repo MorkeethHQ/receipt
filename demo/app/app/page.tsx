@@ -63,8 +63,12 @@ export default function Dashboard() {
   const [trainingData, setTrainingData] = useState<{ jsonl: string; stats: any } | null>(null);
   const [loadingTraining, setLoadingTraining] = useState(false);
   const [agenticId, setAgenticId] = useState<{ metadataHash: string; status: string; tokenId?: string; txHash?: string } | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
 
   const timelineRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     timelineRef.current?.scrollTo({ top: timelineRef.current.scrollHeight, behavior: 'smooth' });
@@ -244,6 +248,82 @@ export default function Dashboard() {
     a.click();
   }, [trainingData]);
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('receipt-chain');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.receipts?.length > 0) {
+          setReceipts(parsed.receipts);
+          if (parsed.agentACount) setAgentACount(parsed.agentACount);
+          if (parsed.rootHash) setChainRootHash(parsed.rootHash);
+          if (parsed.meta) setReceiptMeta(parsed.meta);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Save to localStorage when receipts change
+  useEffect(() => {
+    if (receipts.length > 0) {
+      try {
+        localStorage.setItem('receipt-chain', JSON.stringify({
+          receipts, agentACount, rootHash: chainRootHash, meta: receiptMeta,
+        }));
+      } catch {}
+    }
+  }, [receipts, agentACount, chainRootHash, receiptMeta]);
+
+  const importChain = useCallback((jsonStr: string) => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      const chain: Receipt[] = Array.isArray(parsed) ? parsed : parsed.receipts;
+      if (!chain || chain.length === 0) {
+        setImportError('No receipts found in JSON');
+        return;
+      }
+      for (const r of chain) {
+        if (!r.id || !r.signature || !r.inputHash || !r.outputHash) {
+          setImportError('Invalid receipt format — missing required fields');
+          return;
+        }
+      }
+      const agents = [...new Set(chain.map(r => r.agentId))];
+      const firstAgentId = chain[0].agentId;
+      const firstAgentCount = chain.filter(r => r.agentId === firstAgentId).length;
+
+      setReceipts(chain);
+      setReceiptMeta({});
+      setVerifications([]);
+      setAgentACount(agents.length > 1 ? firstAgentCount : chain.length);
+      setFabricationDetected(false);
+      setTamperedIds(new Set());
+      setTamperDetails({});
+      setChainRootHash(null);
+      setAnchor(null);
+      setAnchor0g(null);
+      setStorage(null);
+      setTrustScore(null);
+      setTrainingData(null);
+      setAgenticId(null);
+      setSelectedAgent('A');
+      setShowImport(false);
+      setImportText('');
+      setImportError('');
+    } catch {
+      setImportError('Invalid JSON');
+    }
+  }, []);
+
+  const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => importChain(reader.result as string);
+    reader.readAsText(file);
+  }, [importChain]);
+
   const statsA = getAgentStats(agentAReceipts, 'A');
   const statsB = getAgentStats(agentBReceipts, 'B');
 
@@ -276,7 +356,7 @@ export default function Dashboard() {
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
               Run an agent pipeline to generate cryptographically signed receipts. Every action your agents take will be recorded, hash-linked, and independently verifiable.
             </p>
-            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={adversarial} onChange={e => setAdversarial(e.target.checked)} style={{ accentColor: 'var(--red)' }} />
                 <span style={{ color: adversarial ? 'var(--red)' : 'var(--text-muted)', fontWeight: adversarial ? 600 : 400 }}>
@@ -290,6 +370,14 @@ export default function Dashboard() {
               }}>
                 Run Agent Pipeline
               </button>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>or</span>
+              <button onClick={() => setShowImport(true)} style={{
+                padding: '0.6rem 1.5rem', borderRadius: '6px',
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 500,
+              }}>
+                Import Chain
+              </button>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '2rem', marginTop: '2rem', ...mono, fontSize: '0.65rem', color: 'var(--text-dim)' }}>
@@ -299,6 +387,61 @@ export default function Dashboard() {
             <span>on-chain anchoring</span>
           </div>
         </div>
+
+        {/* Import Modal */}
+        {showImport && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }} onClick={() => setShowImport(false)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: 'var(--surface)', borderRadius: '8px', padding: '1.5rem',
+              width: '90%', maxWidth: '560px', border: '1px solid var(--border)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+            }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.3rem' }}>Import Receipt Chain</h3>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                Paste a receipt chain JSON or upload a file. The dashboard will render and verify the chain.
+              </p>
+              <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileImport}
+                style={{ display: 'none' }} />
+              <button onClick={() => fileInputRef.current?.click()} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '5px', border: '1px solid var(--border)',
+                background: 'var(--bg)', color: 'var(--text)', fontSize: '0.72rem',
+                cursor: 'pointer', fontFamily: 'inherit', marginBottom: '0.6rem',
+              }}>
+                Upload JSON file
+              </button>
+              <textarea
+                value={importText}
+                onChange={e => { setImportText(e.target.value); setImportError(''); }}
+                placeholder='[{"id":"...","agentId":"...","action":{"type":"file_read","description":"..."},...}]'
+                style={{
+                  width: '100%', height: '160px', padding: '0.6rem', borderRadius: '4px',
+                  border: '1px solid var(--border)', ...mono, fontSize: '0.65rem',
+                  resize: 'vertical', background: 'var(--bg)', color: 'var(--text)',
+                  fontFamily: mono.fontFamily,
+                }}
+              />
+              {importError && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--red)', marginTop: '0.3rem' }}>{importError}</div>
+              )}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowImport(false)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '5px', border: '1px solid var(--border)',
+                  background: 'var(--surface)', color: 'var(--text-muted)', fontSize: '0.72rem',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>Cancel</button>
+                <button onClick={() => importChain(importText)} disabled={!importText.trim()} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '5px', border: 'none',
+                  background: importText.trim() ? 'var(--text)' : 'var(--border)',
+                  color: '#fff', fontSize: '0.72rem',
+                  cursor: importText.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600,
+                }}>Import</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -335,6 +478,14 @@ export default function Dashboard() {
             <input type="checkbox" checked={adversarial} onChange={e => setAdversarial(e.target.checked)} style={{ accentColor: 'var(--red)' }} />
             <span style={{ color: adversarial ? 'var(--red)' : 'var(--text-muted)' }}>Adversarial</span>
           </label>
+          <button onClick={() => setShowImport(true)} style={{
+            padding: '0.35rem 0.8rem', borderRadius: '6px',
+            border: '1px solid var(--border)', background: 'var(--surface)',
+            color: 'var(--text)', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 500,
+          }}>
+            Import
+          </button>
           <button onClick={run} disabled={running} style={{
             padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',
             background: running ? 'var(--border)' : adversarial ? 'var(--red)' : 'var(--text)',
@@ -345,6 +496,53 @@ export default function Dashboard() {
           </button>
         </div>
       </header>
+
+      {/* Import Modal (also available in dashboard state) */}
+      {showImport && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowImport(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--surface)', borderRadius: '8px', padding: '1.5rem',
+            width: '90%', maxWidth: '560px', border: '1px solid var(--border)',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.3rem' }}>Import Receipt Chain</h3>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Paste a receipt chain JSON or upload a file.
+            </p>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileImport} style={{ display: 'none' }} />
+            <button onClick={() => fileInputRef.current?.click()} style={{
+              padding: '0.4rem 0.8rem', borderRadius: '5px', border: '1px solid var(--border)',
+              background: 'var(--bg)', color: 'var(--text)', fontSize: '0.72rem',
+              cursor: 'pointer', fontFamily: 'inherit', marginBottom: '0.6rem',
+            }}>Upload JSON file</button>
+            <textarea value={importText} onChange={e => { setImportText(e.target.value); setImportError(''); }}
+              placeholder='[{"id":"...","agentId":"...","action":{"type":"file_read","description":"..."},...}]'
+              style={{
+                width: '100%', height: '160px', padding: '0.6rem', borderRadius: '4px',
+                border: '1px solid var(--border)', ...mono, fontSize: '0.65rem',
+                resize: 'vertical', background: 'var(--bg)', color: 'var(--text)',
+                fontFamily: mono.fontFamily,
+              }} />
+            {importError && <div style={{ fontSize: '0.72rem', color: 'var(--red)', marginTop: '0.3rem' }}>{importError}</div>}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowImport(false)} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '5px', border: '1px solid var(--border)',
+                background: 'var(--surface)', color: 'var(--text-muted)', fontSize: '0.72rem',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Cancel</button>
+              <button onClick={() => importChain(importText)} disabled={!importText.trim()} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '5px', border: 'none',
+                background: importText.trim() ? 'var(--text)' : 'var(--border)',
+                color: '#fff', fontSize: '0.72rem',
+                cursor: importText.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600,
+              }}>Import</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}

@@ -7,26 +7,69 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+const PROVIDER_ADDRESSES = [
+  '0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C',
+  '0xBB3f5b0b5062CB5B3245222C5917afD1f6e13aF6',
+  '0x1B3AAef3ae5050EEE04ea38cD4B087472BD85EB0',
+  '0x25F8f01cA76060ea40895472b1b79f76613Ca497',
+];
+
 async function tryInfer(prompt: string): Promise<{ response: string; source: string; attested: boolean }> {
+  const privateKey = process.env.PRIVATE_KEY;
+  if (!privateKey) {
+    return { response: fallbackResponse(), source: 'simulated', attested: false };
+  }
+
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/infer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return { response: data.response, source: '0g-compute', attested: !!data.attested };
+    const { createZGComputeNetworkBroker } = await import('@0glabs/0g-serving-broker');
+    const { ethers } = await import('ethers');
+
+    const network = new ethers.Network('0g-mainnet', 16661);
+    const provider = new ethers.JsonRpcProvider('https://evmrpc.0g.ai', network, { staticNetwork: network });
+    const wallet = new ethers.Wallet(privateKey, provider);
+    const broker = await createZGComputeNetworkBroker(wallet);
+
+    for (const addr of PROVIDER_ADDRESSES) {
+      try {
+        const { endpoint, model } = await broker.inference.getServiceMetadata(addr);
+        const headers = await broker.inference.getRequestHeaders(addr);
+
+        const apiRes = await fetch(`${endpoint}/chat/completions`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 200,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (!apiRes.ok) continue;
+
+        const result: any = await apiRes.json();
+        const response = result.choices?.[0]?.message?.content ?? '';
+        if (!response) continue;
+
+        let attested = false;
+        try {
+          const chatID = apiRes.headers.get('ZG-Res-Key') || result.id;
+          const usage = result.usage ? JSON.stringify(result.usage) : '';
+          attested = !!(await broker.inference.processResponse(addr, chatID, usage));
+        } catch {}
+
+        return { response, source: '0g-compute', attested };
+      } catch {
+        continue;
+      }
     }
   } catch {}
-  return {
-    response: 'Analysis: The R.E.C.E.I.P.T. project implements a cryptographic proof layer using ed25519 signatures and SHA-256 hash chains. Architecture supports multi-agent verification with tamper detection. Recommended: deploy with multi-chain anchoring for maximum verifiability.',
-    source: 'simulated',
-    attested: false,
-  };
+
+  return { response: fallbackResponse(), source: 'simulated', attested: false };
+}
+
+function fallbackResponse(): string {
+  return 'Analysis: The R.E.C.E.I.P.T. project implements a cryptographic proof layer using ed25519 signatures and SHA-256 hash chains. Architecture supports multi-agent verification with tamper detection. Recommended: deploy with multi-chain anchoring for maximum verifiability.';
 }
 
 async function fetchReal(url: string, fallback: string): Promise<string> {
