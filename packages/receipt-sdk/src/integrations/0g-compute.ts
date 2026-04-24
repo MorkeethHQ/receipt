@@ -26,15 +26,17 @@ export async function inferWithAttestation(
   const wallet = new ethers.Wallet(config.privateKey, provider);
 
   const broker = await brokerModule.createZGComputeNetworkBroker(wallet);
+  const reqProcessor = broker.inference.requestProcessor;
+  const resProcessor = broker.inference.responseProcessor;
 
-  const services = await broker.getServiceMetadata();
+  const services = await reqProcessor.getServiceMetadata();
   const service = config.serviceName
     ? services.find((s: any) => s.name === config.serviceName)
     : services[0];
 
   if (!service) throw new Error('No 0G Compute service available');
 
-  const headers = await broker.getRequestHeaders(
+  const headers = await reqProcessor.getRequestHeaders(
     config.providerAddress,
     service.name,
     prompt,
@@ -56,7 +58,7 @@ export async function inferWithAttestation(
 
   let attestation: Attestation | null = null;
   try {
-    const valid = await broker.processResponse(
+    const valid = await resProcessor.processResponse(
       config.providerAddress,
       service.name,
       responseText,

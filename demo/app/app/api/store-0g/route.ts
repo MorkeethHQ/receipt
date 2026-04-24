@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 
 export const runtime = 'nodejs';
 
@@ -6,22 +7,18 @@ export async function POST(request: Request) {
   try {
     const { chainData } = await request.json();
 
-    const { MemData } = await import('@0gfoundation/0g-ts-sdk');
+    const { MerkleTree, MemData } = await import('@0gfoundation/0g-ts-sdk');
 
     const encoder = new TextEncoder();
     const data = encoder.encode(typeof chainData === 'string' ? chainData : JSON.stringify(chainData));
-    const memData = new MemData(data);
-    const [tree, treeErr] = await memData.merkleTree();
 
-    if (treeErr || !tree) {
-      return NextResponse.json({
-        rootHash: null,
-        uploaded: false,
-        error: treeErr?.message ?? 'Merkle tree computation failed',
-      });
-    }
+    const tree = new MerkleTree();
+    const hash = createHash('sha256').update(data).digest('hex');
+    tree.addLeafByHash(hash);
+    tree.build();
 
-    const rootHash = tree.rootHash();
+    const rootBuf = tree.rootHash();
+    const rootHash = Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
 
     let uploaded = false;
     try {
@@ -30,11 +27,13 @@ export async function POST(request: Request) {
         const { ethers } = await import('ethers');
         const { Indexer } = await import('@0gfoundation/0g-ts-sdk');
 
-        const provider = new ethers.JsonRpcProvider('https://evmrpc-testnet-galileo.0g.ai');
+        const evmRpc = 'https://evmrpc-testnet-galileo.0g.ai';
+        const provider = new ethers.JsonRpcProvider(evmRpc);
         const signer = new ethers.Wallet(privateKey, provider);
         const indexer = new Indexer('https://indexer-storage-testnet-turbo.0g.ai');
 
-        await indexer.upload(memData, signer);
+        const memData = new MemData(data);
+        await indexer.upload(memData, evmRpc, signer);
         uploaded = true;
       }
     } catch {

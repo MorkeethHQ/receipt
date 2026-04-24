@@ -1,5 +1,10 @@
 import type { StorageResult } from '../types';
 
+function computeHashHex(data: Uint8Array): string {
+  const { createHash } = require('crypto');
+  return createHash('sha256').update(data).digest('hex');
+}
+
 export async function storeChainOn0G(
   chainData: string,
   indexerRpc: string,
@@ -19,18 +24,16 @@ export async function storeChainOn0G(
     const encoder = new TextEncoder();
     const data = encoder.encode(chainData);
 
+    const tree = new zgSdk.MerkleTree();
+    tree.addLeafByHash(computeHashHex(data));
+    tree.build();
+    const rootBuf = tree.rootHash();
+    const rootHash = Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
+
     const memData = new zgSdk.MemData(data);
-    const [tree, treeErr] = await memData.merkleTree();
-
-    if (treeErr || !tree) {
-      return { rootHash: '', uploaded: false, error: treeErr?.message ?? 'Merkle tree computation failed' };
-    }
-
-    const rootHash: string = tree.rootHash();
-
     const indexer = new zgSdk.Indexer(indexerRpc);
     try {
-      await indexer.upload(memData, signer);
+      await indexer.upload(memData, evmRpc, signer);
       return { rootHash, uploaded: true };
     } catch (uploadErr: unknown) {
       const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
@@ -46,8 +49,11 @@ export async function computeMerkleRoot(data: string): Promise<string> {
   // @ts-ignore — optional peer dependency
   const zgSdk: any = await import('@0gfoundation/0g-ts-sdk');
   const encoder = new TextEncoder();
-  const memData = new zgSdk.MemData(encoder.encode(data));
-  const [tree, err] = await memData.merkleTree();
-  if (err || !tree) throw new Error(err?.message ?? 'Merkle tree computation failed');
-  return tree.rootHash();
+  const bytes = encoder.encode(data);
+
+  const tree = new zgSdk.MerkleTree();
+  tree.addLeafByHash(computeHashHex(bytes));
+  tree.build();
+  const rootBuf = tree.rootHash();
+  return Buffer.isBuffer(rootBuf) ? rootBuf.toString('hex') : String(rootBuf);
 }

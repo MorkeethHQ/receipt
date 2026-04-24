@@ -20,14 +20,17 @@ export async function POST(request: Request) {
     const wallet = new ethers.Wallet(privateKey, provider);
 
     const broker = await createZGComputeNetworkBroker(wallet);
-    const services = await broker.getServiceMetadata();
+    const reqProcessor = (broker as any).inference.requestProcessor;
+    const resProcessor = (broker as any).inference.responseProcessor;
+
+    const services = await reqProcessor.getServiceMetadata();
 
     if (!services.length) {
       return NextResponse.json({ error: 'No 0G Compute services available' }, { status: 503 });
     }
 
     const service = services[0];
-    const headers = await broker.getRequestHeaders(providerAddress, service.name, prompt);
+    const headers = await reqProcessor.getRequestHeaders(providerAddress, service.name, prompt);
 
     const apiRes = await fetch(`${service.url}/v1/chat/completions`, {
       method: 'POST',
@@ -40,12 +43,12 @@ export async function POST(request: Request) {
 
     if (!apiRes.ok) throw new Error(`0G Compute: ${apiRes.status}`);
 
-    const result = await apiRes.json();
+    const result: any = await apiRes.json();
     const response = result.choices?.[0]?.message?.content ?? '';
 
     let attested = false;
     try {
-      attested = await broker.processResponse(providerAddress, service.name, response, result.attestation);
+      attested = await resProcessor.processResponse(providerAddress, service.name, response, result.attestation);
     } catch {}
 
     return NextResponse.json({ response, attested, source: '0g-compute' });
