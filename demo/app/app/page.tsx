@@ -87,6 +87,7 @@ interface PersistedState {
   agentCard: any;
   axlRebroadcast: any;
   axlAdopt: any;
+  fineTuning: any;
   trainingData: any;
   fabricationDetected: boolean;
   tamperedIds: string[];
@@ -126,6 +127,7 @@ export default function Dashboard() {
   const [agentCard, setAgentCard] = useState<any>(null);
   const [axlRebroadcast, setAxlRebroadcast] = useState<any>(null);
   const [axlAdopt, setAxlAdopt] = useState<any>(null);
+  const [fineTuning, setFineTuning] = useState<any>(null);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -191,6 +193,7 @@ export default function Dashboard() {
           setAgentCard(s.agentCard || null);
           setAxlRebroadcast(s.axlRebroadcast || null);
           setAxlAdopt(s.axlAdopt || null);
+          setFineTuning(s.fineTuning || null);
           setTrainingData(s.trainingData || null);
           setFabricationDetected(s.fabricationDetected || false);
           if (s.tamperedIds?.length) setTamperedIds(new Set(s.tamperedIds));
@@ -210,7 +213,7 @@ export default function Dashboard() {
           receipts, receiptMeta, verifications, agentACount, chainRootHash,
           trustScore, anchor0g, storage, agenticId, axlHandoff,
           axlReceived, mcpToolCalls, peers, teeVerified, agentCard,
-          axlRebroadcast, axlAdopt, trainingData, fabricationDetected,
+          axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
           tamperedIds: [...tamperedIds], tamperDetails, timestamp: Date.now(),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -219,7 +222,7 @@ export default function Dashboard() {
   }, [receipts, receiptMeta, verifications, agentACount, chainRootHash,
     trustScore, anchor0g, storage, agenticId, axlHandoff,
     axlReceived, mcpToolCalls, peers, teeVerified, agentCard,
-    axlRebroadcast, axlAdopt, trainingData, fabricationDetected,
+    axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
     tamperedIds, tamperDetails, running]);
 
   // Fetch provider health on mount
@@ -310,6 +313,7 @@ export default function Dashboard() {
     setAgentCard(null);
     setAxlRebroadcast(null);
     setAxlAdopt(null);
+    setFineTuning(null);
     setPipelineError(null);
     setSelectedAgent('A');
 
@@ -420,6 +424,9 @@ case 'axl_handoff':
         break;
       case 'axl_adopt':
         setAxlAdopt(data);
+        break;
+      case 'fine_tuning':
+        setFineTuning(data);
         break;
       case 'error':
         setPipelineError(data.message);
@@ -920,7 +927,7 @@ case 'axl_handoff':
                 { label: 'Compute', active: receipts.some(r => receiptMeta[r.id]?.llmSource === '0g-compute') },
                 { label: 'Storage', active: !!storage?.rootHash },
                 { label: 'Chain', active: !!anchor0g?.txHash },
-                { label: 'Fine-Tune', active: !!trainingData },
+                { label: 'Fine-Tune', active: !!fineTuning?.task?.taskId || !!fineTuning?.dataset || !!trainingData },
                 { label: 'ERC-7857', active: agenticId?.status === 'minted' },
               ].map(p => (
                 <div key={p.label} style={{
@@ -1045,6 +1052,74 @@ case 'axl_handoff':
                 }}>
                   {loadingTraining ? 'Generating...' : 'Export Training Data'}
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* Fine-Tuning Status */}
+          {fineTuning && fineTuning.status !== 'skipped' && (
+            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
+                0G Fine-Tuning
+              </div>
+              {fineTuning.provider && (
+                <div style={{
+                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
+                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
+                }}>
+                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>Provider Found</div>
+                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    {fineTuning.provider.model || fineTuning.provider.address}
+                  </div>
+                </div>
+              )}
+              {fineTuning.dataset && (
+                <div style={{
+                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
+                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
+                }}>
+                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>Dataset Generated</div>
+                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)' }}>
+                    {fineTuning.dataset.examples} examples, {((fineTuning.dataset.sizeBytes || 0) / 1024).toFixed(1)} KB
+                  </div>
+                </div>
+              )}
+              {fineTuning.upload && (
+                <div style={{
+                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
+                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
+                }}>
+                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>Uploaded to TEE</div>
+                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    hash: {fineTuning.upload.datasetHash}
+                  </div>
+                </div>
+              )}
+              {fineTuning.task && (
+                <div style={{
+                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
+                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
+                }}>
+                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>
+                    Task: {fineTuning.task.status}
+                  </div>
+                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    ID: {fineTuning.task.taskId}
+                  </div>
+                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+                    Model: {fineTuning.task.model}
+                  </div>
+                </div>
+              )}
+              {fineTuning.status === 'no-providers' && (
+                <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--amber)' }}>
+                  No fine-tuning providers available on network
+                </div>
+              )}
+              {(fineTuning.uploadError || fineTuning.taskError) && (
+                <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--amber)', wordBreak: 'break-all' }}>
+                  {fineTuning.uploadError || fineTuning.taskError}
+                </div>
               )}
             </div>
           )}
@@ -2026,32 +2101,52 @@ case 'axl_handoff':
                 </div>
 
                 {/* Fine-Tuning Pillar */}
-                <div style={{
-                  padding: '0.6rem', borderRadius: '6px',
-                  background: trainingData ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
-                  border: `1px solid ${trainingData ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                    <span style={{ color: trainingData ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
-                      {trainingData ? '✓' : '○'}
-                    </span>
-                    <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: trainingData ? 'var(--text)' : 'var(--text-dim)' }}>Fine-Tuning</span>
-                  </div>
-                  {trainingData && (
-                    <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      <div>{trainingData.stats.total} training examples</div>
-                      <div>Format: chat-messages JSONL</div>
-                      <div>Compatible: {trainingData.stats.compatibleWith?.join(', ')}</div>
+                {(() => {
+                  const ftActive = !!fineTuning?.task?.taskId || !!fineTuning?.dataset || !!trainingData;
+                  return (
+                    <div style={{
+                      padding: '0.6rem', borderRadius: '6px',
+                      background: ftActive ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
+                      border: `1px solid ${ftActive ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
+                        <span style={{ color: ftActive ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
+                          {ftActive ? '✓' : '○'}
+                        </span>
+                        <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: ftActive ? 'var(--text)' : 'var(--text-dim)' }}>Fine-Tuning</span>
+                      </div>
+                      {fineTuning?.task && (
+                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                          <div>Task: {fineTuning.task.taskId}</div>
+                          <div>Model: {fineTuning.task.model}</div>
+                          <div>Status: {fineTuning.task.status}</div>
+                        </div>
+                      )}
+                      {!fineTuning?.task && fineTuning?.dataset && (
+                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                          <div>{fineTuning.dataset.examples} examples generated</div>
+                          <div>{((fineTuning.dataset.sizeBytes || 0) / 1024).toFixed(1)} KB</div>
+                          {fineTuning.upload && <div>TEE upload: {fineTuning.upload.datasetHash?.slice(0, 20)}...</div>}
+                          {fineTuning.uploadError && <div style={{ color: 'var(--amber)' }}>Upload: {fineTuning.uploadError.slice(0, 40)}</div>}
+                          {fineTuning.taskError && <div style={{ color: 'var(--amber)' }}>Task: {fineTuning.taskError.slice(0, 40)}</div>}
+                        </div>
+                      )}
+                      {!fineTuning?.dataset && trainingData && (
+                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                          <div>{trainingData.stats.total} training examples</div>
+                          <div>Format: chat-messages JSONL</div>
+                        </div>
+                      )}
+                      {!ftActive && hasData && (
+                        <button onClick={exportTraining} disabled={loadingTraining} style={{
+                          ...mono, fontSize: '0.45rem', padding: '0.2rem 0.4rem', borderRadius: '3px',
+                          border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-muted)',
+                          cursor: loadingTraining ? 'not-allowed' : 'pointer',
+                        }}>{loadingTraining ? 'Generating...' : 'Generate'}</button>
+                      )}
                     </div>
-                  )}
-                  {!trainingData && hasData && (
-                    <button onClick={exportTraining} disabled={loadingTraining} style={{
-                      ...mono, fontSize: '0.45rem', padding: '0.2rem 0.4rem', borderRadius: '3px',
-                      border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-muted)',
-                      cursor: loadingTraining ? 'not-allowed' : 'pointer',
-                    }}>{loadingTraining ? 'Generating...' : 'Generate'}</button>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* ERC-7857 Pillar */}
                 <div style={{

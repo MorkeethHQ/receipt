@@ -765,6 +765,109 @@ export async function POST(request: Request) {
           chainLength: allReceipts.length,
         });
 
+        // === 0G Fine-Tuning — real provider discovery + task creation ===
+        await sleep(200);
+        send('status', { message: 'Discovering 0G fine-tuning providers...' });
+        let fineTuningResult: any = { status: 'skipped' };
+        try {
+          const { listFineTuningProviders, uploadDatasetToTEE, createFineTuningTask, getFineTuningTaskStatus } = await import('@receipt/sdk/integrations/0g-fine-tuning');
+          const { chainToFineTuningDataset } = await import('@receipt/sdk/integrations/training-data');
+
+          const providers = await listFineTuningProviders('https://evmrpc.0g.ai');
+          send('status', { message: `Found ${providers.length} fine-tuning provider(s)` });
+
+          if (providers.length > 0) {
+            const provider = providers[0];
+            fineTuningResult = {
+              status: 'providers-found',
+              providerCount: providers.length,
+              provider: { address: provider.address, model: provider.model, url: provider.url },
+            };
+
+            // Generate training data from receipt chain
+            const dataset = chainToFineTuningDataset(allReceipts, agentA.agentId);
+            fineTuningResult.dataset = {
+              examples: dataset.stats.total,
+              byType: dataset.stats.byType,
+              sizeBytes: new TextEncoder().encode(dataset.jsonl).length,
+            };
+            send('status', { message: `Generated ${dataset.stats.total} training examples` });
+
+            const pk = process.env.PRIVATE_KEY;
+            if (pk) {
+              const ftConfig = {
+                evmRpc: 'https://evmrpc.0g.ai',
+                privateKey: pk,
+                providerAddress: provider.address,
+                model: provider.model || 'Qwen2.5-0.5B-Instruct',
+              };
+
+              // Write JSONL to temp file for upload
+              const fs = await import('fs');
+              const os = await import('os');
+              const path = await import('path');
+              const tmpDir = os.tmpdir();
+              const datasetPath = path.join(tmpDir, `receipt-training-${Date.now()}.jsonl`);
+              fs.writeFileSync(datasetPath, dataset.jsonl);
+
+              // Upload dataset to TEE
+              try {
+                send('status', { message: 'Uploading dataset to TEE...' });
+                const uploadResult = await uploadDatasetToTEE(ftConfig, datasetPath);
+                fineTuningResult.upload = { datasetHash: uploadResult.datasetHash, message: uploadResult.message };
+                send('status', { message: `Dataset uploaded: ${uploadResult.datasetHash.slice(0, 16)}...` });
+
+                // Create fine-tuning task
+                try {
+                  send('status', { message: 'Creating fine-tuning task...' });
+                  const trainingConfigPath = path.join(tmpDir, `receipt-ft-config-${Date.now()}.json`);
+                  fs.writeFileSync(trainingConfigPath, JSON.stringify({
+                    batch_size: 4,
+                    num_epochs: 3,
+                    learning_rate: 2e-5,
+                    model: ftConfig.model,
+                  }));
+                  const taskResult = await createFineTuningTask(ftConfig, uploadResult.datasetHash, trainingConfigPath);
+                  fineTuningResult.task = {
+                    taskId: taskResult.taskId,
+                    model: taskResult.model,
+                    status: taskResult.status,
+                  };
+                  send('status', { message: `Fine-tuning task created: ${taskResult.taskId}` });
+
+                  // Poll status once
+                  try {
+                    const taskStatus = await getFineTuningTaskStatus(ftConfig, taskResult.taskId);
+                    fineTuningResult.task.status = taskStatus.status;
+                    if (taskStatus.progress) fineTuningResult.task.progress = taskStatus.progress;
+                  } catch {}
+
+                  // Clean up temp files
+                  try { fs.unlinkSync(datasetPath); fs.unlinkSync(trainingConfigPath); } catch {}
+                } catch (taskErr: unknown) {
+                  const msg = taskErr instanceof Error ? taskErr.message : String(taskErr);
+                  fineTuningResult.taskError = msg;
+                  send('status', { message: `Fine-tuning task: ${msg.slice(0, 60)}` });
+                  try { fs.unlinkSync(datasetPath); } catch {}
+                }
+              } catch (uploadErr: unknown) {
+                const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+                fineTuningResult.uploadError = msg;
+                send('status', { message: `Dataset upload: ${msg.slice(0, 60)}` });
+                try { fs.unlinkSync(datasetPath); } catch {}
+              }
+            }
+          } else {
+            fineTuningResult = { status: 'no-providers' };
+            send('status', { message: 'No fine-tuning providers available' });
+          }
+        } catch (ftErr: unknown) {
+          const msg = ftErr instanceof Error ? ftErr.message : String(ftErr);
+          fineTuningResult = { status: 'error', error: msg };
+          send('status', { message: `Fine-tuning: ${msg.slice(0, 60)}` });
+        }
+        send('fine_tuning', fineTuningResult);
+
         send('done', {
           receipts: allReceipts,
           agentACount: 5,
@@ -773,6 +876,7 @@ export async function POST(request: Request) {
           fabricated: false,
           storage: storageResult,
           anchor: anchorResult,
+          fineTuning: fineTuningResult,
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
