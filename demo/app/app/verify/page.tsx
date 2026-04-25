@@ -325,6 +325,8 @@ export default function VerifyPage() {
   }, []);
 
   const [generatingValid, setGeneratingValid] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
 
   const loadValidExample = useCallback(async () => {
     if (ed25519Supported === false) {
@@ -489,6 +491,25 @@ export default function VerifyPage() {
     }
   };
 
+  const toggleCardExpanded = useCallback((index: number) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
+  const friendlyFailReason = (raw: string): string => {
+    const parts = raw.split(' | ');
+    return parts.map(p => {
+      if (p.includes('signature mismatch')) return 'Signature is invalid — the receipt was modified or signed with a different key';
+      if (p.includes('broken chain link')) return 'Chain link is broken — this receipt does not connect to the previous one';
+      if (p.includes('timestamp outside valid range')) return 'Timestamp is invalid — outside the acceptable range';
+      return p;
+    }).join('. ');
+  };
+
   const passCount = cards.filter(c => c.status === 'pass').length;
   const failCount = cards.filter(c => c.status === 'fail').length;
 
@@ -522,76 +543,92 @@ export default function VerifyPage() {
         <div className="verify-nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
-          <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Verify</a>
           <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
         </div>
       </nav>
 
       {/* Verify Sub-Header */}
-      <header style={{ padding: '1rem 2rem 0.8rem', borderBottom: '1px solid var(--border)' }}>
-        <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.2rem' }}>
-          Chain Verifier
+      <header style={{ padding: '1.2rem 2rem 1rem', borderBottom: '1px solid var(--border)' }}>
+        <h1 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.4rem' }}>
+          Verify agent work
         </h1>
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.72rem', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
-          Independent chain verifier — all checks run client-side, no data leaves your browser
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, maxWidth: '680px' }}>
+          Paste a chain of agent receipts below. Each receipt is cryptographically signed — we check
+          that signatures are valid, that receipts link together in order, and that nothing was modified
+          after the fact. If any receipt was tampered with, you&apos;ll see exactly which one and why.
+        </p>
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.65rem', marginTop: '0.4rem', fontFamily: 'Inter, sans-serif' }}>
+          All checks run client-side — no data leaves your browser.
         </p>
       </header>
 
       <div className="verify-container" style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem 2rem 4rem' }}>
         {/* Quick load buttons */}
-        <div className="verify-buttons" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={loadValidExample}
-            disabled={generatingValid}
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: '4px',
-              border: '1px solid var(--green)',
-              background: 'rgba(22, 163, 74, 0.06)',
-              color: 'var(--green)',
-              cursor: generatingValid ? 'wait' : 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              opacity: generatingValid ? 0.6 : 1,
-            }}
-          >
-            {generatingValid ? 'Generating...' : 'Load valid chain'}
-          </button>
-          <button
-            onClick={loadTamperedExample}
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: '4px',
-              border: '1px solid var(--red)',
-              background: 'rgba(220, 38, 38, 0.06)',
-              color: 'var(--red)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-            }}
-          >
-            Load tampered chain
-          </button>
-          {hasLastRun && (
+        <div className="verify-buttons" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             <button
-              onClick={loadLastRun}
+              onClick={loadValidExample}
+              disabled={generatingValid}
               style={{
                 padding: '0.4rem 0.8rem',
                 borderRadius: '4px',
-                border: '1px solid var(--researcher)',
-                background: 'rgba(37, 99, 235, 0.06)',
-                color: 'var(--researcher)',
+                border: '1px solid var(--green)',
+                background: 'rgba(22, 163, 74, 0.06)',
+                color: 'var(--green)',
+                cursor: generatingValid ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                opacity: generatingValid ? 0.6 : 1,
+              }}
+            >
+              {generatingValid ? 'Generating...' : 'Try a clean chain'}
+            </button>
+            <span style={{ fontSize: '0.58rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
+              (all receipts verify)
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <button
+              onClick={loadTamperedExample}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '4px',
+                border: '1px solid var(--red)',
+                background: 'rgba(220, 38, 38, 0.06)',
+                color: 'var(--red)',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: '0.7rem',
                 fontWeight: 600,
               }}
             >
-              Load last pipeline run
+              Try a tampered chain
             </button>
+            <span style={{ fontSize: '0.58rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
+              (shows where it breaks)
+            </span>
+          </div>
+          {hasLastRun && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <button
+                onClick={loadLastRun}
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  borderRadius: '4px',
+                  border: '1px solid var(--researcher)',
+                  background: 'rgba(37, 99, 235, 0.06)',
+                  color: 'var(--researcher)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                }}
+              >
+                Load last pipeline run
+              </button>
+            </div>
           )}
         </div>
 
@@ -622,57 +659,82 @@ export default function VerifyPage() {
           />
         </div>
 
-        {/* Public key + verify button */}
+        {/* Verify button */}
+        <div style={{ marginBottom: '0.75rem' }}>
+          <button
+            onClick={verify}
+            disabled={phase === 'verifying' || !input.trim()}
+            style={{
+              padding: '0.55rem 1.8rem',
+              borderRadius: '4px',
+              border: 'none',
+              background: phase === 'verifying' || !input.trim() ? 'var(--border)' : 'var(--researcher)',
+              color: '#fff',
+              cursor: phase === 'verifying' || !input.trim() ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {phase === 'verifying' ? 'Verifying...' : 'Verify Chain'}
+          </button>
+        </div>
+
+        {/* Advanced options toggle */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Public Key (hex, optional)
-          </label>
-          <div className="verify-input-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <input
-              type="text"
-              value={publicKeyHex}
-              onChange={(e) => setPublicKeyHex(e.target.value)}
-              placeholder="64 hex chars — leave empty to skip signature verification"
-              style={{
-                flex: 1,
-                background: 'var(--paper)',
-                color: 'var(--text)',
-                border: '1px solid var(--border)',
-                borderRadius: '4px',
-                padding: '0.5rem 0.8rem',
-                fontFamily: 'inherit',
-                fontSize: '0.72rem',
-                outline: 'none',
-              }}
-            />
-            <button
-              onClick={verify}
-              disabled={phase === 'verifying' || !input.trim()}
-              style={{
-                padding: '0.5rem 1.5rem',
-                borderRadius: '4px',
-                border: 'none',
-                background: phase === 'verifying' || !input.trim() ? 'var(--border)' : 'var(--researcher)',
-                color: '#fff',
-                cursor: phase === 'verifying' || !input.trim() ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {phase === 'verifying' ? 'Verifying...' : 'Verify Chain'}
-            </button>
-          </div>
-          {ed25519Supported === false && (
-            <div style={{ fontSize: '0.62rem', color: 'var(--amber)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
-              Your browser does not support Ed25519 in WebCrypto. Signature checks will be skipped. Use Chrome 113+ or Edge 113+.
-            </div>
-          )}
-          {!publicKeyHex.trim() && ed25519Supported && (
-            <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
-              Without a public key, only chain link and timestamp checks will run.
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-dim)',
+              cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '0.65rem',
+              padding: '0.2rem 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+            }}
+          >
+            <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)', fontSize: '0.55rem' }}>&#9654;</span>
+            Advanced options
+          </button>
+          {showAdvanced && (
+            <div style={{ marginTop: '0.5rem', paddingLeft: '0.2rem' }}>
+              <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Public Key (hex, optional)
+              </label>
+              <input
+                type="text"
+                value={publicKeyHex}
+                onChange={(e) => setPublicKeyHex(e.target.value)}
+                placeholder="64 hex chars — leave empty to skip signature verification"
+                style={{
+                  width: '100%',
+                  maxWidth: '500px',
+                  background: 'var(--paper)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  padding: '0.5rem 0.8rem',
+                  fontFamily: 'inherit',
+                  fontSize: '0.72rem',
+                  outline: 'none',
+                }}
+              />
+              {ed25519Supported === false && (
+                <div style={{ fontSize: '0.62rem', color: 'var(--amber)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
+                  Your browser does not support Ed25519 in WebCrypto. Signature checks will be skipped. Use Chrome 113+ or Edge 113+.
+                </div>
+              )}
+              {!publicKeyHex.trim() && ed25519Supported && (
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
+                  Without a public key, only chain link and timestamp checks will run.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -719,7 +781,7 @@ export default function VerifyPage() {
                     color: chainValid ? 'var(--green)' : 'var(--red)',
                     letterSpacing: '0.06em',
                   }}>
-                    {chainValid ? 'CHAIN VALID' : 'CHAIN BROKEN'}
+                    {chainValid ? 'ALL RECEIPTS VERIFIED' : 'VERIFICATION FAILED'}
                   </span>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>
                     {passCount}/{cards.length} receipts passed &middot; {elapsedMs}ms
@@ -727,7 +789,7 @@ export default function VerifyPage() {
                 </div>
                 {rootHash && (
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>
-                    root: {rootHash.slice(0, 16)}...{rootHash.slice(-8)}
+                    Chain fingerprint: {rootHash.slice(0, 16)}...{rootHash.slice(-8)}
                   </div>
                 )}
               </div>
@@ -749,7 +811,7 @@ export default function VerifyPage() {
               </div>
             )}
 
-            {/* Root hash */}
+            {/* Chain fingerprint (root hash) */}
             {phase === 'done' && rootHash && (
               <div className="slide-up" style={{
                 padding: '0.5rem 0.8rem',
@@ -761,14 +823,32 @@ export default function VerifyPage() {
                 color: 'var(--text-dim)',
                 wordBreak: 'break-all',
               }}>
-                <span style={{ color: 'var(--text)', fontWeight: 600 }}>Root Hash: </span>
+                <span style={{ color: 'var(--text)', fontWeight: 600 }}>Chain fingerprint: </span>
                 {rootHash}
               </div>
             )}
 
             {/* Receipt cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {cards.map((card) => (
+              {cards.map((card) => {
+                const isExpanded = expandedCards.has(card.index);
+                const actionLabel = ACTION_LABELS[card.receipt.action.type] || card.receipt.action.type;
+                const statusLabel = card.status === 'pass' ? 'verified' :
+                                    card.status === 'fail' ? 'FAILED' :
+                                    card.status === 'checking' ? 'checking...' : 'waiting';
+
+                // Try to parse usefulness score from outputHash for usefulness_review receipts
+                let usefulnessScore: number | null = null;
+                if (card.receipt.action.type === 'usefulness_review') {
+                  try {
+                    const parsed = JSON.parse(card.receipt.action.description.includes('score') ? card.receipt.action.description : '{}');
+                    if (parsed.composite) usefulnessScore = parsed.composite;
+                  } catch {
+                    // not parseable, skip
+                  }
+                }
+
+                return (
                 <div
                   key={card.receipt.id}
                   className={card.status === 'pass' || card.status === 'fail' ? 'slide-up' : ''}
@@ -788,9 +868,9 @@ export default function VerifyPage() {
                     ...(card.status === 'fail' ? { animation: 'shake 0.5s ease-out' } : {}),
                   }}
                 >
-                  {/* Card header */}
+                  {/* Primary line: Receipt #N: [action] — status */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.3rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{
                         width: '1.4rem',
                         height: '1.4rem',
@@ -800,6 +880,7 @@ export default function VerifyPage() {
                         justifyContent: 'center',
                         fontSize: '0.7rem',
                         fontWeight: 700,
+                        flexShrink: 0,
                         background: card.status === 'fail' ? 'rgba(220, 38, 38, 0.1)' :
                                     card.status === 'pass' ? 'rgba(22, 163, 74, 0.1)' :
                                     card.status === 'checking' ? 'rgba(217, 119, 6, 0.1)' : 'var(--surface)',
@@ -814,62 +895,64 @@ export default function VerifyPage() {
                       }}>
                         {card.status === 'fail' ? '✕' :
                          card.status === 'pass' ? '✓' :
+                         card.status === 'checking' ? '' :
                          card.index + 1}
                       </span>
-                      <div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text)' }}>
-                          {ACTION_LABELS[card.receipt.action.type] || card.receipt.action.type}
-                        </span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginLeft: '0.5rem', fontFamily: 'Inter, sans-serif' }}>
-                          {card.receipt.action.description}
-                        </span>
-                      </div>
+                      <span style={{ fontSize: '0.74rem', fontFamily: 'Inter, sans-serif' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>Receipt #{card.index + 1}: {actionLabel}</span>
+                        <span style={{ margin: '0 0.4rem', color: 'var(--text-dim)' }}>&mdash;</span>
+                        {card.status === 'checking' ? (
+                          <span className="typing-indicator" style={{ color: 'var(--amber)', fontSize: '0.7rem' }}></span>
+                        ) : (
+                          <span style={{
+                            fontWeight: card.status === 'fail' ? 700 : 600,
+                            color: card.status === 'pass' ? 'var(--green)' :
+                                   card.status === 'fail' ? 'var(--red)' : 'var(--text-dim)',
+                          }}>
+                            {statusLabel}
+                          </span>
+                        )}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '0.58rem', color: 'var(--text-dim)' }}>
-                      {card.receipt.id.slice(0, 16)}...
-                    </span>
+                    {/* Expand/collapse button */}
+                    {(card.status === 'pass' || card.status === 'fail') && (
+                      <button
+                        onClick={() => toggleCardExpanded(card.index)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-dim)',
+                          cursor: 'pointer',
+                          fontSize: '0.6rem',
+                          fontFamily: 'Inter, sans-serif',
+                          padding: '0.15rem 0.3rem',
+                          borderRadius: '2px',
+                        }}
+                      >
+                        {isExpanded ? 'hide details' : 'details'}
+                      </button>
+                    )}
                   </div>
 
-                  {/* Three check columns */}
-                  <div className="verify-card-checks" style={{
-                    display: 'flex',
-                    gap: '1.2rem',
-                    marginTop: '0.5rem',
-                    paddingLeft: '2rem',
-                    fontSize: '0.65rem',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <span style={{ color: 'var(--text-dim)', width: '3rem' }}>sig:</span>
-                      {checkStatusIcon(card.checks.signature)}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <span style={{ color: 'var(--text-dim)', width: '3rem' }}>chain:</span>
-                      {checkStatusIcon(card.checks.chainLink)}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <span style={{ color: 'var(--text-dim)', width: '3rem' }}>time:</span>
-                      {checkStatusIcon(card.checks.timestamp)}
-                    </div>
-                  </div>
-
-                  {/* Failure reason */}
+                  {/* Failure reason — always visible in plain english */}
                   {card.checks.failReason && (
                     <div style={{
-                      marginTop: '0.4rem',
-                      paddingLeft: '2rem',
-                      fontSize: '0.62rem',
+                      marginTop: '0.35rem',
+                      paddingLeft: '1.9rem',
+                      fontSize: '0.68rem',
                       color: 'var(--red)',
                       fontFamily: 'Inter, sans-serif',
+                      lineHeight: 1.5,
                     }}>
-                      {card.checks.failReason}
+                      {friendlyFailReason(card.checks.failReason)}
                     </div>
                   )}
 
                   {/* Attestation badge */}
                   {card.receipt.attestation && (
                     <div style={{
-                      marginTop: '0.4rem',
-                      paddingLeft: '2rem',
+                      marginTop: '0.35rem',
+                      paddingLeft: '1.9rem',
                       fontSize: '0.58rem',
                       color: 'var(--text-dim)',
                     }}>
@@ -888,9 +971,13 @@ export default function VerifyPage() {
                   {/* Usefulness review badge */}
                   {card.receipt.action.type === 'usefulness_review' && (
                     <div style={{
-                      marginTop: '0.4rem',
-                      paddingLeft: '2rem',
+                      marginTop: '0.35rem',
+                      paddingLeft: '1.9rem',
                       fontSize: '0.58rem',
+                      display: 'flex',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
                     }}>
                       <span style={{
                         padding: '0.15rem 0.5rem',
@@ -901,17 +988,76 @@ export default function VerifyPage() {
                         color: 'var(--green)',
                         fontWeight: 600,
                       }}>
-                        Layer 2: Proof of Usefulness
+                        Proof of Usefulness
                       </span>
+                      {usefulnessScore !== null && (
+                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>
+                          Quality score: {usefulnessScore}/100 (stored on-chain)
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Expandable details section */}
+                  {isExpanded && (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      paddingLeft: '1.9rem',
+                      paddingTop: '0.5rem',
+                      borderTop: '1px dashed var(--border-dashed)',
+                    }}>
+                      {/* Check details */}
+                      <div className="verify-card-checks" style={{
+                        display: 'flex',
+                        gap: '1.2rem',
+                        fontSize: '0.65rem',
+                        marginBottom: '0.4rem',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ color: 'var(--text-dim)', width: '3.5rem' }}>sig:</span>
+                          {checkStatusIcon(card.checks.signature)}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ color: 'var(--text-dim)', width: '3.5rem' }}>chain:</span>
+                          {checkStatusIcon(card.checks.chainLink)}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ color: 'var(--text-dim)', width: '3.5rem' }}>time:</span>
+                          {checkStatusIcon(card.checks.timestamp)}
+                        </div>
+                      </div>
+                      {/* Description */}
+                      <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', marginBottom: '0.3rem' }}>
+                        {card.receipt.action.description}
+                      </div>
+                      {/* Hashes */}
+                      <div style={{ fontSize: '0.56rem', color: 'var(--text-dim)', wordBreak: 'break-all', lineHeight: 1.6 }}>
+                        <div><span style={{ color: 'var(--text-muted)' }}>ID:</span> {card.receipt.id}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Agent:</span> {card.receipt.agentId}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Input hash:</span> {card.receipt.inputHash}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Output hash:</span> {card.receipt.outputHash}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Signature:</span> {card.receipt.signature.slice(0, 32)}...{card.receipt.signature.slice(-16)}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Timestamp:</span> {new Date(card.receipt.timestamp).toISOString()}</div>
+                        {card.receipt.prevId && (
+                          <div><span style={{ color: 'var(--text-muted)' }}>Prev ID:</span> {card.receipt.prevId}</div>
+                        )}
+                      </div>
+                      {/* Raw fail reason if present */}
+                      {card.checks.failReason && (
+                        <div style={{ fontSize: '0.56rem', color: 'var(--red)', marginTop: '0.3rem', fontStyle: 'italic' }}>
+                          Raw: {card.checks.failReason}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Idle state — explain what this page does */}
+        {/* Idle state — nudge to try examples */}
         {phase === 'idle' && cards.length === 0 && !input.trim() && (
           <div style={{
             marginTop: '2rem',
@@ -921,21 +1067,60 @@ export default function VerifyPage() {
             borderRadius: '4px',
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem' }}>
-              Independent Chain Verification
-            </div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '500px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
-              Paste any receipt chain JSON to verify its integrity. Each receipt is checked for
-              valid ed25519 signatures, unbroken hash links, and monotonic timestamps.
-              Everything runs in your browser — nothing is sent to any server.
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '460px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+              Paste a receipt chain above, or try one of the examples to see verification in action.
             </p>
             <div style={{
               marginTop: '1rem',
               display: 'flex',
-              gap: '0.5rem',
+              gap: '0.75rem',
               justifyContent: 'center',
               flexWrap: 'wrap',
             }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <button
+                  onClick={loadValidExample}
+                  disabled={generatingValid}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--green)',
+                    background: 'rgba(22, 163, 74, 0.06)',
+                    color: 'var(--green)',
+                    cursor: generatingValid ? 'wait' : 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    opacity: generatingValid ? 0.6 : 1,
+                  }}
+                >
+                  {generatingValid ? 'Generating...' : 'Try a clean chain'}
+                </button>
+                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
+                  (all receipts verify)
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <button
+                  onClick={loadTamperedExample}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--red)',
+                    background: 'rgba(220, 38, 38, 0.06)',
+                    color: 'var(--red)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Try a tampered chain
+                </button>
+                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
+                  (shows where it breaks)
+                </span>
+              </div>
               {hasLastRun && (
                 <button
                   onClick={loadLastRun}
@@ -954,22 +1139,6 @@ export default function VerifyPage() {
                   Load last pipeline run
                 </button>
               )}
-              <button
-                onClick={loadTamperedExample}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '4px',
-                  border: '1px solid var(--red)',
-                  background: 'rgba(220, 38, 38, 0.06)',
-                  color: 'var(--red)',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: '0.68rem',
-                  fontWeight: 600,
-                }}
-              >
-                Load example (tampered)
-              </button>
             </div>
           </div>
         )}

@@ -78,10 +78,10 @@ const ACTION_LABELS: Record<string, string> = {
 const STEP_DESCRIPTIONS: Record<string, string> = {
   file_read: 'Reading project manifest and hashing contents with SHA-256',
   api_call: 'Fetching live data from GitHub API',
-  llm_call: 'Running inference via 0G Compute (TEE-attested)',
+  llm_call: 'Running verified inference',
   decision: 'Analyzing gathered data and making a judgment',
   output: 'Producing final summary with cryptographic proof',
-  usefulness_review: 'TEE-attested quality assessment of the full chain',
+  usefulness_review: 'Hardware-verified quality assessment of the full chain',
 };
 
 /* ------------------------------------------------------------------ */
@@ -99,16 +99,16 @@ function getNarrative(event: string, data: any): string {
         return `${name} queried an external service. Both the request and response are hashed -- the receipt proves exactly what data was returned, even if the source changes later.`;
       case 'llm_call':
         return data.teeAttested
-          ? `The TEE attestation means 0G's trusted execution environment (Intel TDX) verified this inference was real, not simulated. The signature endpoint can be independently checked.`
-          : `${name} ran LLM inference. The prompt and response are hashed into the receipt. With TEE attestation, even the model execution is verified.`;
+          ? `This inference was hardware-verified -- a trusted execution environment confirmed it was real, not simulated. The cryptographic signature can be independently checked.`
+          : `${name} ran LLM inference. The prompt and response are hashed into the receipt. With hardware verification, even the model execution is proven.`;
       case 'decision':
         return `Notice the previousHash field -- it chains back to the last receipt, creating a tamper-evident linked list. ${name}'s reasoning is captured and signed, so you can audit exactly why this path was chosen.`;
       case 'output':
         return `${name} produced its deliverable. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
       case 'usefulness_review':
         return data.teeAttested
-          ? `The Builder scored the chain's usefulness inside a TEE. The review itself is a signed receipt — proving the quality assessment is trustworthy, not just the actions.`
-          : `The Builder reviewed the chain's output quality. Three scores — alignment, substance, quality — are hashed into this receipt. Layer 2: proof of usefulness.`;
+          ? `The Builder scored the chain's usefulness inside a hardware-verified environment. The review itself is a signed receipt -- proving the quality assessment is trustworthy, not just the actions.`
+          : `The Builder reviewed the chain's output quality. Three scores -- alignment, substance, quality -- are hashed into this receipt. Layer 2: proof of usefulness.`;
       default:
         return `${name}: ${data.receipt.action.description}`;
     }
@@ -117,41 +117,41 @@ function getNarrative(event: string, data: any): string {
     if (data.message?.includes('Verifying') || data.message?.includes('verifying'))
       return 'The Builder received the Researcher\'s full receipt chain. Before doing any work, it independently verifies every single receipt -- checking signatures, hash links, and timestamps.';
     if (data.message?.includes('Fabricating'))
-      return 'The Researcher is about to lie. It will modify the contract verification data after signing the receipt. The ed25519 signature was computed on the original data -- the modified hash won\'t match.';
+      return 'The Researcher is about to lie. It will modify the contract verification data after signing the receipt. The cryptographic signature was computed on the original data -- the modified hash won\'t match.';
     if (data.message?.includes('Broadcasting') || data.message?.includes('Handing off'))
-      return 'The Researcher sends its receipt chain to the Builder via AXL peer-to-peer. The bundle includes the chain root hash, receipt count, and sender public key.';
+      return 'The Researcher sends its receipt chain to the Builder. The bundle includes the chain root hash, receipt count, and sender public key.';
     if (data.message?.includes('0G Storage'))
-      return 'The verified receipt chain is being stored on 0G decentralized storage. This creates a permanent, tamper-proof record.';
+      return 'The verified receipt chain is being stored permanently. This creates a tamper-proof record.';
     return '';
   }
   if (event === 'verified') {
     return data.result.valid
-      ? `Receipt verified: ed25519 signature matches the data, hash links to the previous receipt, timestamp is valid. This action is authentic.`
-      : `VERIFICATION FAILED. The ed25519 signature does not match the receipt data. Someone modified this receipt after it was signed.`;
+      ? `Receipt verified: cryptographic signature matches the data, linked to the previous receipt, timestamp is valid. This action is authentic.`
+      : `VERIFICATION FAILED. The cryptographic signature does not match the receipt data. Someone modified this receipt after it was signed.`;
   }
   if (event === 'fabrication_detected') {
-    return `CAUGHT. The output hash doesn't match the ed25519 signature. SHA-256 of the actual data differs from what the Researcher signed. The Builder rejects the entire handoff -- no fabricated data gets through.`;
+    return `CAUGHT. The output hash doesn't match the cryptographic signature. SHA-256 of the actual data differs from what the Researcher signed. The Builder rejects the entire handoff -- no fabricated data gets through.`;
   }
   if (event === 'axl_handoff') {
-    return 'The Researcher is sending its full receipt chain to the Builder via AXL peer-to-peer protocol. The handoff includes the chain root hash, receipt count, and sender public key.';
+    return 'The Researcher is handing off its full receipt chain to the Builder. The handoff includes the chain root hash, receipt count, and sender public key.';
   }
   if (event === 'axl_received') {
-    return 'The Builder has received the receipt bundle via AXL. It will now independently verify every receipt in the chain before accepting the handoff.';
+    return 'The Builder has received the receipt chain. It will now independently verify every receipt before accepting the handoff.';
   }
   if (event === 'axl_rebroadcast') {
-    return 'The Builder re-broadcasts the extended receipt chain to the AXL network. Other peers can now see the combined work of both agents.';
+    return 'The Builder extends the receipt chain with its own work. Other agents can now see the combined work of both agents.';
   }
   if (event === 'axl_adopt') {
-    return 'The Researcher adopts the extended chain from the Builder. The receipt chain now includes both agents\' work as a single verifiable history.';
+    return 'The chain is updated with the Builder\'s work. The receipt chain now includes both agents\' contributions as a single verifiable history.';
   }
   if (event === 'agent_card') {
     return `Agent card discovered: ${data.name || data.agentName || 'peer'}. Capabilities and public key exchanged via A2A protocol.`;
   }
   if (event === 'tee_verified') {
-    return `TEE attestation independently verified via ${data.verificationMethod || 'Intel TDX'}. The inference response is cryptographically proven to have executed inside a secure enclave.`;
+    return `Inference hardware-verified via ${data.verificationMethod || 'Intel TDX'}. The response is cryptographically proven to have executed inside a secure enclave.`;
   }
   if (event === 'mcp_tool_call') {
-    return `The Builder invoked verify_chain via MCP tool protocol. This is how agents programmatically verify each other's work.`;
+    return `The Builder is verifying the chain. This is how agents programmatically check each other's work.`;
   }
   if (event === 'done') {
     return data.fabricated
@@ -159,27 +159,27 @@ function getNarrative(event: string, data: any): string {
       : 'Pipeline complete. All receipts verified. The entire chain is cryptographically sound -- every action is proven.';
   }
   if (event === 'review_start') {
-    return 'The Builder evaluates the chain\'s usefulness via 0G Compute. This is Layer 2 — not just proving actions happened, but proving they were useful.';
+    return 'The Builder evaluates the chain\'s usefulness using verified inference. This is Layer 2 -- not just proving actions happened, but proving they were useful.';
   }
   if (event === 'review_scores') {
     const { alignment, substance, quality, composite } = data;
-    return `Usefulness scores — Alignment: ${alignment}, Substance: ${substance}, Quality: ${quality}. Composite: ${composite}/100. ${data.attested ? 'TEE-attested — the scores are independently verifiable.' : ''}`;
+    return `Usefulness scores -- Alignment: ${alignment}, Substance: ${substance}, Quality: ${quality}. Composite: ${composite}/100. ${data.attested ? 'Hardware-verified -- the scores are independently verifiable.' : ''}`;
   }
   if (event === 'quality_gate') {
     if (!data.passed) {
-      return `QUALITY GATE FAILED. The chain scored ${data.score}/100 — below the ${data.threshold} threshold. This chain will NOT be anchored on-chain. Low-quality agent work doesn't earn on-chain reputation. Only high-quality chains become training data.`;
+      return `QUALITY CHECK FAILED. The chain scored ${data.score}/100 -- below the ${data.threshold} threshold. This chain will NOT be recorded on-chain. Low-quality agent work doesn't earn on-chain reputation. Only high-quality chains become training data.`;
     }
     return '';
   }
   if (event === 'storage') {
     const score = data.usefulnessScore;
     return score
-      ? `Receipt chain stored on 0G decentralized storage and anchored on-chain with usefulness score ${score}/100. Judges can verify this score directly on the 0G explorer — it's on-chain, not just a UI number.`
-      : 'The verified receipt chain is being stored on 0G decentralized storage with a Merkle root hash, then anchored on-chain for permanent verifiability.';
+      ? `Chain stored permanently and recorded on-chain with a quality score of ${score}/100.`
+      : 'Chain stored permanently for future verification.';
   }
   if (event === 'trust_score') {
     const score = data.score ?? '--';
-    return `Trust score: ${score}/100. Weighted across chain integrity (are all signatures and hash links valid?), data provenance (was real data used, not stubs?), and TEE attestation (did inference run inside a hardware enclave?).`;
+    return `Trust score: ${score}/100. Weighted across chain integrity (are all signatures and links valid?), data provenance (was real data used, not stubs?), and hardware verification (did inference run inside a secure enclave?).`;
   }
   return '';
 }
@@ -397,15 +397,15 @@ export default function Demo() {
         setStoryStage('axl-handoff');
         setShowHandoffAnimation(true);
         setTimeout(() => setShowHandoffAnimation(false), 3500);
-        addCenterLog(`AXL handoff: ${data.receiptCount} receipts`, 'handoff');
-        addTiming('AXL handoff', Math.round(elapsed));
+        addCenterLog(`Chain sent to Builder (${data.receiptCount} receipts)`, 'handoff');
+        addTiming('Handoff', Math.round(elapsed));
         break;
       case 'axl_received':
-        addCenterLog(`AXL received by Builder`, 'handoff');
-        addTiming('AXL received', Math.round(elapsed));
+        addCenterLog(`Builder received chain`, 'handoff');
+        addTiming('Received', Math.round(elapsed));
         break;
       case 'mcp_tool_call':
-        addCenterLog(`Builder -> verify_chain via MCP`, 'mcp');
+        addCenterLog(`Builder verifying chain`, 'mcp');
         addTiming('MCP call', Math.round(elapsed));
         break;
       case 'peer_discovery':
@@ -418,18 +418,18 @@ export default function Demo() {
         addCenterLog(`Agent card: ${data.name || data.agentName || 'peer'} discovered`, 'agent-card');
         break;
       case 'axl_rebroadcast':
-        addCenterLog(`Re-broadcast: ${data.receiptCount || '?'} receipts`, 'rebroadcast');
-        addTiming('AXL rebroadcast', Math.round(elapsed));
+        addCenterLog(`Chain extended to ${data.receiptCount || '?'} receipts`, 'rebroadcast');
+        addTiming('Extended', Math.round(elapsed));
         break;
       case 'axl_adopt':
-        addCenterLog(`Researcher adopted extended chain`, 'adopt');
-        addTiming('AXL adopt', Math.round(elapsed));
+        addCenterLog(`Chain updated with Builder's work`, 'adopt');
+        addTiming('Updated', Math.round(elapsed));
         break;
       case 'tee_verified': {
         const provider = data.provider || 'TeeML';
         const method = data.verificationMethod || 'Intel TDX';
-        addCenterLog(`TEE verified: ${provider} (${method})`, 'tee');
-        addTiming('TEE verify', Math.round(elapsed));
+        addCenterLog(`Verified in secure enclave (${method})`, 'tee');
+        addTiming('Secure verify', Math.round(elapsed));
         break;
       }
       case 'done':
@@ -465,14 +465,14 @@ export default function Demo() {
           setQualityRejected(true);
           setShowAmberFlash(true);
           setTimeout(() => setShowAmberFlash(false), 2000);
-          addCenterLog(`QUALITY GATE: ${data.score}/${data.threshold} — NOT ANCHORED`, 'fail');
+          addCenterLog(`QUALITY CHECK: ${data.score}/${data.threshold} -- NOT RECORDED`, 'fail');
         }
         addTiming('Quality gate', Math.round(elapsed));
         break;
       case 'storage':
         setStoryStage('anchoring');
-        addCenterLog(qualityRejected ? 'Stored for audit (not anchored)' : 'Stored + anchored on 0G', 'anchor');
-        addTiming('0G Storage', Math.round(elapsed));
+        addCenterLog(qualityRejected ? 'Stored (quality too low to record)' : 'Stored and recorded on-chain', 'anchor');
+        addTiming('Stored', Math.round(elapsed));
         break;
     }
   }, [addCenterLog, addTiming, qualityRejected]);
@@ -585,7 +585,7 @@ export default function Demo() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-dim)' }}>SOURCE</span>
                 <span style={{ fontWeight: 600, color: meta?.teeAttested ? 'var(--green)' : meta?.llmSource === '0g-compute' ? 'var(--amber)' : 'var(--text-muted)' }}>
-                  {meta?.teeAttested ? 'TEE (TDX)' : meta?.llmSource === '0g-compute' ? '0G Compute' : 'Simulated'}
+                  {meta?.teeAttested ? 'Verified' : meta?.llmSource === '0g-compute' ? 'Verified' : 'Simulated'}
                 </span>
               </div>
             )}
@@ -619,7 +619,7 @@ export default function Demo() {
             <>
               <div className="dashed" />
               <div style={{ padding: '0.25rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', width: '50px' }}>USEFUL</span>
+                <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', width: '50px' }}>QUALITY</span>
                 <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: '2px',
@@ -715,8 +715,7 @@ export default function Demo() {
           Proof layer for agent work
         </p>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-          Watch two AI agents work together with cryptographic proof. Every action produces a
-          signed receipt. The Builder independently verifies the Researcher's chain before accepting the handoff.
+          Watch two AI agents work together. Every action is recorded and signed. The second agent checks the first agent's work before continuing.
         </p>
 
         {/* Mode selector — three radio-style pills */}
@@ -769,7 +768,7 @@ export default function Demo() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '2rem',
         }}>
-          {['Researcher', 'AXL handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder deploys', 'Review', adversarial ? null : lowQuality ? 'Quality Gate' : '0G anchor'].filter(Boolean).map((step, i, arr) => (
+          {['Researcher', 'Handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder', 'Review', adversarial ? null : lowQuality ? 'Quality Check' : 'Record'].filter(Boolean).map((step, i, arr) => (
             <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <div style={{
                 ...mono, fontSize: '0.62rem', padding: '0.3rem 0.6rem',
@@ -855,7 +854,7 @@ export default function Demo() {
             }}>B</div>
           </div>
           <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            {agentAReceipts.length} receipts via AXL P2P
+            {agentAReceipts.length} receipts handed off
           </div>
         </div>
       )}
@@ -1061,7 +1060,7 @@ export default function Demo() {
                 {([
                   { label: 'Chain', value: trustBreakdown.chainIntegrity, max: 70 },
                   { label: 'Data', value: trustBreakdown.dataProvenance, max: 15 },
-                  { label: 'TEE', value: trustBreakdown.teeAttestation, max: 15 },
+                  { label: 'Enclave', value: trustBreakdown.teeAttestation, max: 15 },
                 ] as const).map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
                     <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', width: '26px' }}>{item.label}</span>
@@ -1320,7 +1319,7 @@ export default function Demo() {
                   {reviewScores.composite}
                 </div>
                 <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                  Useful
+                  Quality
                 </div>
               </div>
             </>
@@ -1422,7 +1421,6 @@ export default function Demo() {
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
-          <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
         </div>
@@ -1517,7 +1515,7 @@ export default function Demo() {
           {phase === 'running' && (
             <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
               {(['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'] as StoryStage[]).map((stage, i) => {
-                const labels = ['Researcher', 'Handoff', 'Verifying', adversarial ? 'Rejected' : 'Builder', 'Anchor'];
+                const labels = ['Researcher', 'Handoff', 'Verification', adversarial ? 'Rejected' : 'Builder', 'Record'];
                 const stageOrder: StoryStage[] = ['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'];
                 const currentIdx = stageOrder.indexOf(storyStage);
                 const isActive = stage === storyStage;

@@ -20,7 +20,7 @@ export default function LandingPage() {
           .hero-title { font-size: 1.8rem !important; }
           .hero-sub { font-size: 1rem !important; }
           .steps-grid { grid-template-columns: 1fr !important; gap: 1.2rem !important; }
-          .cards-grid { grid-template-columns: 1fr !important; }
+          .cases-grid { grid-template-columns: 1fr !important; }
           .cta-row { flex-direction: column !important; align-items: stretch !important; }
           .cta-row a { text-align: center !important; }
           .code-block { padding: 1rem !important; }
@@ -42,8 +42,8 @@ export default function LandingPage() {
           R.E.C.E.I.P.T.
         </a>
         <div className="nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
-          <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
@@ -65,7 +65,7 @@ export default function LandingPage() {
           fontFamily: 'Inter, sans-serif',
           lineHeight: 1.2,
         }}>
-          Proof your agents<br />actually did the work
+          Know what your agents<br />actually did
         </h1>
         <p className="hero-sub" style={{
           fontSize: '1.05rem',
@@ -74,8 +74,8 @@ export default function LandingPage() {
           marginBottom: '2rem',
           fontFamily: 'Inter, sans-serif',
         }}>
-          Add a few lines to your AI agent. Get a tamper-proof log of every action it takes.
-          When agents hand off work, the next agent verifies the chain before continuing.
+          Your AI agent says it read 5 files, called 2 APIs, and made a decision.
+          RECEIPT proves whether that{"'"}s true — and whether the work was any good.
         </p>
 
         {/* npm install */}
@@ -117,7 +117,7 @@ export default function LandingPage() {
             fontSize: '0.88rem',
             fontWeight: 600,
           }}>
-            Watch Demo
+            See It Work
           </a>
           <a href="/verify" style={{
             padding: '0.7rem 1.8rem',
@@ -130,7 +130,7 @@ export default function LandingPage() {
             fontSize: '0.88rem',
             fontWeight: 500,
           }}>
-            Verify a Chain
+            Check Agent Work
           </a>
         </div>
       </section>
@@ -139,9 +139,9 @@ export default function LandingPage() {
       <section style={{ padding: '2rem 1.5rem 3rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
         <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
           {[
-            { n: '1', title: 'Instrument', desc: 'Wrap your agent\'s actions. Each one produces a signed receipt automatically.' },
-            { n: '2', title: 'Chain', desc: 'Receipts link together cryptographically. Change one and the whole chain breaks.' },
-            { n: '3', title: 'Review', desc: 'A TEE-attested review scores the chain\'s usefulness. Not just proof of action — proof of value.' },
+            { n: '1', title: 'Wrap your agent', desc: 'Add one import. Every file read, API call, and LLM response gets a cryptographic receipt automatically.' },
+            { n: '2', title: 'Catch lies', desc: 'Receipts hash-link together. If an agent skips a step or fabricates a result, the chain breaks and you see exactly where.' },
+            { n: '3', title: 'Score the work', desc: 'An independent model reviews the chain and scores it: did the work actually help, or was it busy work?' },
           ].map(s => (
             <div key={s.n} style={{ textAlign: 'center' }}>
               <div style={{
@@ -176,7 +176,7 @@ export default function LandingPage() {
             agent.<span style={{ color: '#60a5fa' }}>callApi</span>(<span style={{ color: '#4ade80' }}>&apos;https://api.example.com&apos;</span>, response);{'\n'}
             agent.<span style={{ color: '#60a5fa' }}>callLlm</span>(<span style={{ color: '#4ade80' }}>&apos;analyze this&apos;</span>, output);{'\n'}
             {'\n'}
-            <span style={{ color: '#888' }}>// proof of usefulness — TEE-attested review</span>{'\n'}
+            <span style={{ color: '#888' }}>// proof of usefulness — independent review</span>{'\n'}
             agent.<span style={{ color: '#60a5fa' }}>reviewUsefulness</span>(summary, scores, attestation);{'\n'}
             {'\n'}
             <span style={{ color: '#c084fc' }}>const</span> valid = agent.<span style={{ color: '#60a5fa' }}>verifyOwnChain</span>(); <span style={{ color: '#888' }}>// true</span>
@@ -184,22 +184,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* What you get — simple list, not cards */}
+      {/* Use cases */}
       <section style={{ padding: '0 1.5rem 3rem', maxWidth: '580px', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+        <div className="cases-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
           {[
-            'Layer 1: Proof of action — tamper-proof audit trail for every agent step',
-            'Layer 2: Proof of usefulness — TEE-attested quality scoring of chain outputs',
-            'Multi-agent handoffs with cryptographic verification',
-            'On-chain anchoring on 0G Mainnet',
-            'TEE-attested inference and review via 0G Compute',
-            'Works with any agent framework — just wrap your calls',
+            'Your coding agent says it reviewed 50 files. Prove which ones it actually opened.',
+            'Agent A hands work to Agent B. Agent B verifies the chain before continuing — no blind trust.',
+            'Your research agent claims 12 sources. The receipt chain shows exactly what it fetched and when.',
+            'An agent scores 34/100 on usefulness. The chain gets flagged — not anchored, not used for training.',
           ].map(item => (
             <div key={item} style={{
-              display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
-              fontSize: '0.85rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', lineHeight: 1.5,
+              padding: '1rem 1.2rem',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              background: 'var(--surface)',
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+              fontFamily: 'Inter, sans-serif',
+              lineHeight: 1.6,
             }}>
-              <span style={{ color: 'var(--green)', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>+</span>
               {item}
             </div>
           ))}
@@ -228,7 +231,7 @@ export default function LandingPage() {
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
         <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem' }}>
-          0G + Gensyn AXL
+          Built for multi-agent systems.
         </span>
       </footer>
     </div>

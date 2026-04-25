@@ -100,9 +100,35 @@ interface PersistedState {
   timestamp: number;
 }
 
+/* ─── Nav ─── */
+function Nav() {
+  return (
+    <nav style={{
+      padding: '0.6rem 1.5rem',
+      borderBottom: '1px solid var(--border)',
+      background: 'var(--surface)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    }}>
+      <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.03em' }}>
+        R.E.C.E.I.P.T.
+      </a>
+      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
+        <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
+        <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
+        <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Dashboard</a>
+      </div>
+    </nav>
+  );
+}
+
 export default function Dashboard() {
+  /* ─── State ─── */
   const [running, setRunning] = useState(false);
   const [adversarial, setAdversarial] = useState(false);
+  const [lowQuality, setLowQuality] = useState(false);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [receiptMeta, setReceiptMeta] = useState<Record<string, ReceiptMeta>>({});
   const [verifications, setVerifications] = useState<VerificationResult[]>([]);
@@ -115,7 +141,6 @@ export default function Dashboard() {
   const [statusLog, setStatusLog] = useState<string[]>([]);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
 
-  const [selectedAgent, setSelectedAgent] = useState<'A' | 'B'>('A');
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
 
   const [anchor0g, setAnchor0g] = useState<{ txHash: string; chain: string; contractAddress?: string; chainRootHash?: string; storageRef?: string; explorerUrl?: string; usefulnessScore?: number } | null>(null);
@@ -141,8 +166,11 @@ export default function Dashboard() {
   const [providers, setProviders] = useState<ProviderHealth[]>([]);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [isCachedData, setIsCachedData] = useState(false);
+  const [lastRunTimestamp, setLastRunTimestamp] = useState<Date | null>(null);
 
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  /* ─── Effects ─── */
 
   // Animated dots for running button
   useEffect(() => {
@@ -173,7 +201,7 @@ export default function Dashboard() {
     timelineRef.current?.scrollTo({ top: timelineRef.current.scrollHeight, behavior: 'smooth' });
   }, [receipts]);
 
-  // Load full persisted state from localStorage on mount
+  // Load persisted state from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -208,6 +236,7 @@ export default function Dashboard() {
           if (s.scoreDelta !== undefined) setScoreDelta(s.scoreDelta);
           setIsCachedData(true);
           setMountedReceiptIds(new Set(s.receipts.map(r => r.id)));
+          if (s.timestamp) setLastRunTimestamp(new Date(s.timestamp));
         }
       }
     } catch {}
@@ -235,7 +264,7 @@ export default function Dashboard() {
     axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
     tamperedIds, tamperDetails, reviewScores, qualityRejected, receiptWeights, scoreDelta, running]);
 
-  // Fetch provider health on mount
+  // Fetch provider health on mount (kept internally, not rendered)
   useEffect(() => {
     setProvidersLoading(true);
     fetch('/api/providers')
@@ -253,52 +282,12 @@ export default function Dashboard() {
       .finally(() => setProvidersLoading(false));
   }, []);
 
-  const agentAReceipts = receipts.slice(0, agentACount || receipts.length);
-  const agentBReceipts = agentACount > 0 ? receipts.slice(agentACount) : [];
-  const selectedReceipts = selectedAgent === 'A' ? agentAReceipts : agentBReceipts;
+  /* ─── Derived ─── */
   const hasData = receipts.length > 0;
+  const allVerified = verifications.length > 0 && verifications.every(v => v.valid);
+  const failedCount = verifications.filter(v => !v.valid).length;
 
-  const PIPELINE_STEPS = [
-    { label: 'Researcher: Reading docs + reviewing code', key: 'agent_a' },
-    { label: 'AXL P2P Handoff to Builder', key: 'axl_handoff' },
-    { label: 'Builder: Verifying research chain', key: 'verification' },
-    { label: 'Builder: Deploying + anchoring', key: 'agent_b' },
-    { label: 'ERC-7857 Agent Identity Mint', key: 'agentic_id' },
-    { label: 'Usefulness Review (TEE)', key: 'review' },
-    { label: '0G Storage + Chain Anchor', key: 'storage' },
-  ];
-
-  const getCurrentPipelineStep = (): number => {
-    if (storage || anchor0g) return 7;
-    if (reviewScores) return 6;
-    if (agenticId) return 5;
-    if (agentBReceipts.length > 0) return 4;
-    if (verifications.length > 0) return 3;
-    if (axlHandoff) return 2;
-    if (receipts.length > 0) return 1;
-    return 0;
-  };
-
-  const pipelineStep = running ? getCurrentPipelineStep() : 0;
-
-  const getAgentStats = (agentReceipts: Receipt[], agent: 'A' | 'B') => {
-    const teeCount = agentReceipts.filter(r => receiptMeta[r.id]?.teeAttested).length;
-    const llmCount = agentReceipts.filter(r => r.action.type === 'llm_call').length;
-    const lastReceipt = agentReceipts[agentReceipts.length - 1];
-    const agentVerifications = agent === 'A' ? verifications : [];
-    const verified = agentVerifications.length > 0 ? agentVerifications.every(v => v.valid) : null;
-    return {
-      count: agentReceipts.length,
-      teeRate: llmCount > 0 ? Math.round((teeCount / llmCount) * 100) : null,
-      lastActive: lastReceipt ? new Date(lastReceipt.timestamp) : null,
-      verified,
-    };
-  };
-
-  // Find the LLM receipt to get TEE info for prominent display
-  const llmReceipt = receipts.find(r => r.action.type === 'llm_call');
-  const llmMeta = llmReceipt ? receiptMeta[llmReceipt.id] : null;
-
+  /* ─── Run pipeline ─── */
   const run = useCallback(async () => {
     setRunning(true);
     setIsCachedData(false);
@@ -331,13 +320,13 @@ export default function Dashboard() {
     setReceiptWeights([]);
     setScoreDelta(null);
     setPipelineError(null);
-    setSelectedAgent('A');
+    setLastRunTimestamp(null);
 
     try {
       const res = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adversarial }),
+        body: JSON.stringify({ adversarial, lowQuality }),
       });
 
       const reader = res.body!.getReader();
@@ -361,7 +350,8 @@ export default function Dashboard() {
       }
     } catch {}
     setRunning(false);
-  }, [adversarial]);
+    setLastRunTimestamp(new Date());
+  }, [adversarial, lowQuality]);
 
   const handleEvent = useCallback((event: string, data: any) => {
     switch (event) {
@@ -410,7 +400,6 @@ export default function Dashboard() {
         setAgentACount(data.agentACount);
         if (data.rootHash) setChainRootHash(data.rootHash);
         if (data.fabricated) setFabricationDetected(true);
-        // Persist chain for /verify page
         try {
           const allReceipts = data.receipts;
           if (allReceipts) localStorage.setItem('receipt_last_chain', JSON.stringify(allReceipts));
@@ -422,7 +411,7 @@ export default function Dashboard() {
       case 'agentic_id':
         setAgenticId(data);
         break;
-case 'axl_handoff':
+      case 'axl_handoff':
         setAxlHandoff(data);
         break;
       case 'axl_received':
@@ -467,6 +456,7 @@ case 'axl_handoff':
     }
   }, []);
 
+  // Keep storeAndAnchor internally (called by pipeline, not rendered as a button)
   const storeAndAnchor = useCallback(async () => {
     if (!chainRootHash) return;
     setAnchoring(true);
@@ -487,1809 +477,453 @@ case 'axl_handoff':
     setAnchoring(false);
   }, [chainRootHash, receipts]);
 
-  const statsA = getAgentStats(agentAReceipts, 'A');
-  const statsB = getAgentStats(agentBReceipts, 'B');
+  /* ─── Helpers ─── */
+  const getStatusBadge = (): { label: string; color: string; bg: string } => {
+    if (fabricationDetected) return { label: 'FABRICATION DETECTED', color: 'var(--red)', bg: 'rgba(220, 38, 38, 0.08)' };
+    if (qualityRejected) return { label: 'NOT ANCHORED', color: 'var(--amber)', bg: 'rgba(217, 119, 6, 0.08)' };
+    if (allVerified) return { label: 'CHAIN VERIFIED', color: 'var(--green)', bg: 'rgba(22, 163, 74, 0.08)' };
+    if (verifications.length > 0) return { label: 'VERIFICATION FAILED', color: 'var(--red)', bg: 'rgba(220, 38, 38, 0.08)' };
+    return { label: 'PENDING', color: 'var(--text-dim)', bg: 'var(--surface)' };
+  };
 
-  // Cached state timestamp
-  const cachedTimestamp = isCachedData ? (() => {
-    try {
-      const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return s.timestamp ? new Date(s.timestamp) : null;
-    } catch { return null; }
-  })() : null;
+  const getReceiptSummary = (): string => {
+    const total = receipts.length;
+    if (failedCount > 0) return `${total} receipts, ${failedCount} failed`;
+    if (verifications.length > 0) return `${total} receipts, all verified`;
+    return `${total} receipts`;
+  };
 
-  // --- EMPTY STATE (no cached data) ---
+  const isResearcher = (index: number): boolean => {
+    if (agentACount === 0) return true;
+    return index < agentACount;
+  };
+
+  const usefulnessScore = reviewScores?.composite ?? (typeof anchor0g?.usefulnessScore === 'number' ? anchor0g.usefulnessScore : null);
+
+  /* ─── Mode selector ─── */
+  type RunMode = 'honest' | 'adversarial' | 'lowQuality';
+  const currentMode: RunMode = adversarial ? 'adversarial' : lowQuality ? 'lowQuality' : 'honest';
+  const setMode = (mode: RunMode) => {
+    setAdversarial(mode === 'adversarial');
+    setLowQuality(mode === 'lowQuality');
+  };
+
+  /* ─── Run controls ─── */
+  const RunControls = () => (
+    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      {([
+        { key: 'honest' as RunMode, label: 'Honest', color: 'var(--green)' },
+        { key: 'adversarial' as RunMode, label: 'Adversarial', color: 'var(--red)' },
+        { key: 'lowQuality' as RunMode, label: 'Low Quality', color: 'var(--amber)' },
+      ]).map(m => (
+        <button
+          key={m.key}
+          onClick={() => setMode(m.key)}
+          disabled={running}
+          style={{
+            ...mono,
+            fontSize: '0.7rem',
+            padding: '0.3rem 0.7rem',
+            borderRadius: '4px',
+            border: `1px solid ${currentMode === m.key ? m.color : 'var(--border)'}`,
+            background: currentMode === m.key ? m.color + '15' : 'transparent',
+            color: currentMode === m.key ? m.color : 'var(--text-dim)',
+            cursor: running ? 'not-allowed' : 'pointer',
+            fontWeight: currentMode === m.key ? 600 : 400,
+            transition: 'all 0.15s',
+          }}
+        >
+          {m.label}
+        </button>
+      ))}
+      <button
+        onClick={run}
+        disabled={running}
+        style={{
+          padding: '0.4rem 1.2rem',
+          borderRadius: '6px',
+          border: 'none',
+          background: running ? 'var(--border)' : adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--text)',
+          color: '#fff',
+          cursor: running ? 'not-allowed' : 'pointer',
+          fontFamily: 'inherit',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          minWidth: '130px',
+        }}
+      >
+        {running ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <span style={{
+              display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%',
+              border: '2px solid transparent', borderTop: '2px solid #fff',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+            Running{buttonDots}
+          </span>
+        ) : 'Run Pipeline'}
+      </button>
+    </div>
+  );
+
+  /* ─────────────────────────────────────────── */
+  /* ─── EMPTY STATE ─── */
+  /* ─────────────────────────────────────────── */
   if (!hasData && !running) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-        {/* Nav */}
-        <nav style={{
-          padding: '0.6rem 1.5rem',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--surface)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+        <style>{`
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
+        <Nav />
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          height: 'calc(100vh - 60px)', gap: '2rem', padding: '2rem',
         }}>
-          <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.03em' }}>
-            R.E.C.E.I.P.T.
-          </a>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-            <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
-            <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
-            <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
-            <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Dashboard</a>
-          </div>
-        </nav>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 120px)', gap: '1.5rem', padding: '2rem' }}>
           <div style={{ textAlign: 'center', maxWidth: '520px' }}>
-            <div style={{ ...mono, fontSize: '2.5rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: '0.8rem' }}>
+            <div style={{ ...mono, fontSize: '2.2rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: '1rem' }}>
               R.E.C.E.I.P.T.
             </div>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-              Proof your agents actually did the work. Every action — reading docs, reviewing code, deploying contracts — produces a signed, hash-linked receipt. When agents collaborate, they verify each other's work before continuing.
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
+              Run the pipeline to see agent work. Every action produces a signed, hash-linked receipt. When agents collaborate, they verify each other's chain before continuing.
             </p>
-
-            {/* 0G Pillar Status — visible even without running */}
-            <div style={{
-              display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap',
-              marginBottom: '1.5rem',
-            }}>
-              {['Compute', 'Storage', 'Chain', 'Fine-Tune', 'ERC-7857'].map(p => (
-                <div key={p} style={{
-                  ...mono, fontSize: '0.6rem', padding: '0.25rem 0.5rem', borderRadius: '4px',
-                  background: 'var(--surface)', border: '1px solid var(--border)',
-                  color: 'var(--text-dim)',
-                }}>
-                  0G {p}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', cursor: 'pointer' }}>
-                <input type="checkbox" checked={adversarial} onChange={e => setAdversarial(e.target.checked)} style={{ accentColor: 'var(--red)' }} />
-                <span style={{ color: adversarial ? 'var(--red)' : 'var(--text-muted)', fontWeight: adversarial ? 600 : 400 }}>
-                  Adversarial
-                </span>
-              </label>
-              <button onClick={run} style={{
-                padding: '0.6rem 1.5rem', borderRadius: '6px', border: 'none',
-                background: adversarial ? 'var(--red)' : 'var(--text)',
-                color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 600,
-              }}>
-                Run Agent Pipeline
-              </button>
-            </div>
-          </div>
-
-          {/* Provider Health */}
-          {providers.length > 0 && (
-            <div style={{
-              marginTop: '1rem', padding: '0.8rem 1rem', borderRadius: '8px',
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              maxWidth: '520px', width: '100%',
-            }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                0G Compute Providers
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                {providers.slice(0, 4).map(p => (
-                  <div key={p.address} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    padding: '0.25rem 0.4rem', borderRadius: '4px', background: 'var(--bg)',
-                    ...mono, fontSize: '0.55rem',
-                  }}>
-                    <div style={{
-                      width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
-                      background: p.status === 'ok' ? 'var(--green)' : p.status === 'checking' ? 'var(--amber)' : 'var(--red)',
-                    }} />
-                    <span style={{ color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.model || p.address.slice(0, 10) + '...'}
-                    </span>
-                    {p.latencyMs > 0 && (
-                      <span style={{ color: 'var(--text-dim)' }}>{p.latencyMs}ms</span>
-                    )}
-                    <span style={{
-                      fontSize: '0.5rem', fontWeight: 600,
-                      color: p.status === 'ok' ? 'var(--green)' : 'var(--red)',
-                    }}>
-                      {p.status === 'ok' ? 'LIVE' : p.status === 'checking' ? '...' : 'DOWN'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* AXL Topology Preview */}
-          <div style={{
-            marginTop: '1rem', padding: '0.8rem 1.2rem', borderRadius: '8px',
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            maxWidth: '520px', width: '100%',
-          }}>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Agent Network Topology
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '0.5rem 0' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'var(--researcher)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
-                }}>R</div>
-                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Researcher</div>
-              </div>
-              <div style={{ flex: 1, maxWidth: '120px', position: 'relative', height: '2px' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--border)', borderRadius: '1px' }} />
-                <div style={{
-                  position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)',
-                  ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
-                }}>
-                  AXL P2P Handoff
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'var(--builder)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
-                }}>B</div>
-                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Builder</div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem', ...mono, fontSize: '0.65rem', color: 'var(--text-dim)' }}>
-            <span>ed25519 signatures</span>
-            <span>SHA-256 hash chains</span>
-            <span>TEE attestation</span>
-            <span>on-chain anchoring</span>
+            <RunControls />
           </div>
         </div>
-
       </div>
     );
   }
 
-  // --- DASHBOARD ---
+  /* ─────────────────────────────────────────── */
+  /* ─── RUNNING STATE (no receipts yet) ─── */
+  /* ─────────────────────────────────────────── */
+  if (running && receipts.length === 0) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+        <style>{`
+          @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
+        <Nav />
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          height: 'calc(100vh - 60px)', gap: '1rem', padding: '2rem',
+        }}>
+          <div style={{
+            width: '12px', height: '12px', borderRadius: '50%',
+            background: 'var(--green)', animation: 'pulse 1.2s ease-in-out infinite',
+          }} />
+          <div style={{ ...mono, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            {statusLog[statusLog.length - 1] || 'Initializing pipeline...'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─────────────────────────────────────────── */
+  /* ─── DASHBOARD (has data or running w/ receipts) ─── */
+  /* ─────────────────────────────────────────── */
+  const badge = getStatusBadge();
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       <style>{`
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @media (max-width: 768px) {
-          .dashboard-grid { grid-template-columns: 1fr !important; }
-          .sidebar { border-right: none !important; border-bottom: 1px solid var(--border); max-height: 40vh; }
-          .header-controls { flex-wrap: wrap; gap: 0.3rem !important; }
-          .bottom-tags { flex-wrap: wrap; gap: 0.4rem !important; }
+        @media (max-width: 700px) {
+          .receipt-content { max-width: 100% !important; padding: 0 1rem !important; }
         }
       `}</style>
+      <Nav />
 
-      {/* Nav */}
-      <nav style={{
-        padding: '0.6rem 1.5rem',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--surface)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.03em' }}>
-          R.E.C.E.I.P.T.
-        </a>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
-          <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
-          <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
-          <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Dashboard</a>
-        </div>
-      </nav>
-
-      {/* Dashboard Sub-Header */}
-      <header style={{
-        padding: '0.5rem 1.5rem', borderBottom: '1px solid var(--border)',
-        background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0, flexWrap: 'wrap', gap: '0.5rem',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Operator Dashboard</p>
+      {/* Content — single column, centered */}
+      <div
+        ref={timelineRef}
+        className="receipt-content"
+        style={{
+          flex: 1, overflowY: 'auto',
+          maxWidth: '700px', width: '100%', margin: '0 auto',
+          padding: '2rem 1.5rem 4rem',
+        }}
+      >
+        {/* Run controls */}
+        <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem' }}>
+          <RunControls />
           {running && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', animation: 'pulse 1.2s ease-in-out infinite' }} />
-              <span style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 500 }}>Pipeline running</span>
-            </div>
-          )}
-          {isCachedData && !running && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', ...mono, fontSize: '0.58rem', color: 'var(--text-dim)' }}>
-              Last run{cachedTimestamp ? `: ${cachedTimestamp.toLocaleString()}` : ''}
+              <span style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                {statusLog[statusLog.length - 1] || 'Running...'}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Prominent TEE attestation banner */}
-        {(teeVerified || llmMeta) && !running && (
-          <div style={{
-            padding: '0.4rem 0.9rem', borderRadius: '8px',
-            background: (teeVerified || llmMeta?.teeAttested) ? 'rgba(22, 163, 74, 0.1)' : 'rgba(217, 119, 6, 0.08)',
-            border: `2px solid ${(teeVerified || llmMeta?.teeAttested) ? 'rgba(22, 163, 74, 0.4)' : 'rgba(217, 119, 6, 0.25)'}`,
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
+        {/* ═══════════════════════════════════ */}
+        {/* SECTION 1: Last Run                */}
+        {/* ═══════════════════════════════════ */}
+        {hasData && !running && (
+          <section style={{
+            padding: '1.5rem', borderRadius: '10px', marginBottom: '2rem',
+            background: 'var(--surface)', border: `1px solid var(--border)`,
           }}>
-            <div style={{
-              width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
-              background: (teeVerified || llmMeta?.teeAttested) ? 'var(--green)' : 'var(--amber)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: '0.6rem', fontWeight: 700,
-            }}>
-              {(teeVerified || llmMeta?.teeAttested) ? '✓' : '!'}
-            </div>
-            <div>
-              <div style={{ ...mono, fontSize: '0.65rem', fontWeight: 700, color: (teeVerified || llmMeta?.teeAttested) ? 'var(--green)' : 'var(--amber)' }}>
-                TEE {(teeVerified || llmMeta?.teeAttested) ? 'VERIFIED' : 'UNVERIFIED'}
-                {teeVerified?.teeType && <span style={{ fontWeight: 400, marginLeft: '0.3rem' }}>({teeVerified.teeType})</span>}
-              </div>
-              {teeVerified?.signatureEndpoint && (
-                <a href={teeVerified.signatureEndpoint} target="_blank" rel="noopener noreferrer"
-                  style={{ ...mono, fontSize: '0.48rem', color: (teeVerified ? 'var(--green)' : 'var(--amber)'), textDecoration: 'none', opacity: 0.8 }}
-                  onClick={e => e.stopPropagation()}
-                  onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                  onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                >{teeVerified.signatureEndpoint}</a>
+            {/* Score */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
+              <span style={{
+                ...mono, fontSize: '3rem', fontWeight: 700, lineHeight: 1,
+                color: usefulnessScore === null ? 'var(--text-dim)'
+                  : usefulnessScore >= 70 ? 'var(--green)'
+                  : usefulnessScore >= 40 ? 'var(--amber)'
+                  : 'var(--red)',
+              }}>
+                {usefulnessScore !== null ? usefulnessScore : '—'}
+              </span>
+              <span style={{ ...mono, fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                {usefulnessScore !== null ? '/ 100 usefulness' : 'no score yet'}
+              </span>
+              {scoreDelta !== null && (
+                <span style={{
+                  ...mono, fontSize: '0.7rem', fontWeight: 600,
+                  color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
+                }}>
+                  {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
+                </span>
               )}
             </div>
-          </div>
-        )}
 
-        <div className="header-controls" style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', cursor: 'pointer' }}>
-            <input type="checkbox" checked={adversarial} onChange={e => setAdversarial(e.target.checked)} style={{ accentColor: 'var(--red)' }} />
-            <span style={{ color: adversarial ? 'var(--red)' : 'var(--text-muted)' }}>Adversarial</span>
-          </label>
-          <button onClick={run} disabled={running} style={{
-            padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',
-            background: running ? 'var(--border)' : adversarial ? 'var(--red)' : 'var(--text)',
-            color: '#fff', cursor: running ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 600,
-            minWidth: '100px',
-          }}>
-            {running ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}>
-                <span style={{
-                  display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%',
-                  border: '1.5px solid transparent', borderTop: '1.5px solid #fff',
-                  animation: 'spin 0.8s linear infinite',
-                }} />
-                <span style={{ minWidth: '65px', textAlign: 'left' }}>Running{buttonDots}</span>
-              </span>
-            ) : 'Run Pipeline'}
-          </button>
-        </div>
-      </header>
+            {/* Badge */}
+            <div style={{
+              display: 'inline-block', padding: '0.3rem 0.8rem', borderRadius: '4px',
+              background: badge.bg, border: `1px solid ${badge.color}30`,
+              ...mono, fontSize: '0.75rem', fontWeight: 700, color: badge.color,
+              marginBottom: '0.6rem',
+            }}>
+              {badge.label}
+            </div>
 
-      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', flex: 1, overflow: 'hidden' }}>
-        {/* Sidebar */}
-        <div className="sidebar" style={{
-          borderRight: '1px solid var(--border)', background: 'var(--surface)',
-          display: 'flex', flexDirection: 'column', overflowY: 'auto',
-        }}>
-          {/* Pipeline Summary */}
-          <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.6rem' }}>
-              Pipeline
+            {/* Meta line */}
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', ...mono, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              {lastRunTimestamp && (
+                <span>{lastRunTimestamp.toLocaleString()}</span>
+              )}
+              {isCachedData && !lastRunTimestamp && (
+                <span>cached run</span>
+              )}
+              <span>{getReceiptSummary()}</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <div style={{ padding: '0.4rem 0.6rem', background: 'var(--bg)', borderRadius: '4px' }}>
-                <div style={{ ...mono, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>{receipts.length}</div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>Receipts</div>
-              </div>
-              <div style={{ padding: '0.4rem 0.6rem', background: 'var(--bg)', borderRadius: '4px' }}>
-                <div style={{
-                  ...mono, fontSize: '1.1rem', fontWeight: 700,
-                  color: trustScore === null ? 'var(--text-dim)' : trustScore >= 80 ? 'var(--green)' : trustScore >= 50 ? 'var(--amber)' : 'var(--red)',
-                }}>
-                  {trustScore ?? '--'}
-                </div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>Trust Score</div>
-              </div>
-            </div>
-            {chainRootHash && (
-              <div style={{ marginTop: '0.5rem', ...mono, fontSize: '0.58rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                root: {chainRootHash}
-              </div>
-            )}
-            {fabricationDetected && (
-              <div style={{
-                marginTop: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '4px',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                fontSize: '0.7rem', color: 'var(--red)', fontWeight: 600,
-              }}>
-                Fabrication detected
-              </div>
-            )}
+
+            {/* Error */}
             {pipelineError && (
               <div style={{
-                marginTop: '0.5rem', padding: '0.4rem 0.5rem', borderRadius: '4px',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                fontSize: '0.65rem', color: 'var(--red)',
+                marginTop: '0.8rem', padding: '0.5rem 0.7rem', borderRadius: '4px',
+                background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.2)',
+                ...mono, fontSize: '0.65rem', color: 'var(--red)', wordBreak: 'break-all',
               }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.15rem' }}>Pipeline Error</div>
-                <div style={{ ...mono, fontSize: '0.58rem', wordBreak: 'break-all' }}>{pipelineError}</div>
+                {pipelineError}
               </div>
             )}
-          </div>
+          </section>
+        )}
 
-          {/* Usefulness Review */}
-          {reviewScores && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Usefulness Review
-              </div>
-              {(['alignment', 'substance', 'quality'] as const).map(axis => (
-                <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                  <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)', width: '38px', textTransform: 'uppercase' }}>{axis.slice(0, 5)}</span>
-                  <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', borderRadius: '3px',
-                      width: `${reviewScores[axis]}%`,
-                      background: reviewScores[axis] >= 70 ? 'var(--green)' : reviewScores[axis] >= 40 ? 'var(--amber)' : 'var(--red)',
-                      transition: 'width 1s ease-out',
-                    }} />
-                  </div>
-                  <span style={{ ...mono, fontSize: '0.55rem', fontWeight: 700, width: '20px', textAlign: 'right' }}>{reviewScores[axis]}</span>
-                </div>
-              ))}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.3rem' }}>
-                <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)' }}>COMPOSITE</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
-                  <span style={{
-                    ...mono, fontSize: '1rem', fontWeight: 700,
-                    color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
-                  }}>{reviewScores.composite}</span>
-                  {scoreDelta !== null && (
-                    <span style={{
-                      ...mono, fontSize: '0.48rem', fontWeight: 600,
-                      color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
-                    }}>
-                      {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
-                    </span>
-                  )}
-                </div>
-              </div>
-              {reviewScores.reasoning && (
-                <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: 1.5 }}>
-                  {reviewScores.reasoning}
-                </div>
-              )}
-              {qualityRejected && (
-                <div style={{
-                  marginTop: '0.4rem', padding: '0.25rem 0.5rem', borderRadius: '4px',
-                  background: 'rgba(217, 119, 6, 0.08)', border: '1px solid rgba(217, 119, 6, 0.25)',
-                  display: 'flex', alignItems: 'center', gap: '0.3rem',
-                }}>
-                  <span style={{ ...mono, fontSize: '0.52rem', fontWeight: 700, color: 'var(--amber)' }}>NOT ANCHORED</span>
-                  <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)' }}>quality gate failed</span>
-                </div>
-              )}
+        {/* ═══════════════════════════════════ */}
+        {/* SECTION 2: The Chain                */}
+        {/* ═══════════════════════════════════ */}
+        {receipts.length > 0 && (
+          <section style={{ marginBottom: '2rem' }}>
+            <div style={{
+              ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem',
+            }}>
+              The Chain
             </div>
-          )}
 
-          {/* 0G Integration Pillars — always visible */}
-          <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-              0G Integration
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-              {[
-                { label: 'Compute', active: receipts.some(r => receiptMeta[r.id]?.llmSource === '0g-compute') },
-                { label: 'Storage', active: !!storage?.rootHash },
-                { label: 'Chain', active: !!anchor0g?.txHash },
-                { label: 'Fine-Tune', active: !!fineTuning?.task?.taskId || !!fineTuning?.dataset || !!trainingData },
-                { label: 'ERC-7857', active: agenticId?.status === 'minted' },
-              ].map(p => (
-                <div key={p.label} style={{
-                  ...mono, fontSize: '0.55rem', padding: '0.2rem 0.4rem', borderRadius: '3px',
-                  background: p.active ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg)',
-                  color: p.active ? 'var(--green)' : 'var(--text-dim)',
-                  border: `1px solid ${p.active ? 'rgba(34, 197, 94, 0.3)' : 'var(--border)'}`,
-                  fontWeight: p.active ? 600 : 400,
-                }}>
-                  {p.active ? '✓ ' : ''}{p.label}
+            {/* Fabrication alert */}
+            {fabricationDetected && (
+              <div style={{
+                marginBottom: '1rem', padding: '0.8rem 1rem',
+                background: 'rgba(220, 38, 38, 0.06)', border: '2px solid var(--red)', borderRadius: '8px',
+              }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--red)', marginBottom: '0.3rem' }}>
+                  FABRICATION DETECTED
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 0G Compute Providers */}
-          {providers.length > 0 && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                0G Compute Providers
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                {providers.slice(0, 4).map((p, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.3rem',
-                    ...mono, fontSize: '0.52rem', color: 'var(--text-muted)',
-                  }}>
-                    <div style={{
-                      width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0,
-                      background: p.status === 'ok' ? 'var(--green)' : p.status === 'checking' ? 'var(--amber)' : 'var(--red)',
-                    }} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.model || p.address.slice(0, 12) + '...'}
-                    </span>
-                    {p.latencyMs > 0 && <span style={{ color: 'var(--text-dim)' }}>{p.latencyMs}ms</span>}
+                <div style={{ fontSize: '0.75rem', color: '#991b1b', lineHeight: 1.5 }}>
+                  The Researcher fabricated data after signing. The output hash no longer matches the ed25519 signature. Builder refused the handoff.
+                </div>
+                {Object.values(tamperDetails).map(td => (
+                  <div key={td.index} style={{ marginTop: '0.3rem', ...mono, fontSize: '0.65rem', color: '#b91c1c' }}>
+                    Receipt #{td.index}: {td.detail}
                   </div>
                 ))}
               </div>
-              {providersLoading && <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>Checking...</div>}
-            </div>
-          )}
-
-          {/* Agent Cards */}
-          <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.6rem' }}>
-              Agents
-            </div>
-            {[
-              { key: 'A' as const, label: 'Researcher', color: 'var(--researcher)', stats: statsA, receipts: agentAReceipts },
-              { key: 'B' as const, label: 'Builder', color: 'var(--builder)', stats: statsB, receipts: agentBReceipts },
-            ].filter(a => a.stats.count > 0).map(agent => (
-              <div
-                key={agent.key}
-                onClick={() => setSelectedAgent(agent.key)}
-                style={{
-                  padding: '0.7rem 0.8rem', borderRadius: '6px', marginBottom: '0.4rem',
-                  background: selectedAgent === agent.key ? 'var(--bg)' : 'transparent',
-                  border: selectedAgent === agent.key ? '1px solid var(--border)' : '1px solid transparent',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-                  <div style={{
-                    width: '24px', height: '24px', borderRadius: '50%', background: agent.color,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0,
-                  }}>{agent.key === 'A' ? 'R' : 'B'}</div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{agent.label}</span>
-                  {agent.stats.verified !== null && (
-                    <span style={{
-                      marginLeft: 'auto', fontSize: '0.6rem', fontWeight: 600, ...mono,
-                      color: agent.stats.verified ? 'var(--green)' : 'var(--red)',
-                    }}>
-                      {agent.stats.verified ? 'VERIFIED' : 'FAILED'}
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '0.8rem', paddingLeft: '2rem', ...mono, fontSize: '0.62rem', color: 'var(--text-muted)' }}>
-                  <span>{agent.stats.count} receipts</span>
-                  {agent.stats.teeRate !== null && <span>TEE: {agent.stats.teeRate}%</span>}
-                  {agent.stats.lastActive && <span>{agent.stats.lastActive.toLocaleTimeString()}</span>}
-                </div>
-              </div>
-            ))}
-            {receipts.length === 0 && running && (
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                Waiting for agents...
-              </div>
             )}
-          </div>
 
-          {/* Fine-Tuning Status */}
-          {fineTuning && fineTuning.status !== 'skipped' && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                0G Fine-Tuning
-              </div>
-              {fineTuning.provider && (
-                <div style={{
-                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
-                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>Provider Found</div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                    {fineTuning.provider.model || fineTuning.provider.address}
-                  </div>
-                </div>
-              )}
-              {fineTuning.dataset && (
-                <div style={{
-                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
-                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>Dataset Generated</div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)' }}>
-                    {fineTuning.dataset.examples} examples, {((fineTuning.dataset.sizeBytes || 0) / 1024).toFixed(1)} KB
-                  </div>
-                </div>
-              )}
-              {fineTuning.upload && (
-                <div style={{
-                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
-                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>Uploaded to TEE</div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                    hash: {fineTuning.upload.datasetHash}
-                  </div>
-                </div>
-              )}
-              {fineTuning.task && (
-                <div style={{
-                  padding: '0.25rem 0.4rem', borderRadius: '3px', marginBottom: '0.3rem',
-                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--green)', fontWeight: 600 }}>
-                    Task: {fineTuning.task.status}
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                    ID: {fineTuning.task.taskId}
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)' }}>
-                    Model: {fineTuning.task.model}
-                  </div>
-                </div>
-              )}
-              {fineTuning.status === 'no-providers' && (
-                <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--amber)' }}>
-                  No fine-tuning providers available on network
-                </div>
-              )}
-              {fineTuning.status === 'quality-gate' && (
-                <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--amber)' }}>
-                  Quality gate: score {fineTuning.score}/100 below threshold ({fineTuning.threshold}). Low-quality chains are excluded from training data.
-                </div>
-              )}
-              {(fineTuning.uploadError || fineTuning.taskError) && (
-                <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--amber)', wordBreak: 'break-all' }}>
-                  {fineTuning.uploadError || fineTuning.taskError}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Actions */}
-          {hasData && !running && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Actions
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                {!fabricationDetected && chainRootHash && (
-                  <button onClick={storeAndAnchor} disabled={anchoring} style={{
-                    padding: '0.35rem 0.6rem', borderRadius: '5px', border: '1px solid var(--border)',
-                    background: 'var(--surface)', color: anchoring ? 'var(--text-dim)' : 'var(--text)',
-                    fontSize: '0.65rem', cursor: anchoring ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit', fontWeight: 500, textAlign: 'left', width: '100%',
-                  }}>
-                    {anchoring ? 'Anchoring...' : 'Anchor On-Chain'}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* On-Chain Anchors */}
-          {(anchor0g || storage) && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                On-Chain Anchors
-              </div>
-              {storage?.rootHash && (
-                <div style={{
-                  marginBottom: '0.4rem', padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.15rem' }}>0G Storage</div>
-                  <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--green)', wordBreak: 'break-all' }}>
-                    root: {storage.rootHash}
-                  </div>
-                  {storage.dataSize && (
-                    <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
-                      {(storage.dataSize / 1024).toFixed(1)} KB uploaded
-                    </div>
-                  )}
-                  {storage.uploadTxHash && (
-                    <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.05rem', wordBreak: 'break-all' }}>
-                      tx: {storage.uploadTxHash}
-                    </div>
-                  )}
-                  {storage.indexerUrl && (
-                    <a href={storage.indexerUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', textDecoration: 'none', display: 'block', marginTop: '0.05rem' }}
-                      onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                      onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                    >indexer: {storage.indexerUrl}</a>
-                  )}
-                </div>
-              )}
-              {anchor0g?.txHash && (
-                <div style={{
-                  padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.15rem' }}>0G Mainnet (Chain 16661)</div>
-                  <a
-                    href={anchor0g.explorerUrl || `https://chainscan-newton.0g.ai/tx/${anchor0g.txHash}`}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ ...mono, fontSize: '0.48rem', color: 'var(--green)', wordBreak: 'break-all', textDecoration: 'none' }}
-                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                  >{anchor0g.txHash}</a>
-                  {anchor0g.contractAddress && (
-                    <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.1rem', wordBreak: 'break-all' }}>
-                      contract: {anchor0g.contractAddress}
-                    </div>
-                  )}
-                  {anchor0g.chainRootHash && (
-                    <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.05rem', wordBreak: 'break-all' }}>
-                      chainRoot: {anchor0g.chainRootHash}
-                    </div>
-                  )}
-                  {anchor0g.storageRef && (
-                    <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.05rem', wordBreak: 'break-all' }}>
-                      storageRef: {anchor0g.storageRef}
-                    </div>
-                  )}
-                  {typeof anchor0g.usefulnessScore === 'number' && (
-                    <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--green)', marginTop: '0.15rem', fontWeight: 700 }}>
-                      usefulness: {anchor0g.usefulnessScore}/100 (on-chain)
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Gensyn AXL Network */}
-          {(axlHandoff || axlReceived || peers.length > 0) && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                  Gensyn AXL Network
-                </div>
-                <span style={{
-                  ...mono, fontSize: '0.4rem', padding: '0.1rem 0.3rem', borderRadius: '3px', fontWeight: 600,
-                  background: axlHandoff?.mode === 'live' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(217, 119, 6, 0.1)',
-                  color: axlHandoff?.mode === 'live' ? 'var(--green)' : 'var(--amber)',
-                  border: `1px solid ${axlHandoff?.mode === 'live' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(217, 119, 6, 0.3)'}`,
-                }}>
-                  {axlHandoff?.mode === 'live' ? 'LIVE' : 'SIMULATED'}
-                </span>
-              </div>
-
-              {/* Topology */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginBottom: '0.5rem', padding: '0.4rem 0' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    background: 'var(--researcher)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
-                    boxShadow: axlHandoff ? '0 0 6px var(--researcher)' : 'none',
-                  }}>R</div>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Researcher</div>
-                </div>
-                <div style={{ flex: 1, position: 'relative', height: '2px', margin: '0 0.2rem' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--border)' }} />
-                  {axlHandoff && (
-                    <div style={{
-                      position: 'absolute', top: '-3px',
-                      width: '8px', height: '8px', borderRadius: '50%',
-                      background: axlReceived?.verified ? 'var(--green)' : 'var(--amber)',
-                      left: axlReceived ? '100%' : '0%',
-                      transform: 'translateX(-50%)',
-                      transition: 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      animation: !axlReceived ? 'axl-packet-pulse 1.5s ease-in-out infinite' : 'none',
-                    }} />
-                  )}
-                  <div style={{
-                    position: 'absolute', top: '5px', left: '50%', transform: 'translateX(-50%)',
-                    ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
-                  }}>
-                    {axlHandoff?.broadcastMode === 'all-peers' ? 'P2P Broadcast' : 'P2P Handoff'}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    background: axlReceived ? 'var(--builder)' : 'var(--builder)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
-                    boxShadow: axlReceived?.verified ? '0 0 6px var(--builder)' : 'none',
-                  }}>B</div>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Builder</div>
-                </div>
-              </div>
-
-              {/* Broadcast indicator */}
-              {axlHandoff?.broadcastMode === 'all-peers' && (
-                <div style={{
-                  ...mono, fontSize: '0.48rem', color: 'var(--amber)', fontWeight: 600,
-                  textAlign: 'center', marginBottom: '0.3rem',
-                  padding: '0.15rem 0.3rem', background: 'rgba(217,119,6,0.08)', borderRadius: '3px',
-                }}>
-                  BROADCAST to all peers
-                </div>
-              )}
-
-              {/* Transport details */}
-              <div style={{
-                background: 'rgba(0,0,0,0.04)', borderRadius: '4px', padding: '0.3rem 0.4rem',
-                marginBottom: '0.4rem', border: '1px solid var(--border)', ...mono, fontSize: '0.45rem',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)' }}>
-                  <span>Transport</span>
-                  <span style={{ color: 'var(--text-muted)' }}>Gensyn AXL</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)' }}>
-                  <span>Method</span>
-                  <span style={{ color: 'var(--text-muted)' }}>POST /send → GET /recv</span>
-                </div>
-                {axlHandoff?.receiptCount && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)' }}>
-                    <span>Receipts</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{axlHandoff.receiptCount}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Agent Card Discovery */}
-              {agentCard && (
-                <div style={{
-                  padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(37, 99, 235, 0.06)', border: '1px solid rgba(37, 99, 235, 0.2)',
-                  marginBottom: '0.4rem',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--researcher)', fontWeight: 600, marginBottom: '0.15rem' }}>
-                    A2A Agent Card
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)' }}>{agentCard.card?.name}</div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
-                    {agentCard.card?.capabilities?.join(', ')}
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)' }}>
-                    Protocols: {agentCard.card?.supportedProtocols?.join(', ')}
-                  </div>
-                </div>
-              )}
-
-              {/* MCP Tool Calls */}
-              {mcpToolCalls.length > 0 && (
-                <div style={{ marginBottom: '0.4rem' }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.2rem', textTransform: 'uppercase' }}>
-                    MCP Tool Calls via AXL
-                  </div>
-                  {mcpToolCalls.map((call, i) => (
-                    <div key={i} style={{
-                      padding: '0.25rem 0.35rem', borderRadius: '3px',
-                      background: 'rgba(124, 58, 237, 0.06)', border: '1px solid rgba(124, 58, 237, 0.15)',
-                      marginBottom: '0.15rem',
-                    }}>
-                      <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--builder)', fontWeight: 600 }}>
-                        {call.caller.split('.')[0]} → .{call.tool}()
-                      </div>
-                      <div style={{ ...mono, fontSize: '0.38rem', color: 'var(--text-dim)' }}>
-                        {call.tool === 'verify_chain' ? `Result: ${(call.output as any)?.valid ? 'verified' : 'failed'}` :
-                         call.tool === 'get_capabilities' ? `${((call.output as any)?.capabilities || []).length} capabilities` :
-                         call.tool === 'get_chain_stats' ? `${(call.output as any)?.receiptCount} receipts, TEE: ${(call.output as any)?.teeAttested}` :
-                         JSON.stringify(call.output).slice(0, 50)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Peer Discovery */}
-              {peers.length > 0 && (
-                <div style={{ marginBottom: '0.4rem' }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.2rem', textTransform: 'uppercase' }}>
-                    Discovered Peers
-                  </div>
-                  {peers.map((peer, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.3rem',
-                      ...mono, fontSize: '0.45rem', marginBottom: '0.1rem',
-                    }}>
-                      <div style={{
-                        width: '5px', height: '5px', borderRadius: '50%',
-                        background: peer.status === 'online' ? 'var(--green)' : 'var(--text-dim)',
-                      }} />
-                      <span style={{ color: 'var(--text-muted)' }}>{peer.name}</span>
-                      <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{peer.pubkey}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Verification checklist */}
-              {axlReceived?.verified && (
-                <div style={{
-                  padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.2rem', textTransform: 'uppercase' }}>
-                    Verification
-                  </div>
-                  {['Chain root hash match', 'ed25519 signatures', 'Timestamps monotonic', 'Chain links valid'].map(step => (
-                    <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', ...mono, fontSize: '0.45rem' }}>
-                      <span style={{ color: 'var(--green)' }}>✓</span>
-                      <span style={{ color: 'var(--green)' }}>{step}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {axlReceived && !axlReceived.verified && (
-                <div style={{
-                  padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(0,0,0,0.04)', border: '1px solid var(--red)',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.2rem', textTransform: 'uppercase' }}>
-                    Verification
-                  </div>
-                  {([
-                    { step: 'Chain root hash match', pass: false },
-                    { step: 'ed25519 signatures', pass: false },
-                    { step: 'Timestamps monotonic', pass: true },
-                    { step: 'Chain links valid', pass: false },
-                  ] as const).map(({ step, pass }) => (
-                    <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', ...mono, fontSize: '0.45rem' }}>
-                      <span style={{ color: pass ? 'var(--green)' : 'var(--red)' }}>{pass ? '✓' : '✗'}</span>
-                      <span style={{ color: pass ? 'var(--green)' : 'var(--red)' }}>{step}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Broadcast + Adopt */}
-              {axlRebroadcast && (
-                <div style={{
-                  padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(217, 119, 6, 0.06)', border: '1px solid rgba(217, 119, 6, 0.2)',
-                  marginBottom: '0.4rem',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--amber)', fontWeight: 600, marginBottom: '0.1rem' }}>
-                    REBROADCAST
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)' }}>
-                    Builder extended chain ({axlRebroadcast.receiptCount || axlRebroadcast.chainLength || '?'} receipts) broadcast back to peers
-                  </div>
-                  {axlRebroadcast.newReceipts && (
-                    <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.05rem' }}>
-                      +{axlRebroadcast.newReceipts} new receipts appended
-                    </div>
-                  )}
-                </div>
-              )}
-              {axlAdopt && (
-                <div style={{
-                  padding: '0.3rem 0.4rem', borderRadius: '4px',
-                  background: 'rgba(34, 197, 94, 0.06)', border: '1px solid rgba(34, 197, 94, 0.2)',
-                  marginBottom: '0.4rem',
-                }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--green)', fontWeight: 600, marginBottom: '0.1rem' }}>
-                    CHAIN ADOPTED
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)' }}>
-                    Researcher adopted extended chain from Builder
-                  </div>
-                  {axlAdopt.finalLength && (
-                    <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.05rem' }}>
-                      Final chain: {axlAdopt.finalLength} receipts
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* A2A Envelope */}
-              {axlHandoff?.envelope && (
-                <details style={{ marginTop: '0.4rem' }}>
-                  <summary style={{
-                    fontSize: '0.45rem', color: 'var(--text-dim)', cursor: 'pointer',
-                    textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600,
-                    listStyle: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem',
-                    userSelect: 'none', ...mono,
-                  }}>
-                    <span style={{ fontSize: '0.45rem' }}>▶</span> A2A Envelope
-                  </summary>
-                  <pre style={{
-                    ...mono, fontSize: '0.42rem', lineHeight: 1.5,
-                    color: 'var(--text-muted)', background: 'rgba(0,0,0,0.04)',
-                    borderRadius: '4px', padding: '0.4rem',
-                    marginTop: '0.2rem', overflow: 'auto', maxHeight: '10rem',
-                    border: '1px solid var(--border)',
-                    whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                  }}>
-                    {JSON.stringify(axlHandoff.envelope, null, 2)}
-                  </pre>
-                </details>
-              )}
-            </div>
-          )}
-
-          {/* ERC-7857 Agentic ID */}
-          {agenticId && (
-            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                ERC-7857 Agent Identity
-              </div>
-
-              {/* Lifecycle steps */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', marginBottom: '0.4rem' }}>
-                {[
-                  { label: 'mint', done: agenticId.status === 'minted' },
-                  { label: 'transfer', done: !!agenticId.transferTx },
-                  { label: 'clone', done: !!agenticId.cloneTx },
-                  { label: 'authorize', done: !!agenticId.authorizeTx },
-                ].map((step, i, arr) => (
-                  <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
-                    <div style={{
-                      ...mono, fontSize: '0.4rem', padding: '0.12rem 0.3rem', borderRadius: '3px',
-                      background: step.done ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg)',
-                      color: step.done ? 'var(--green)' : 'var(--text-dim)',
-                      border: `1px solid ${step.done ? 'rgba(34, 197, 94, 0.3)' : 'var(--border)'}`,
-                      fontWeight: step.done ? 600 : 400,
-                    }}>
-                      {step.done ? '✓ ' : ''}{step.label}
-                    </div>
-                    {i < arr.length - 1 && (
-                      <span style={{ ...mono, fontSize: '0.38rem', color: 'var(--text-dim)' }}>→</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-muted)', wordBreak: 'break-all', marginBottom: '0.2rem' }}>
-                {agenticId.metadataHash}
-              </div>
-              <div style={{
-                fontSize: '0.6rem', fontWeight: 600,
-                color: agenticId.status === 'minted' ? 'var(--green)' : 'var(--amber)',
-              }}>
-                {agenticId.status === 'minted' ? `Token #${agenticId.tokenId}` : 'Identity Computed'}
-              </div>
-              {agenticId.txHash && (
-                <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.1rem', wordBreak: 'break-all' }}>
-                  tx: <a
-                    href={`https://chainscan-newton.0g.ai/tx/${agenticId.txHash}`}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ color: 'var(--text-dim)', textDecoration: 'none' }}
-                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                  >{agenticId.txHash}</a>
-                </div>
-              )}
-              {agenticId.contractAddress && (
-                <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.05rem', wordBreak: 'break-all' }}>
-                  contract: <a
-                    href={`https://chainscan-newton.0g.ai/address/${agenticId.contractAddress}`}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ color: 'var(--text-dim)', textDecoration: 'none' }}
-                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                  >{agenticId.contractAddress}</a>
-                </div>
-              )}
-              {agenticId.capabilities && (
-                <div style={{ display: 'flex', gap: '0.15rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
-                  {agenticId.capabilities.map((cap: string) => (
-                    <span key={cap} style={{
-                      ...mono, fontSize: '0.38rem', padding: '0.08rem 0.25rem', borderRadius: '2px',
-                      background: 'var(--bg)', color: 'var(--text-dim)', border: '1px solid var(--border)',
-                    }}>{cap}</span>
-                  ))}
-                </div>
-              )}
-              {agenticId.iDatas && (
-                <details style={{ marginTop: '0.3rem' }}>
-                  <summary style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', cursor: 'pointer', fontWeight: 600, userSelect: 'none' }}>
-                    iNFT Data ({agenticId.iDatas.length} entries)
-                  </summary>
-                  <pre style={{
-                    ...mono, fontSize: '0.38rem', color: 'var(--text-muted)', background: 'var(--bg)',
-                    padding: '0.3rem', borderRadius: '3px', marginTop: '0.15rem',
-                    overflow: 'auto', maxHeight: '6rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                  }}>{JSON.stringify(agenticId.iDatas, null, 2)}</pre>
-                </details>
-              )}
-            </div>
-          )}
-
-          {/* Status Log */}
-          {statusLog.length > 0 && (
-            <div style={{ padding: '0.8rem 1.2rem', flex: 1 }}>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Activity Log
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.12rem' }}>
-                {statusLog.slice(-8).map((msg, i, arr) => {
-                  const isLatest = i === arr.length - 1;
-                  return (
-                    <div key={i} style={{
-                      fontSize: '0.55rem', color: isLatest ? 'var(--text-muted)' : 'var(--text-dim)',
-                      ...mono, display: 'flex', alignItems: 'center', gap: '0.2rem',
-                    }}>
-                      {isLatest && running && (
-                        <span style={{
-                          display: 'inline-block', width: '5px', height: '5px', borderRadius: '50%',
-                          background: 'var(--green)', flexShrink: 0,
-                          animation: 'pulse 1.2s ease-in-out infinite',
-                        }} />
-                      )}
-                      <span>{msg}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Main Content */}
-        <div ref={timelineRef} style={{ overflowY: 'auto', padding: '1.5rem 2rem 4rem' }}>
-          {/* Agent header */}
-          {selectedReceipts.length > 0 && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  background: selectedAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: '0.7rem', fontWeight: 700,
-                }}>{selectedAgent === 'A' ? 'R' : 'B'}</div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
-                  {selectedAgent === 'A' ? 'Researcher' : 'Builder'}
-                </h2>
-                <span style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                  {selectedReceipts.length} receipts
-                </span>
-                {selectedAgent === 'A' && verifications.length > 0 && (
-                  <span style={{
-                    ...mono, fontSize: '0.68rem', fontWeight: 600, marginLeft: 'auto',
-                    padding: '0.2rem 0.5rem', borderRadius: '4px',
-                    background: verifications.every(v => v.valid) ? '#f0fdf4' : '#fef2f2',
-                    color: verifications.every(v => v.valid) ? 'var(--green)' : 'var(--red)',
-                    border: `1px solid ${verifications.every(v => v.valid) ? '#bbf7d0' : '#fecaca'}`,
-                  }}>
-                    {verifications.every(v => v.valid) ? `${verifications.length}/${verifications.length} VERIFIED` : 'CHAIN BROKEN'}
-                  </span>
-                )}
-              </div>
-              {selectedReceipts.length > 0 && (
-                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', paddingLeft: '2.4rem' }}>
-                  {selectedReceipts[0].agentId}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Fabrication Alert */}
-          {fabricationDetected && selectedAgent === 'A' && (
-            <div style={{
-              marginBottom: '1.5rem', padding: '1rem 1.2rem',
-              background: '#fef2f2', border: '2px solid var(--red)', borderRadius: '8px',
-            }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--red)', marginBottom: '0.3rem' }}>
-                FABRICATION DETECTED
-              </div>
-              <div style={{ fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.5 }}>
-                The Researcher fabricated data after signing. The output hash no longer matches the ed25519 signature. Builder refused the handoff.
-              </div>
-              {Object.values(tamperDetails).map(td => (
-                <div key={td.index} style={{ marginTop: '0.4rem', ...mono, fontSize: '0.68rem', color: '#b91c1c' }}>
-                  Receipt #{td.index}: {td.detail}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Chain Visualizer */}
-          {hasData && receipts.length > 0 && (
-            <div style={{
-              marginBottom: '1.5rem', padding: '1rem 1.2rem',
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: '8px',
-            }}>
-              <div style={{
-                ...mono, fontSize: '0.5rem', fontWeight: 700, color: 'var(--text-dim)',
-                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.6rem',
-              }}>
-                Chain Visualizer
-              </div>
-              <div style={{
-                overflowX: 'auto', overflowY: 'hidden',
-                scrollbarWidth: 'thin',
-                WebkitOverflowScrolling: 'touch',
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center',
-                  minWidth: 'max-content', gap: 0,
-                  padding: '0.8rem 0.4rem',
-                }}>
-                  {receipts.map((receipt, i) => {
-                    const isAgentA = i < (agentACount || receipts.length);
-                    const isTampered = tamperedIds.has(receipt.id);
-                    const isHandoffPoint = agentACount > 0 && i === agentACount;
-                    const isMounted = mountedReceiptIds.has(receipt.id);
-                    const agentColor = isAgentA ? 'var(--researcher)' : 'var(--builder)';
-                    const prevReceipt = i > 0 ? receipts[i - 1] : null;
-                    const prevTampered = prevReceipt ? tamperedIds.has(prevReceipt.id) : false;
-                    const linkBroken = isTampered || prevTampered;
-
-                    return (
-                      <div
-                        key={receipt.id}
-                        style={{
-                          display: 'flex', alignItems: 'center',
-                          opacity: isMounted ? 1 : 0,
-                          transform: isMounted ? 'translateY(0)' : 'translateY(12px)',
-                          transition: 'opacity 0.4s ease, transform 0.4s ease',
-                          transitionDelay: `${i * 80}ms`,
-                        }}
-                      >
-                        {/* Link line to previous node */}
-                        {i > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', width: isHandoffPoint ? '72px' : '48px' }}>
-                            {/* The connecting line */}
-                            <div style={{
-                              width: '100%', height: '2px',
-                              background: linkBroken
-                                ? 'var(--red)'
-                                : isHandoffPoint
-                                  ? 'linear-gradient(90deg, var(--researcher), var(--builder))'
-                                  : 'var(--border)',
-                              borderStyle: linkBroken ? 'dashed' : 'solid',
-                              ...(linkBroken ? {
-                                backgroundImage: `repeating-linear-gradient(90deg, var(--red) 0, var(--red) 4px, transparent 4px, transparent 8px)`,
-                                background: 'none',
-                                height: '0px',
-                                borderTop: '2px dashed var(--red)',
-                              } : {}),
-                            }} />
-                            {/* Hash label on the link */}
-                            <div style={{
-                              position: 'absolute', top: '6px',
-                              ...mono, fontSize: '0.4rem',
-                              color: linkBroken ? 'var(--red)' : isHandoffPoint ? 'var(--builder)' : 'var(--text-dim)',
-                              whiteSpace: 'nowrap', fontWeight: isHandoffPoint ? 700 : 400,
-                              background: isHandoffPoint
-                                ? 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(124,58,237,0.12))'
-                                : 'none',
-                              padding: isHandoffPoint ? '0.1rem 0.3rem' : '0',
-                              borderRadius: isHandoffPoint ? '3px' : '0',
-                              border: isHandoffPoint ? '1px solid rgba(124,58,237,0.25)' : 'none',
-                            }}>
-                              {isHandoffPoint ? 'AXL' : receipt.prevId ? receipt.prevId.slice(0, 6) : ''}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Receipt node */}
-                        <div
-                          onClick={() => {
-                            setExpandedReceipt(expandedReceipt === receipt.id ? null : receipt.id);
-                            if (isAgentA) setSelectedAgent('A');
-                            else setSelectedAgent('B');
-                          }}
-                          style={{
-                            width: '40px', height: '40px', borderRadius: '50%',
-                            background: isTampered
-                              ? 'rgba(220,38,38,0.08)'
-                              : `${agentColor}10`,
-                            border: `2px solid ${isTampered ? 'var(--red)' : agentColor}`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', flexShrink: 0,
-                            position: 'relative',
-                            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                            boxShadow: expandedReceipt === receipt.id
-                              ? `0 0 0 3px ${isTampered ? 'rgba(220,38,38,0.2)' : agentColor + '30'}`
-                              : 'none',
-                            animation: isTampered && isMounted ? 'screen-shake 0.4s ease-in-out' : 'none',
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.transform = 'scale(1.15)';
-                            e.currentTarget.style.boxShadow = `0 0 0 3px ${isTampered ? 'rgba(220,38,38,0.25)' : agentColor + '35'}`;
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.transform = 'scale(1)';
-                            e.currentTarget.style.boxShadow = expandedReceipt === receipt.id
-                              ? `0 0 0 3px ${isTampered ? 'rgba(220,38,38,0.2)' : agentColor + '30'}`
-                              : 'none';
-                          }}
-                        >
-                          <span style={{
-                            ...mono, fontSize: '0.6rem', fontWeight: 700,
-                            color: isTampered ? 'var(--red)' : agentColor,
-                          }}>
-                            {i}
-                          </span>
-                          {/* Tampered indicator */}
-                          {isTampered && (
-                            <span style={{
-                              position: 'absolute', top: '-4px', right: '-4px',
-                              width: '12px', height: '12px', borderRadius: '50%',
-                              background: 'var(--red)', color: '#fff',
-                              fontSize: '0.45rem', fontWeight: 700,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              lineHeight: 1,
-                            }}>!</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Legend */}
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--researcher)' }} />
-                  <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Researcher</span>
-                </div>
-                {agentBReceipts.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--builder)' }} />
-                    <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Builder</span>
-                  </div>
-                )}
-                {tamperedIds.size > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid var(--red)', background: 'rgba(220,38,38,0.1)' }} />
-                    <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--red)' }}>Tampered</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Receipt Timeline */}
-          {selectedReceipts.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {selectedReceipts.map((receipt, i) => {
+            {/* Receipt timeline */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {receipts.map((receipt, i) => {
                 const meta = receiptMeta[receipt.id];
                 const isTampered = tamperedIds.has(receipt.id);
                 const verification = verifications.find(v => v.receiptId === receipt.id);
                 const expanded = expandedReceipt === receipt.id;
-                const globalIndex = selectedAgent === 'A' ? i : agentACount + i;
-                const time = new Date(receipt.timestamp);
                 const isMounted = mountedReceiptIds.has(receipt.id);
+                const researcher = isResearcher(i);
+                const agentColor = researcher ? 'var(--researcher)' : 'var(--builder)';
+                const passed = verification ? verification.valid : !isTampered;
+                const weight = receiptWeights[i];
 
                 return (
-                  <div key={receipt.id} style={{
-                    display: 'flex', gap: '0',
-                    opacity: isMounted ? 1 : 0,
-                    transform: isMounted ? 'translateY(0)' : 'translateY(8px)',
-                    transition: 'opacity 0.4s ease, transform 0.4s ease',
-                  }}>
-                    {/* Timeline spine */}
-                    <div style={{ width: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                      {i > 0 && <div style={{ width: '1px', height: '12px', background: isTampered ? 'var(--red)' : 'var(--border)' }} />}
-                      <div style={{
-                        width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0,
-                        background: isTampered ? 'var(--red)' : verification?.valid ? 'var(--green)' : selectedAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
-                      }} />
-                      {i < selectedReceipts.length - 1 && <div style={{ width: '1px', flex: 1, minHeight: '12px', background: 'var(--border)' }} />}
-                    </div>
-
-                    {/* Receipt content */}
+                  <div
+                    key={receipt.id}
+                    style={{
+                      opacity: isMounted ? 1 : 0,
+                      transform: isMounted ? 'translateY(0)' : 'translateY(6px)',
+                      transition: 'opacity 0.3s ease, transform 0.3s ease',
+                    }}
+                  >
+                    {/* One-line receipt */}
                     <div
                       onClick={() => setExpandedReceipt(expanded ? null : receipt.id)}
                       style={{
-                        flex: 1, marginBottom: '0.3rem', padding: '0.6rem 0.8rem',
-                        background: 'var(--surface)', border: `1px solid ${isTampered ? 'var(--red)' : 'var(--border)'}`,
-                        borderRadius: '6px', cursor: 'pointer',
-                        boxShadow: isTampered ? '0 0 0 1px var(--red)' : undefined,
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        padding: '0.5rem 0.7rem',
+                        borderLeft: `3px solid ${agentColor}`,
+                        background: expanded ? 'var(--surface)' : 'transparent',
+                        cursor: 'pointer',
+                        borderRadius: '0 4px 4px 0',
+                        transition: 'background 0.15s',
                       }}
+                      onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = 'var(--surface)'; }}
+                      onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      {/* Header row */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)' }}>
-                          {ACTION_LABELS[receipt.action.type] ?? receipt.action.type}
-                        </span>
-                        {receipt.action.type === 'llm_call' && meta?.teeAttested && (
-                          <span style={{
-                            ...mono, fontSize: '0.55rem', fontWeight: 700, padding: '0.1rem 0.35rem',
-                            borderRadius: '3px', background: '#f0fdf4', color: 'var(--green)',
-                            border: '1px solid #bbf7d0',
-                          }}>TEE VERIFIED</span>
-                        )}
-                        {receipt.action.type === 'llm_call' && meta?.llmSource === '0g-compute' && !meta?.teeAttested && (
-                          <span style={{
-                            ...mono, fontSize: '0.55rem', fontWeight: 600, padding: '0.1rem 0.35rem',
-                            borderRadius: '3px', background: '#fffbeb', color: 'var(--amber)',
-                            border: '1px solid #fde68a',
-                          }}>0G COMPUTE</span>
-                        )}
-                        {receipt.action.type === 'llm_call' && meta?.llmSource === 'simulated' && (
-                          <span style={{
-                            ...mono, fontSize: '0.55rem', fontWeight: 600, padding: '0.1rem 0.35rem',
-                            borderRadius: '3px', background: 'var(--bg)', color: 'var(--text-dim)',
-                            border: '1px solid var(--border)',
-                          }}>SIMULATED</span>
-                        )}
-                        {isTampered && (
-                          <span style={{
-                            ...mono, fontSize: '0.55rem', fontWeight: 700, padding: '0.1rem 0.35rem',
-                            borderRadius: '3px', background: '#fef2f2', color: 'var(--red)',
-                            border: '1px solid #fecaca',
-                          }}>TAMPERED</span>
-                        )}
-                        {verification && !isTampered && (
-                          <span style={{
-                            ...mono, fontSize: '0.55rem', fontWeight: 600, padding: '0.1rem 0.35rem',
-                            borderRadius: '3px',
-                            background: verification.valid ? '#f0fdf4' : '#fef2f2',
-                            color: verification.valid ? 'var(--green)' : 'var(--red)',
-                            border: `1px solid ${verification.valid ? '#bbf7d0' : '#fecaca'}`,
-                          }}>{verification.valid ? 'PASS' : 'FAIL'}</span>
-                        )}
-                        <span style={{ marginLeft: 'auto', ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>
-                          #{globalIndex} {time.toLocaleTimeString()}
-                        </span>
-                      </div>
+                      {/* Action label */}
+                      <span style={{
+                        ...mono, fontSize: '0.72rem', fontWeight: 600, color: 'var(--text)',
+                        minWidth: '120px', flexShrink: 0,
+                      }}>
+                        {ACTION_LABELS[receipt.action.type] ?? receipt.action.type}
+                      </span>
 
                       {/* Description */}
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                      <span style={{
+                        fontSize: '0.72rem', color: 'var(--text-muted)',
+                        flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
                         {receipt.action.description}
-                      </div>
+                      </span>
 
-                      {/* Hash row */}
-                      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', ...mono, fontSize: '0.58rem', color: 'var(--text-dim)' }}>
-                        <span>IN {receipt.inputHash.slice(0, 16)}...</span>
-                        <span style={{ color: isTampered ? 'var(--red)' : undefined, textDecoration: isTampered ? 'line-through' : undefined }}>
-                          OUT {receipt.outputHash.slice(0, 16)}...
-                        </span>
-                        <span>SIG {receipt.signature.slice(0, 12)}...</span>
-                      </div>
+                      {/* Pass / fail */}
+                      <span style={{
+                        ...mono, fontSize: '0.8rem', fontWeight: 700, flexShrink: 0,
+                        color: isTampered ? 'var(--red)' : passed ? 'var(--green)' : 'var(--red)',
+                      }}>
+                        {isTampered ? 'X' : passed ? '✓' : 'X'}
+                      </span>
+                    </div>
 
-                      {/* Per-receipt usefulness weight */}
-                      {receiptWeights[globalIndex] !== undefined && receipt.action.type !== 'usefulness_review' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.2rem' }}>
-                          <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', width: '40px' }}>USEFUL</span>
-                          <div style={{ flex: 1, height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div style={{
-                              height: '100%', borderRadius: '2px',
-                              width: `${receiptWeights[globalIndex] * 100}%`,
-                              background: receiptWeights[globalIndex] >= 0.7 ? 'var(--green)' : receiptWeights[globalIndex] >= 0.4 ? 'var(--amber)' : 'var(--red)',
-                              transition: 'width 1s ease-out',
-                            }} />
-                          </div>
-                          <span style={{ ...mono, fontSize: '0.42rem', fontWeight: 700, color: receiptWeights[globalIndex] >= 0.7 ? 'var(--green)' : receiptWeights[globalIndex] >= 0.4 ? 'var(--amber)' : 'var(--red)' }}>
-                            {(receiptWeights[globalIndex] * 100).toFixed(0)}%
+                    {/* Expanded details */}
+                    {expanded && (
+                      <div style={{
+                        padding: '0.7rem 0.7rem 0.7rem 1.5rem',
+                        borderLeft: `3px solid ${agentColor}`,
+                        background: 'var(--surface)',
+                        borderRadius: '0 0 4px 0',
+                        ...mono, fontSize: '0.62rem', lineHeight: 1.8, color: 'var(--text-muted)',
+                      }}>
+                        <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>input hash</span>{receipt.inputHash}</div>
+                        <div style={{ color: isTampered ? 'var(--red)' : undefined }}>
+                          <span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>output hash</span>{receipt.outputHash}
+                        </div>
+                        <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>signature</span>{receipt.signature.slice(0, 20)}...</div>
+                        <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>timestamp</span>{new Date(receipt.timestamp).toLocaleString()}</div>
+                        <div>
+                          <span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>TEE attested</span>
+                          <span style={{ color: meta?.teeAttested ? 'var(--green)' : 'var(--text-dim)', fontWeight: 600 }}>
+                            {meta?.teeAttested ? 'yes' : 'no'}
                           </span>
                         </div>
-                      )}
-
-                      {/* Expanded details */}
-                      {expanded && (
-                        <div style={{
-                          marginTop: '0.6rem', paddingTop: '0.6rem', borderTop: '1px dashed var(--border-dashed)',
-                          ...mono, fontSize: '0.58rem', lineHeight: 1.7, color: 'var(--text-muted)',
-                        }}>
-                          <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '70px' }}>id</span>{receipt.id}</div>
-                          <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '70px' }}>agent</span>{receipt.agentId}</div>
-                          <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '70px' }}>prevId</span>{receipt.prevId ?? '(genesis)'}</div>
-                          <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '70px' }}>inputHash</span>{receipt.inputHash}</div>
-                          <div style={{ color: isTampered ? 'var(--red)' : undefined }}>
-                            <span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '70px' }}>outputHash</span>{receipt.outputHash}
+                        {weight !== undefined && receipt.action.type !== 'usefulness_review' && (
+                          <div>
+                            <span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>usefulness</span>
+                            <span style={{
+                              fontWeight: 600,
+                              color: weight >= 0.7 ? 'var(--green)' : weight >= 0.4 ? 'var(--amber)' : 'var(--red)',
+                            }}>
+                              {(weight * 100).toFixed(0)}%
+                            </span>
                           </div>
-                          <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '70px' }}>signature</span>{receipt.signature}</div>
-                          {meta?.rawInput && (
-                            <div style={{ marginTop: '0.4rem' }}>
-                              <div style={{ color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.15rem' }}>INPUT</div>
-                              <div style={{ color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', background: 'var(--bg)', padding: '0.4rem', borderRadius: '3px' }}>
-                                {meta.rawInput.slice(0, 300)}
-                              </div>
-                            </div>
-                          )}
-                          {meta?.rawOutput && (
-                            <div style={{ marginTop: '0.4rem' }}>
-                              <div style={{ color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.15rem' }}>OUTPUT</div>
-                              <div style={{ color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', background: 'var(--bg)', padding: '0.4rem', borderRadius: '3px' }}>
-                                {meta.rawOutput.slice(0, 400)}
-                              </div>
-                            </div>
-                          )}
-                          {verification && (
-                            <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.8rem' }}>
-                              {[
-                                { label: 'signature', ok: verification.checks.signatureValid },
-                                { label: 'chain link', ok: verification.checks.chainLinkValid },
-                                { label: 'timestamp', ok: verification.checks.timestampValid },
-                              ].map(c => (
-                                <span key={c.label} style={{ color: c.ok ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-                                  {c.label}: {c.ok ? 'PASS' : 'FAIL'}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {meta?.teeMetadata && (
-                            <div style={{ marginTop: '0.4rem', padding: '0.4rem', background: '#f0fdf4', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
-                              <div style={{ fontWeight: 600, color: 'var(--green)', marginBottom: '0.2rem' }}>TEE Attestation</div>
-                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>provider</span>{meta.teeMetadata.provider}</div>
-                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>address</span>
-                                {meta.teeMetadata.providerAddress && (
-                                  <a href={`https://chainscan-newton.0g.ai/address/${meta.teeMetadata.providerAddress}`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    style={{ color: 'inherit', textDecoration: 'none' }}
-                                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                                    onClick={e => e.stopPropagation()}
-                                  >{meta.teeMetadata.providerAddress}</a>
-                                )}
-                              </div>
-                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>teeType</span>{meta.teeMetadata.teeType}</div>
-                              <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '80px' }}>chatId</span>{meta.teeMetadata.chatId}</div>
-                              {meta.teeError && (
-                                <div style={{ marginTop: '0.2rem', color: 'var(--amber)', fontSize: '0.52rem' }}>
-                                  processResponse: {meta.teeError}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {isTampered && tamperDetails[receipt.id] && (
-                            <div style={{ marginTop: '0.4rem', padding: '0.3rem 0.5rem', background: '#fef2f2', borderRadius: '4px', color: 'var(--red)' }}>
-                              {tamperDetails[receipt.id].detail}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        )}
+                        <div><span style={{ color: 'var(--text-dim)', display: 'inline-block', width: '100px' }}>agent</span>{researcher ? 'Researcher' : 'Builder'}</div>
+                        {isTampered && tamperDetails[receipt.id] && (
+                          <div style={{ marginTop: '0.3rem', padding: '0.3rem 0.5rem', background: 'rgba(220,38,38,0.06)', borderRadius: '4px', color: 'var(--red)' }}>
+                            {tamperDetails[receipt.id].detail}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
-          ) : running ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-dim)', fontSize: '0.82rem' }}>
-              <div style={{ textAlign: 'center', maxWidth: '420px', width: '100%' }}>
-                <div style={{ marginBottom: '0.8rem', fontSize: '1rem', fontWeight: 600, color: 'var(--text)' }}>
-                  Pipeline Running
-                </div>
-                <div style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                  {statusLog[statusLog.length - 1] || 'Initializing pipeline...'}
-                </div>
+          </section>
+        )}
 
-                {/* Progress bar */}
-                <div style={{
-                  width: '100%', height: '4px', background: 'var(--border)', borderRadius: '2px',
-                  overflow: 'hidden', marginBottom: '1.2rem',
-                }}>
-                  <div style={{
-                    height: '100%', borderRadius: '2px', background: 'var(--green)',
-                    width: `${Math.max((pipelineStep / PIPELINE_STEPS.length) * 100, 5)}%`,
-                    transition: 'width 0.6s ease',
-                  }} />
-                </div>
-
-                {/* Step list with skeletons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left' }}>
-                  {PIPELINE_STEPS.map((step, i) => {
-                    const stepNum = i + 1;
-                    const isActive = stepNum === pipelineStep;
-                    const isDone = stepNum < pipelineStep;
-                    return (
-                      <div key={step.key} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        padding: '0.35rem 0.5rem', borderRadius: '4px',
-                        background: isActive ? 'var(--surface)' : 'transparent',
-                        border: isActive ? '1px solid var(--border)' : '1px solid transparent',
-                      }}>
-                        <div style={{
-                          width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.55rem', fontWeight: 700,
-                          background: isDone ? 'var(--green)' : isActive ? 'var(--text)' : 'var(--border)',
-                          color: isDone || isActive ? '#fff' : 'var(--text-dim)',
-                          ...(isActive ? { animation: 'pulse 1.2s ease-in-out infinite' } : {}),
-                        }}>
-                          {isDone ? '✓' : stepNum}
-                        </div>
-                        <span style={{
-                          ...mono, fontSize: '0.65rem',
-                          color: isDone ? 'var(--green)' : isActive ? 'var(--text)' : 'var(--text-dim)',
-                          fontWeight: isActive ? 600 : 400,
-                          ...(isDone ? { textDecoration: 'line-through', textDecorationColor: 'var(--border)' } : {}),
-                        }}>
-                          {step.label}
-                        </span>
-                        {isActive && (
-                          <span style={{
-                            marginLeft: 'auto',
-                            display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-                            background: 'var(--green)', animation: 'pulse 1.2s ease-in-out infinite',
-                          }} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Verification Summary */}
-          {verifications.length > 0 && selectedAgent === 'A' && (
+        {/* ═══════════════════════════════════ */}
+        {/* SECTION 3: On-Chain Record           */}
+        {/* ═══════════════════════════════════ */}
+        {hasData && !running && (
+          <section style={{
+            padding: '1rem 1.2rem', borderRadius: '8px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+          }}>
             <div style={{
-              marginTop: '1.5rem', padding: '1rem 1.2rem',
-              background: verifications.every(v => v.valid) ? '#f0fdf4' : '#fef2f2',
-              border: `1px solid ${verifications.every(v => v.valid) ? '#bbf7d0' : '#fecaca'}`,
-              borderRadius: '8px',
+              ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem',
             }}>
-              <div style={{
-                fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.4rem',
-                color: verifications.every(v => v.valid) ? 'var(--green)' : 'var(--red)',
-              }}>
-                Chain Verification: {verifications.every(v => v.valid) ? `${verifications.length}/${verifications.length} PASSED` : 'FAILED'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                {verifications.every(v => v.valid)
-                  ? 'Every receipt in the Researcher\'s chain has been independently verified by the Builder. Signatures match, hash links intact, timestamps monotonic.'
-                  : 'One or more receipts failed verification. The Researcher\'s chain has been tampered with. Builder refused the handoff.'}
-              </div>
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                {verifications.map((v, i) => (
-                  <span key={i} style={{
-                    ...mono, fontSize: '0.58rem', padding: '0.15rem 0.35rem', borderRadius: '3px',
-                    background: v.valid ? '#dcfce7' : '#fee2e2',
-                    color: v.valid ? 'var(--green)' : 'var(--red)',
-                  }}>
-                    #{i} {v.valid ? 'PASS' : 'FAIL'}
-                  </span>
-                ))}
-              </div>
+              On-Chain Record
             </div>
-          )}
 
-          {/* 0G Integration Summary Card */}
-          {hasData && !running && (storage || anchor0g || agenticId || teeVerified || trainingData) && (
-            <div style={{
-              marginTop: '1.5rem', padding: '1.2rem 1.4rem',
-              background: 'var(--surface)', border: '2px solid rgba(34, 197, 94, 0.3)',
-              borderRadius: '10px', boxShadow: '0 2px 12px rgba(34, 197, 94, 0.06)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            {anchor0g?.txHash ? (
+              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
                 <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>0G Proof Trail</div>
-                  <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-                    {[
-                      receipts.some(r => receiptMeta[r.id]?.llmSource === '0g-compute') && 'Compute',
-                      storage?.rootHash && 'Storage',
-                      anchor0g?.txHash && 'Chain',
-                      trainingData && 'Fine-Tuning',
-                      agenticId?.status === 'minted' && 'ERC-7857',
-                    ].filter(Boolean).length} / 5 pillars active
-                  </div>
-                </div>
-                <div style={{
-                  ...mono, fontSize: '0.55rem', padding: '0.25rem 0.6rem', borderRadius: '5px',
-                  background: 'rgba(34, 197, 94, 0.1)', color: 'var(--green)',
-                  border: '1px solid rgba(34, 197, 94, 0.3)', fontWeight: 600,
-                }}>
-                  0G Mainnet · Chain 16661
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.6rem' }}>
-                {/* Compute Pillar */}
-                {(() => {
-                  const computeReceipt = receipts.find(r => receiptMeta[r.id]?.llmSource === '0g-compute');
-                  const computeMeta = computeReceipt ? receiptMeta[computeReceipt.id] : null;
-                  const active = !!computeReceipt;
-                  return (
-                    <div style={{
-                      padding: '0.6rem', borderRadius: '6px',
-                      background: active ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
-                      border: `1px solid ${active ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                        <span style={{ color: active ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
-                          {active ? '✓' : '○'}
-                        </span>
-                        <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: active ? 'var(--text)' : 'var(--text-dim)' }}>Compute</span>
-                      </div>
-                      {active && computeMeta?.teeMetadata && (
-                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                          <div>Provider: {computeMeta.teeMetadata.provider}</div>
-                          <div style={{ wordBreak: 'break-all' }}>Address: {computeMeta.teeMetadata.providerAddress}</div>
-                          <div>TEE: {computeMeta.teeMetadata.teeType || 'Intel TDX'}</div>
-                          {teeVerified?.signatureEndpoint && (
-                            <div style={{ wordBreak: 'break-all' }}>
-                              Sig: <a href={teeVerified.signatureEndpoint} target="_blank" rel="noopener noreferrer"
-                                style={{ color: 'var(--green)', textDecoration: 'none' }}
-                                onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                                onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                              >{teeVerified.signatureEndpoint}</a>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Storage Pillar */}
-                <div style={{
-                  padding: '0.6rem', borderRadius: '6px',
-                  background: storage?.rootHash ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
-                  border: `1px solid ${storage?.rootHash ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                    <span style={{ color: storage?.rootHash ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
-                      {storage?.rootHash ? '✓' : '○'}
-                    </span>
-                    <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: storage?.rootHash ? 'var(--text)' : 'var(--text-dim)' }}>Storage</span>
-                  </div>
-                  {storage?.rootHash && (
-                    <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      <div style={{ wordBreak: 'break-all' }}>Merkle: {storage.rootHash}</div>
-                      {storage.dataSize && <div>Size: {(storage.dataSize / 1024).toFixed(1)} KB</div>}
-                      {storage.uploadTxHash && <div style={{ wordBreak: 'break-all' }}>Tx: {storage.uploadTxHash}</div>}
-                    </div>
+                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>Anchored on 0G</span>
+                  {usefulnessScore !== null && (
+                    <span style={{ color: 'var(--text-dim)', marginLeft: '0.5rem' }}>score {usefulnessScore}/100</span>
                   )}
                 </div>
-
-                {/* Chain Pillar */}
-                <div style={{
-                  padding: '0.6rem', borderRadius: '6px',
-                  background: anchor0g?.txHash ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
-                  border: `1px solid ${anchor0g?.txHash ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                    <span style={{ color: anchor0g?.txHash ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
-                      {anchor0g?.txHash ? '✓' : '○'}
-                    </span>
-                    <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: anchor0g?.txHash ? 'var(--text)' : 'var(--text-dim)' }}>Chain</span>
+                <div>
+                  tx{' '}
+                  <a
+                    href={anchor0g.explorerUrl || `https://chainscan-newton.0g.ai/tx/${anchor0g.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--green)', textDecoration: 'none' }}
+                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                  >
+                    {anchor0g.txHash}
+                  </a>
+                </div>
+                {storage?.rootHash && (
+                  <div style={{ color: 'var(--text-dim)' }}>
+                    Stored on 0G decentralized storage
                   </div>
-                  {anchor0g?.txHash && (
-                    <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      <div style={{ wordBreak: 'break-all' }}>
-                        Tx: <a href={anchor0g.explorerUrl || `https://chainscan-newton.0g.ai/tx/${anchor0g.txHash}`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ color: 'var(--green)', textDecoration: 'none' }}
-                          onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                          onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                        >{anchor0g.txHash}</a>
-                      </div>
-                      {anchor0g.contractAddress && <div style={{ wordBreak: 'break-all' }}>Contract: {anchor0g.contractAddress}</div>}
-                      {anchor0g.chainRootHash && <div style={{ wordBreak: 'break-all' }}>Root: {anchor0g.chainRootHash}</div>}
-                    </div>
-                  )}
-                </div>
-
-                {/* Fine-Tuning Pillar */}
-                {(() => {
-                  const ftActive = !!fineTuning?.task?.taskId || !!fineTuning?.dataset || !!trainingData;
-                  return (
-                    <div style={{
-                      padding: '0.6rem', borderRadius: '6px',
-                      background: ftActive ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
-                      border: `1px solid ${ftActive ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                        <span style={{ color: ftActive ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
-                          {ftActive ? '✓' : '○'}
-                        </span>
-                        <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: ftActive ? 'var(--text)' : 'var(--text-dim)' }}>Fine-Tuning</span>
-                      </div>
-                      {fineTuning?.task && (
-                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                          <div>Task: {fineTuning.task.taskId}</div>
-                          <div>Model: {fineTuning.task.model}</div>
-                          <div>Status: {fineTuning.task.status}</div>
-                        </div>
-                      )}
-                      {!fineTuning?.task && fineTuning?.dataset && (
-                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                          <div>{fineTuning.dataset.examples} examples generated</div>
-                          <div>{((fineTuning.dataset.sizeBytes || 0) / 1024).toFixed(1)} KB</div>
-                          {fineTuning.upload && <div>TEE upload: {fineTuning.upload.datasetHash?.slice(0, 20)}...</div>}
-                          {fineTuning.uploadError && <div style={{ color: 'var(--amber)' }}>Upload: {fineTuning.uploadError.slice(0, 40)}</div>}
-                          {fineTuning.taskError && <div style={{ color: 'var(--amber)' }}>Task: {fineTuning.taskError.slice(0, 40)}</div>}
-                        </div>
-                      )}
-                      {!fineTuning?.dataset && trainingData && (
-                        <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                          <div>{trainingData.stats.total} training examples</div>
-                          <div>Format: chat-messages JSONL</div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* ERC-7857 Pillar */}
-                <div style={{
-                  padding: '0.6rem', borderRadius: '6px',
-                  background: agenticId?.status === 'minted' ? 'rgba(34, 197, 94, 0.04)' : 'var(--bg)',
-                  border: `1px solid ${agenticId?.status === 'minted' ? 'rgba(34, 197, 94, 0.2)' : 'var(--border)'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                    <span style={{ color: agenticId?.status === 'minted' ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.7rem' }}>
-                      {agenticId?.status === 'minted' ? '✓' : '○'}
-                    </span>
-                    <span style={{ ...mono, fontSize: '0.6rem', fontWeight: 600, color: agenticId?.status === 'minted' ? 'var(--text)' : 'var(--text-dim)' }}>ERC-7857</span>
-                  </div>
-                  {agenticId && (
-                    <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      <div>Token #{agenticId.tokenId}</div>
-                      {agenticId.txHash && (
-                        <div style={{ wordBreak: 'break-all' }}>
-                          Tx: <a href={`https://chainscan-newton.0g.ai/tx/${agenticId.txHash}`}
-                            target="_blank" rel="noopener noreferrer"
-                            style={{ color: 'var(--green)', textDecoration: 'none' }}
-                            onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                            onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                          >{agenticId.txHash}</a>
-                        </div>
-                      )}
-                      {agenticId.capabilities && <div>Caps: {agenticId.capabilities.join(', ')}</div>}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-
-              {/* Verify This Chain — cross-link banner */}
-              <div
-                onClick={() => {
-                  const chainJson = JSON.stringify(receipts);
-                  const encoded = encodeURIComponent(chainJson);
-                  if (encoded.length < 8000) {
-                    window.open(`/verify?chain=${encoded}&auto=1`, '_blank');
-                  } else {
-                    sessionStorage.setItem('receipt-verify-chain', chainJson);
-                    window.open('/verify?from=session&auto=1', '_blank');
-                  }
-                }}
-                style={{
-                  marginTop: '1rem',
-                  padding: '0.7rem 1rem',
-                  borderRadius: '4px',
-                  border: fabricationDetected ? '2px solid var(--red)' : '2px solid var(--green)',
-                  background: fabricationDetected ? 'rgba(220, 38, 38, 0.04)' : 'rgba(22, 163, 74, 0.04)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.5rem',
-                  transition: 'border-color 0.2s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    color: fabricationDetected ? 'var(--red)' : 'var(--green)',
-                    letterSpacing: '0.03em',
-                  }}>
-                    {fabricationDetected ? 'Chain broken' : 'Chain verified'} — Inspect it yourself
-                  </span>
-                  <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)' }}>
-                    opens independent verifier
-                  </span>
-                </div>
-                <span style={{ color: fabricationDetected ? 'var(--red)' : 'var(--green)', fontSize: '0.85rem' }}>&#8594;</span>
+            ) : qualityRejected ? (
+              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--amber)' }}>
+                Not anchored — quality gate failed
               </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div style={{
-        padding: '0.3rem 1.5rem', borderTop: '1px solid var(--border)',
-        background: 'var(--surface)', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', fontSize: '0.6rem', color: 'var(--text-dim)',
-        flexShrink: 0, flexWrap: 'wrap', gap: '0.3rem',
-      }}>
-        <div className="bottom-tags" style={{ display: 'flex', gap: '0.8rem' }}>
-          {['0G Compute', '0G Storage', '0G Chain', '0G Fine-Tuning', 'ERC-7857', 'Gensyn AXL'].map(tag => (
-            <span key={tag}>{tag}</span>
-          ))}
-        </div>
-        <span style={mono}>ed25519 + SHA-256</span>
+            ) : fabricationDetected ? (
+              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--red)' }}>
+                Not anchored — fabrication detected
+              </div>
+            ) : (
+              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                Not anchored
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );
