@@ -19,65 +19,101 @@ Agent A                    Agent B
   ├─ decision  → receipt₄    │
   ├─ output    → receipt₅    │
   │                          │
-  └──── handoff bundle ──────┤   (via Gensyn AXL P2P or direct)
+  └──── handoff bundle ──────┤   (via Gensyn AXL P2P)
                              ├─ verify chain (ed25519 + hash links)
                              ├─ file_read → receipt₆
-                             ├─ llm_call  → receipt₇
+                             ├─ api_call  → receipt₇
                              ├─ decision  → receipt₈
                              └─ output    → receipt₉
                                     │
                             compute root hash
                                     │
-              ┌─────────────┬──────┼──────┬──────────────┐
-              │             │             │              │
-        0G Storage    0G Mainnet    Base Sepolia    AgentNFT
-       (Merkle root)  (anchor tx)   (anchor tx)   (ERC-7857)
+              ┌─────────────┬───────┼───────┬──────────────┐
+              │             │               │              │
+        0G Storage    0G Mainnet      0G Fine-Tune     AgentNFT
+       (Merkle root)  (anchor tx)    (TEE upload)    (ERC-7857)
 ```
+
+## How the 5 Pillars Connect
+
+One pipeline run exercises every 0G integration. Here's exactly what happens:
+
+**Step 1 — 0G Compute (TEE Inference)**
+Agent A requests LLM inference via `@0glabs/0g-serving-broker`. The broker routes to one of 4 provider addresses on 0G Mainnet. The response runs inside an Intel TDX hardware enclave. After inference, `broker.inference.processResponse(addr, chatId, usage)` verifies the TEE signature. The receipt carries attestation metadata: provider address, TEE type, chat ID, and a clickable signature endpoint URL.
+
+**Step 2 — Receipt Chain**
+Agent A produces 5 receipts (file_read, api_call, llm_call, decision, output). Each is signed with ed25519 and hash-linked to the previous receipt via `prevId`. The chain is tamper-evident: changing any receipt breaks all downstream hash links.
+
+**Step 3 — Gensyn AXL P2P Handoff**
+Agent A sends the receipt chain to Agent B over Gensyn's AXL transport layer. The pipeline imports `AxlTransport` from the SDK and attempts a real connection to the AXL HTTP bridge. If AXL is live: real `sendHandoffA2A()` with A2A JSON-RPC 2.0 envelope, real `callMcpTool()` for chain verification, real peer discovery via `topology()`. If AXL is unavailable: graceful fallback with `mode: 'simulated'` clearly marked. Agent card discovery uses the A2A agent card spec.
+
+**Step 4 — Chain Verification + Agent B**
+Agent B verifies every receipt: ed25519 signature validity, hash-link integrity, timestamp monotonicity. If any check fails, the handoff is rejected (demonstrated in adversarial mode). Agent B then extends the chain with 4 more receipts.
+
+**Step 5 — 0G Fine-Tuning**
+The combined 9-receipt chain converts to JSONL training data via `chainToFineTuningDataset()`. The pipeline calls `listFineTuningProviders('https://evmrpc.0g.ai')` to discover available providers, then attempts `uploadDatasetToTEE()` and `createFineTuningTask()` with the real 0G serving broker. Results are displayed honestly: task created, or "no providers available" if none exist on mainnet.
+
+**Step 6 — 0G Storage**
+The full receipt chain serializes to bytes, gets Merkle-treed via `@0gfoundation/0g-ts-sdk` v1.2.6, and uploads to 0G storage nodes. The turbo indexer discovers nodes; the pipeline selects 2 and falls back if the first fails. Upload produces a Merkle root hash and transaction hash.
+
+**Step 7 — 0G Chain Anchor**
+`ReceiptAnchor.sol` on 0G Mainnet (chain 16661) stores the chain root hash + storage reference permanently via `anchorRoot(bytes32, bytes32)`.
+
+**Step 8 — ERC-7857 AgentNFT**
+`AgentNFT.sol` mints an on-chain identity for the agent. The NFT carries two `iDatas` entries: the agent metadata hash (ed25519 public key + capabilities) and the chain root hash. Supports the full iNFT lifecycle: `mint()`, `transfer()`, `clone()`, `authorizeUsage()`.
+
+**Deployed Contracts:**
+- ReceiptAnchor: `0x53D96861a37e82FF174324872Fc4d037a61520e3` (0G Mainnet)
+- AgentNFT v2: `0xf964d45c3Ea5368918B1FDD49551E373028108c9` (0G Mainnet)
+- Chain: 0G Mainnet, ID 16661, RPC `https://evmrpc.0g.ai`
 
 ## Live Demo
 
 **[receipt-demo.vercel.app](https://receipt-demo.vercel.app)**
 
-Two viewing modes:
-- **Demo Mode** — Watch agents generate receipts in real-time with chain visualization, trust scoring, and adversarial tamper detection
-- **Explorer Mode** — Full block-explorer view: every hash, every signature, raw input/output data, chain linkage arrows, root hash computation
+Three viewing modes:
+- **Dashboard** — Full operator view: receipt timeline, 0G 5-pillar status, AXL network topology, trust scoring, provider health
+- **Demo Mode** — Watch agents generate receipts in real-time with narrative explanations and adversarial tamper detection
+- **AXL Demo** — Interactive side-by-side sender/receiver visualization of the Gensyn AXL P2P handoff
 
 Features:
 - Real 0G Compute inference with TEE attestation (Intel TDX)
 - Adversarial mode: toggle to watch Agent A fabricate data and Agent B catch it
 - Trust Score: chain integrity (70%) + data provenance (15%) + TEE attestation (15%)
 - ERC-7857 Agentic Identity minting
-- Training data export (receipts → JSONL → 0G Fine-Tuning)
+- Real fine-tuning pipeline (provider discovery → TEE upload → task creation)
+- Training data export (receipts → JSONL)
 - Public verifier at `/verify` — paste any receipt chain JSON to verify independently
+- AXL live/simulated mode indicator
 
 ## Integrations
 
-### 0G (Track 1: Framework/Tooling + Track 2: Autonomous Agents)
+### 0G (Track 1: Framework/Tooling)
 
 Full 0G stack integration across all five pillars:
 
-- **0G Compute** — TEE-attested inference via Intel TDX hardware enclaves. LLM calls in the receipt chain carry attestation metadata proving the inference ran in a trusted execution environment. Tries 4 providers (DeepSeek-V3.2, GLM-5, GPT-oss-120B, GPT-5.4-mini) with automatic fallback.
-- **0G Storage** — Content-addressed persistence. Receipt chains serialize to bytes, get Merkle-treed, and the root hash becomes the `storageRef` passed to the anchor contract. Real upload via `@0gfoundation/0g-ts-sdk` indexer.
-- **0G Chain** — `ReceiptAnchor.sol` deployed on 0G Mainnet (chain ID 16661). `anchorRoot(bytes32, bytes32)` stores the chain root hash + storage reference permanently.
-- **0G Fine-Tuning** — Receipt chains convert to JSONL training data via `chainToFineTuningDataset()`. Agent behavior (decisions, inferences, actions) becomes training examples for 0G's decentralized GPU network. Full lifecycle: `listFineTuningProviders()`, `createFineTuningTask()`, `uploadDatasetToTEE()`. Compatible with Qwen2.5-0.5B-Instruct and Qwen3-32B.
-- **0G Agentic ID (ERC-7857)** — Each agent mints an on-chain identity NFT carrying its ed25519 public key hash and receipt chain root as `iDatas`. `AgentNFT.sol` implements the INFT standard for AI agent identity.
+- **0G Compute** — TEE-attested inference via Intel TDX hardware enclaves. LLM calls in the receipt chain carry attestation metadata proving the inference ran in a trusted execution environment. Tries 4 providers with 2-pass retry and automatic fallback. Real `processResponse()` for TEE signature verification.
+- **0G Storage** — Content-addressed persistence. Receipt chains serialize to bytes, get Merkle-treed via `@0gfoundation/0g-ts-sdk` v1.2.6, and upload to discovered storage nodes. Turbo indexer with fallback node selection. Real upload transactions with Merkle root hashes.
+- **0G Chain** — `ReceiptAnchor.sol` deployed on 0G Mainnet (chain ID 16661). `anchorRoot(bytes32, bytes32)` stores the chain root hash + storage reference permanently. Explorer links for every transaction.
+- **0G Fine-Tuning** — Real broker calls: `listFineTuningProviders()` discovers available providers, `uploadDatasetToTEE()` uploads JSONL training data to TEE, `createFineTuningTask()` submits the job. Honest status reporting — shows what actually happened.
+- **0G Agentic ID (ERC-7857)** — Each agent mints an on-chain identity NFT carrying its ed25519 public key hash and receipt chain root as `iDatas`. `AgentNFT.sol` implements the iNFT standard with full lifecycle: mint, transfer, clone, authorizeUsage.
 
 ### Gensyn AXL (P2P Agent Communication)
 
-Agent-to-agent handoffs over Gensyn's AXL peer-to-peer network. No centralized server — agents discover each other via AXL topology, send receipt bundles directly, and the receiving agent verifies before extending.
+Agent-to-agent handoffs over Gensyn's AXL peer-to-peer network. The pipeline imports `AxlTransport` from the receipt SDK and attempts real AXL connection. When AXL is live:
 
-- `sender.ts` — Creates receipt chain, sends handoff bundle to peer via AXL
-- `receiver.ts` — Receives bundle, verifies chain, extends with new receipts
+- Real topology discovery via `/topology`
+- A2A agent card discovery via `/a2a/{peerId}`
+- Handoff via `sendHandoffA2A()` with JSON-RPC 2.0 `SendMessage` envelope
+- MCP tool calls via `callMcpTool()` (verify_chain, get_capabilities, get_chain_stats)
+- Broadcast to all peers via `broadcastHandoff()`
+- Rebroadcast of extended chain back to originator
 
-### KeeperHub (Automated Anchoring)
+When AXL is unavailable: graceful fallback with simulated events, clearly marked.
 
-KeeperHub workflows trigger automated anchoring:
-
-1. Webhook trigger fires every 10 minutes
-2. Handler scans for unanchored chains
-3. Verifies → stores to 0G → anchors on both chains
-
-See [FEEDBACK.md](./FEEDBACK.md) for detailed integration feedback.
+Standalone AXL demos:
+- `demo/axl/sender.ts` — Creates receipt chain, sends handoff bundle to peer via AXL
+- `demo/axl/receiver.ts` — Receives bundle, verifies chain, extends with new receipts
 
 ## Project Structure
 
@@ -87,18 +123,17 @@ packages/
   receipt-cli/          CLI tool — run, verify, inspect, export, anchor commands
 
 contracts/
-  ReceiptAnchor.sol     On-chain anchor contract (deployed on 0G Mainnet + Base Sepolia)
+  ReceiptAnchor.sol     On-chain anchor contract (deployed on 0G Mainnet)
   AgentNFT.sol          ERC-7857 Agentic Identity NFT contract
 
 scripts/
-  deploy.ts             Deploy ReceiptAnchor to multiple chains
+  deploy.ts             Deploy ReceiptAnchor
   deploy-agent-nft.ts   Deploy AgentNFT (ERC-7857) to 0G Mainnet
 
 demo/
-  app/                  Next.js demo — live receipt generation + verification + explorer
+  app/                  Next.js demo — dashboard + narrative demo + AXL demo + verifier
   agents/               Standalone agent scripts (researcher → builder handoff)
   axl/                  Gensyn AXL P2P demo (sender + receiver via AxlTransport)
-  keeperhub/            KeeperHub webhook + workflow setup + auto-anchor
 ```
 
 ## Quick Start
@@ -107,7 +142,7 @@ demo/
 # Build SDK
 cd packages/receipt-sdk && npm install && npm run build
 
-# Run tests
+# Run tests (94 passing)
 npm test
 
 # Run demo app
@@ -134,31 +169,23 @@ npx tsx demo/agents/researcher.ts --adversarial
 npx tsx demo/agents/builder.ts
 ```
 
-## Contract Deployment
-
-Contract addresses (deployed fresh during hackathon):
-- **0G Mainnet:** `0x8228af81d872d027632C8f55a53EbE7bf5872667`
-- **Base Sepolia:** `0x3118063e34ED57DB38872C2f213257E7fe90010C`
-
-Wallet: `0x4fD66BdA6d792bE89d1fAeaF9F287AcaCaDBDce6`
-
 ## Environment Variables
 
 ```
 PRIVATE_KEY=wallet_private_key
-OG_CONTRACT_ADDRESS=0g_mainnet_receipt_anchor
-BASE_CONTRACT_ADDRESS=base_sepolia_receipt_anchor
-AGENT_NFT_ADDRESS=0g_mainnet_agent_nft
-KEEPERHUB_API_KEY=your_api_key
+OG_CONTRACT_ADDRESS=0x53D96861a37e82FF174324872Fc4d037a61520e3
+AGENT_NFT_ADDRESS=0xf964d45c3Ea5368918B1FDD49551E373028108c9
+OG_COMPUTE_PROVIDER=0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C
+AXL_BASE_URL=http://127.0.0.1:9002  # optional, for live AXL
 ```
 
-## SDK — 47 Tests
+## SDK — 94 Tests
 
 ```bash
 cd packages/receipt-sdk && npm test
 ```
 
-Covers: agent creation, all 5 action types, hash chain integrity, inputHash/outputHash correctness, ed25519 signature verification, tamper detection, `continueFrom` handoffs, `verifyChain` pass/fail, `computeRootHash`, training data conversion, serialization, crypto primitives, chain append validation, and attestation metadata.
+Covers: agent creation, all 5 action types, hash chain integrity, inputHash/outputHash correctness, ed25519 signature verification, tamper detection, `continueFrom` handoffs, `verifyChain` pass/fail, `computeRootHash`, training data conversion, fine-tuning attestation, AXL handoff payloads, serialization, crypto primitives, chain append validation, and attestation metadata.
 
 ## Built With
 
@@ -168,25 +195,23 @@ Covers: agent creation, all 5 action types, hash chain integrity, inputHash/outp
 ### Human Contributions (Oscar)
 - Architecture design — the receipt chain mechanic, hash-linking strategy, and multi-agent handoff protocol
 - Product decisions — what to build, what to skip, scope management
-- Integration strategy — choosing 0G 5-pillar integration (Compute + Storage + Chain + Fine-Tuning + Agentic ID), Gensyn AXL for P2P, KeeperHub for scheduling
-- Bounty targeting — identifying the 3-sponsor, $17.5K ceiling strategy across 0G, KeeperHub, and Gensyn
+- Integration strategy — choosing 0G 5-pillar integration (Compute + Storage + Chain + Fine-Tuning + Agentic ID), Gensyn AXL for P2P
+- Bounty targeting — identifying the 2-sponsor strategy across 0G and Gensyn
 - Demo direction — adversarial mode concept, the "fabrication detected" visual, chain explorer design
 - Deployment and operations — contract deployment, Vercel configuration, environment setup
 
 ### Stack
 - TypeScript, Next.js 15, ed25519 (@noble/ed25519), SHA-256 (@noble/hashes)
 - Solidity (ReceiptAnchor.sol, AgentNFT.sol)
-- 0G SDK (@0gfoundation/0g-ts-sdk, @0glabs/0g-serving-broker)
-- Gensyn AXL (Go binary, HTTP API, AxlTransport SDK wrapper)
-- KeeperHub (REST API, webhook handler, auto-anchor workflow)
+- 0G SDK (@0gfoundation/0g-ts-sdk v1.2.6, @0glabs/0g-serving-broker)
+- Gensyn AXL (AxlTransport SDK wrapper, A2A protocol, MCP tool calls)
 
 ## Bounty Targets
 
 | Sponsor | Track | Ceiling | What We Built |
 |---------|-------|---------|---------------|
-| **0G** | Track 1: Framework/Tooling | $7,500 | 5-pillar integration: Compute (TEE), Storage (Merkle), Chain (anchor), Fine-Tuning (JSONL pipeline), Agentic ID (ERC-7857) |
-| **Gensyn** | AXL Integration | $5,000 | AxlTransport SDK, P2P receipt handoffs, peer discovery, sender/receiver demos |
-| **KeeperHub** | Automated Workflow | $4,500 + $500 | Webhook-triggered anchor pipeline, workflow setup, auto-anchor CLI, 1,681-word FEEDBACK.md |
+| **0G** | Track 1: Framework/Tooling | $2,500 1st | 5-pillar integration: Compute (TEE), Storage (Merkle), Chain (anchor), Fine-Tuning (real broker calls), Agentic ID (ERC-7857) |
+| **Gensyn** | AXL Integration | $2,500 1st | AxlTransport SDK, real P2P handoffs with live/simulated fallback, A2A protocol, MCP tool calls, peer discovery, broadcast |
 
 ## License
 
