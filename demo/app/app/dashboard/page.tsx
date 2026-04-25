@@ -65,6 +65,7 @@ const ACTION_LABELS: Record<string, string> = {
   llm_call: 'LLM Inference',
   decision: 'Decision',
   output: 'Output',
+  usefulness_review: 'Usefulness Review',
 };
 
 const STORAGE_KEY = 'receipt-dashboard-state';
@@ -92,6 +93,7 @@ interface PersistedState {
   fabricationDetected: boolean;
   tamperedIds: string[];
   tamperDetails: Record<string, { index: number; field: string; detail: string }>;
+  reviewScores: { alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null;
   timestamp: number;
 }
 
@@ -113,7 +115,7 @@ export default function Dashboard() {
   const [selectedAgent, setSelectedAgent] = useState<'A' | 'B'>('A');
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
 
-  const [anchor0g, setAnchor0g] = useState<{ txHash: string; chain: string; contractAddress?: string; chainRootHash?: string; storageRef?: string; explorerUrl?: string } | null>(null);
+  const [anchor0g, setAnchor0g] = useState<{ txHash: string; chain: string; contractAddress?: string; chainRootHash?: string; storageRef?: string; explorerUrl?: string; usefulnessScore?: number } | null>(null);
   const [storage, setStorage] = useState<{ rootHash?: string; uploaded?: boolean; dataSize?: number; indexerUrl?: string; uploadTxHash?: string } | null>(null);
   const [anchoring, setAnchoring] = useState(false);
   const [trainingData, setTrainingData] = useState<{ jsonl: string; stats: any } | null>(null);
@@ -127,6 +129,7 @@ export default function Dashboard() {
   const [axlRebroadcast, setAxlRebroadcast] = useState<any>(null);
   const [axlAdopt, setAxlAdopt] = useState<any>(null);
   const [fineTuning, setFineTuning] = useState<any>(null);
+  const [reviewScores, setReviewScores] = useState<{ alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null>(null);
   const [buttonDots, setButtonDots] = useState('');
   const [mountedReceiptIds, setMountedReceiptIds] = useState<Set<string>>(new Set());
   const [providers, setProviders] = useState<ProviderHealth[]>([]);
@@ -193,6 +196,7 @@ export default function Dashboard() {
           setFabricationDetected(s.fabricationDetected || false);
           if (s.tamperedIds?.length) setTamperedIds(new Set(s.tamperedIds));
           if (s.tamperDetails) setTamperDetails(s.tamperDetails);
+          if (s.reviewScores) setReviewScores(s.reviewScores);
           setIsCachedData(true);
           setMountedReceiptIds(new Set(s.receipts.map(r => r.id)));
         }
@@ -209,7 +213,7 @@ export default function Dashboard() {
           trustScore, anchor0g, storage, agenticId, axlHandoff,
           axlReceived, mcpToolCalls, peers, teeVerified, agentCard,
           axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
-          tamperedIds: [...tamperedIds], tamperDetails, timestamp: Date.now(),
+          tamperedIds: [...tamperedIds], tamperDetails, reviewScores, timestamp: Date.now(),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         localStorage.setItem('receipt_last_chain', JSON.stringify(receipts));
@@ -219,7 +223,7 @@ export default function Dashboard() {
     trustScore, anchor0g, storage, agenticId, axlHandoff,
     axlReceived, mcpToolCalls, peers, teeVerified, agentCard,
     axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
-    tamperedIds, tamperDetails, running]);
+    tamperedIds, tamperDetails, reviewScores, running]);
 
   // Fetch provider health on mount
   useEffect(() => {
@@ -310,6 +314,7 @@ export default function Dashboard() {
     setAxlRebroadcast(null);
     setAxlAdopt(null);
     setFineTuning(null);
+    setReviewScores(null);
     setPipelineError(null);
     setSelectedAgent('A');
 
@@ -428,6 +433,9 @@ case 'axl_handoff':
         break;
       case 'fine_tuning':
         setFineTuning(data);
+        break;
+      case 'review_scores':
+        setReviewScores({ alignment: data.alignment, substance: data.substance, quality: data.quality, composite: data.composite, reasoning: data.reasoning || '' });
         break;
       case 'error':
         setPipelineError(data.message);
@@ -588,7 +596,7 @@ case 'axl_handoff':
               <div style={{ textAlign: 'center' }}>
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'var(--agent-a)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--researcher)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
                 }}>R</div>
                 <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Researcher</div>
@@ -605,7 +613,7 @@ case 'axl_handoff':
               <div style={{ textAlign: 'center' }}>
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'var(--agent-b)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--builder)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
                 }}>B</div>
                 <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Builder</div>
@@ -792,6 +800,41 @@ case 'axl_handoff':
             )}
           </div>
 
+          {/* Usefulness Review */}
+          {reviewScores && (
+            <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
+                Usefulness Review
+              </div>
+              {(['alignment', 'substance', 'quality'] as const).map(axis => (
+                <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
+                  <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)', width: '38px', textTransform: 'uppercase' }}>{axis.slice(0, 5)}</span>
+                  <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '3px',
+                      width: `${reviewScores[axis]}%`,
+                      background: reviewScores[axis] >= 70 ? 'var(--green)' : reviewScores[axis] >= 40 ? 'var(--amber)' : 'var(--red)',
+                      transition: 'width 1s ease-out',
+                    }} />
+                  </div>
+                  <span style={{ ...mono, fontSize: '0.55rem', fontWeight: 700, width: '20px', textAlign: 'right' }}>{reviewScores[axis]}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.3rem' }}>
+                <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)' }}>COMPOSITE</span>
+                <span style={{
+                  ...mono, fontSize: '1rem', fontWeight: 700,
+                  color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
+                }}>{reviewScores.composite}</span>
+              </div>
+              {reviewScores.reasoning && (
+                <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                  {reviewScores.reasoning}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 0G Integration Pillars — always visible */}
           <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
             <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.5rem' }}>
@@ -851,8 +894,8 @@ case 'axl_handoff':
               Agents
             </div>
             {[
-              { key: 'A' as const, label: 'Researcher', color: 'var(--agent-a)', stats: statsA, receipts: agentAReceipts },
-              { key: 'B' as const, label: 'Builder', color: 'var(--agent-b)', stats: statsB, receipts: agentBReceipts },
+              { key: 'A' as const, label: 'Researcher', color: 'var(--researcher)', stats: statsA, receipts: agentAReceipts },
+              { key: 'B' as const, label: 'Builder', color: 'var(--builder)', stats: statsB, receipts: agentBReceipts },
             ].filter(a => a.stats.count > 0).map(agent => (
               <div
                 key={agent.key}
@@ -954,6 +997,11 @@ case 'axl_handoff':
                   No fine-tuning providers available on network
                 </div>
               )}
+              {fineTuning.status === 'quality-gate' && (
+                <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--amber)' }}>
+                  Quality gate: score {fineTuning.score}/100 below threshold ({fineTuning.threshold}). Low-quality chains are excluded from training data.
+                </div>
+              )}
               {(fineTuning.uploadError || fineTuning.taskError) && (
                 <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--amber)', wordBreak: 'break-all' }}>
                   {fineTuning.uploadError || fineTuning.taskError}
@@ -1045,6 +1093,11 @@ case 'axl_handoff':
                       storageRef: {anchor0g.storageRef}
                     </div>
                   )}
+                  {typeof anchor0g.usefulnessScore === 'number' && (
+                    <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--green)', marginTop: '0.15rem', fontWeight: 700 }}>
+                      usefulness: {anchor0g.usefulnessScore}/100 (on-chain)
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1072,9 +1125,9 @@ case 'axl_handoff':
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '28px', height: '28px', borderRadius: '50%',
-                    background: 'var(--agent-a)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--researcher)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
-                    boxShadow: axlHandoff ? '0 0 6px var(--agent-a)' : 'none',
+                    boxShadow: axlHandoff ? '0 0 6px var(--researcher)' : 'none',
                   }}>R</div>
                   <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Researcher</div>
                 </div>
@@ -1101,10 +1154,10 @@ case 'axl_handoff':
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '28px', height: '28px', borderRadius: '50%',
-                    background: axlReceived ? 'var(--agent-b)' : 'var(--border)',
+                    background: axlReceived ? 'var(--builder)' : 'var(--border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
-                    boxShadow: axlReceived?.verified ? '0 0 6px var(--agent-b)' : 'none',
+                    boxShadow: axlReceived?.verified ? '0 0 6px var(--builder)' : 'none',
                   }}>B</div>
                   <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Builder</div>
                 </div>
@@ -1149,7 +1202,7 @@ case 'axl_handoff':
                   background: 'rgba(37, 99, 235, 0.06)', border: '1px solid rgba(37, 99, 235, 0.2)',
                   marginBottom: '0.4rem',
                 }}>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--agent-a)', fontWeight: 600, marginBottom: '0.15rem' }}>
+                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--researcher)', fontWeight: 600, marginBottom: '0.15rem' }}>
                     A2A Agent Card
                   </div>
                   <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)' }}>{agentCard.card?.name}</div>
@@ -1174,7 +1227,7 @@ case 'axl_handoff':
                       background: 'rgba(124, 58, 237, 0.06)', border: '1px solid rgba(124, 58, 237, 0.15)',
                       marginBottom: '0.15rem',
                     }}>
-                      <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--agent-b)', fontWeight: 600 }}>
+                      <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--builder)', fontWeight: 600 }}>
                         {call.caller.split('.')[0]} → .{call.tool}()
                       </div>
                       <div style={{ ...mono, fontSize: '0.38rem', color: 'var(--text-dim)' }}>
@@ -1441,7 +1494,7 @@ case 'axl_handoff':
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
                 <div style={{
                   width: '28px', height: '28px', borderRadius: '50%',
-                  background: selectedAgent === 'A' ? 'var(--agent-a)' : 'var(--agent-b)',
+                  background: selectedAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontSize: '0.7rem', fontWeight: 700,
                 }}>{selectedAgent}</div>
@@ -1519,7 +1572,7 @@ case 'axl_handoff':
                     const isTampered = tamperedIds.has(receipt.id);
                     const isHandoffPoint = agentACount > 0 && i === agentACount;
                     const isMounted = mountedReceiptIds.has(receipt.id);
-                    const agentColor = isAgentA ? 'var(--agent-a)' : 'var(--agent-b)';
+                    const agentColor = isAgentA ? 'var(--researcher)' : 'var(--builder)';
                     const prevReceipt = i > 0 ? receipts[i - 1] : null;
                     const prevTampered = prevReceipt ? tamperedIds.has(prevReceipt.id) : false;
                     const linkBroken = isTampered || prevTampered;
@@ -1544,7 +1597,7 @@ case 'axl_handoff':
                               background: linkBroken
                                 ? 'var(--red)'
                                 : isHandoffPoint
-                                  ? 'linear-gradient(90deg, var(--agent-a), var(--agent-b))'
+                                  ? 'linear-gradient(90deg, var(--researcher), var(--builder))'
                                   : 'var(--border)',
                               borderStyle: linkBroken ? 'dashed' : 'solid',
                               ...(linkBroken ? {
@@ -1558,7 +1611,7 @@ case 'axl_handoff':
                             <div style={{
                               position: 'absolute', top: '6px',
                               ...mono, fontSize: '0.4rem',
-                              color: linkBroken ? 'var(--red)' : isHandoffPoint ? 'var(--agent-b)' : 'var(--text-dim)',
+                              color: linkBroken ? 'var(--red)' : isHandoffPoint ? 'var(--builder)' : 'var(--text-dim)',
                               whiteSpace: 'nowrap', fontWeight: isHandoffPoint ? 700 : 400,
                               background: isHandoffPoint
                                 ? 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(124,58,237,0.12))'
@@ -1631,12 +1684,12 @@ case 'axl_handoff':
               {/* Legend */}
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--agent-a)' }} />
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--researcher)' }} />
                   <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Researcher</span>
                 </div>
                 {agentBReceipts.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--agent-b)' }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--builder)' }} />
                     <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Builder</span>
                   </div>
                 )}
@@ -1674,7 +1727,7 @@ case 'axl_handoff':
                       {i > 0 && <div style={{ width: '1px', height: '12px', background: isTampered ? 'var(--red)' : 'var(--border)' }} />}
                       <div style={{
                         width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0,
-                        background: isTampered ? 'var(--red)' : verification?.valid ? 'var(--green)' : selectedAgent === 'A' ? 'var(--agent-a)' : 'var(--agent-b)',
+                        background: isTampered ? 'var(--red)' : verification?.valid ? 'var(--green)' : selectedAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
                       }} />
                       {i < selectedReceipts.length - 1 && <div style={{ width: '1px', flex: 1, minHeight: '12px', background: 'var(--border)' }} />}
                     </div>

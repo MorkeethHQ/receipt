@@ -41,6 +41,7 @@ type StoryStage =
   | 'agent-b-verifying'
   | 'agent-b-working'
   | 'agent-b-rejected'
+  | 'reviewing'
   | 'anchoring'
   | 'complete'
   | 'rebroadcast'
@@ -71,6 +72,7 @@ const ACTION_LABELS: Record<string, string> = {
   llm_call: 'LLM Inference',
   decision: 'Decision',
   output: 'Output',
+  usefulness_review: 'Usefulness Review',
 };
 
 const STEP_DESCRIPTIONS: Record<string, string> = {
@@ -79,6 +81,7 @@ const STEP_DESCRIPTIONS: Record<string, string> = {
   llm_call: 'Running inference via 0G Compute (TEE-attested)',
   decision: 'Analyzing gathered data and making a judgment',
   output: 'Producing final summary with cryptographic proof',
+  usefulness_review: 'TEE-attested quality assessment of the full chain',
 };
 
 /* ------------------------------------------------------------------ */
@@ -102,6 +105,10 @@ function getNarrative(event: string, data: any): string {
         return `Notice the previousHash field -- it chains back to the last receipt, creating a tamper-evident linked list. ${name}'s reasoning is captured and signed, so you can audit exactly why this path was chosen.`;
       case 'output':
         return `${name} produced its deliverable. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
+      case 'usefulness_review':
+        return data.teeAttested
+          ? `The Builder scored the chain's usefulness inside a TEE. The review itself is a signed receipt — proving the quality assessment is trustworthy, not just the actions.`
+          : `The Builder reviewed the chain's output quality. Three scores — alignment, substance, quality — are hashed into this receipt. Layer 2: proof of usefulness.`;
       default:
         return `${name}: ${data.receipt.action.description}`;
     }
@@ -151,8 +158,28 @@ function getNarrative(event: string, data: any): string {
       ? 'Pipeline complete. The fabrication was caught and the handoff was rejected. No tampered data reaches the next agent.'
       : 'Pipeline complete. All receipts verified. The entire chain is cryptographically sound -- every action is proven.';
   }
+  if (event === 'review_start') {
+    return 'The Builder evaluates the chain\'s usefulness via 0G Compute. This is Layer 2 — not just proving actions happened, but proving they were useful.';
+  }
+  if (event === 'review_scores') {
+    const { alignment, substance, quality, composite } = data;
+    return `Usefulness scores — Alignment: ${alignment}, Substance: ${substance}, Quality: ${quality}. Composite: ${composite}/100. ${data.attested ? 'TEE-attested — the scores are independently verifiable.' : ''}`;
+  }
+  if (event === 'quality_gate') {
+    if (!data.passed) {
+      return `QUALITY GATE FAILED. The chain scored ${data.score}/100 — below the ${data.threshold} threshold. This chain will NOT be anchored on-chain. Low-quality agent work doesn't earn on-chain reputation. Only high-quality chains become training data.`;
+    }
+    return '';
+  }
+  if (event === 'storage') {
+    const score = data.usefulnessScore;
+    return score
+      ? `Receipt chain stored on 0G decentralized storage and anchored on-chain with usefulness score ${score}/100. Judges can verify this score directly on the 0G explorer — it's on-chain, not just a UI number.`
+      : 'The verified receipt chain is being stored on 0G decentralized storage with a Merkle root hash, then anchored on-chain for permanent verifiability.';
+  }
   if (event === 'trust_score') {
-    return `Trust score computed: chain integrity (70%), data provenance (15%), TEE attestation (15%).`;
+    const score = data.score ?? '--';
+    return `Trust score: ${score}/100. Weighted across chain integrity (are all signatures and hash links valid?), data provenance (was real data used, not stubs?), and TEE attestation (did inference run inside a hardware enclave?).`;
   }
   return '';
 }
@@ -176,6 +203,9 @@ function getDelay(event: string): number {
     case 'axl_rebroadcast': return 1000;
     case 'axl_adopt': return 1000;
     case 'tee_verified': return 1200;
+    case 'review_start': return 1200;
+    case 'review_scores': return 2000;
+    case 'quality_gate': return 2500;
     default: return 500;
   }
 }
@@ -223,9 +253,12 @@ export default function Demo() {
   const [verifications, setVerifications] = useState<VerificationResult[]>([]);
   const [agentACount, setAgentACount] = useState(0);
   const [fabricationDetected, setFabricationDetected] = useState(false);
+  const [qualityRejected, setQualityRejected] = useState(false);
+  const [showAmberFlash, setShowAmberFlash] = useState(false);
   const [tamperedIds, setTamperedIds] = useState<Set<string>>(new Set());
   const [chainRootHash, setChainRootHash] = useState<string | null>(null);
   const [trustScore, setTrustScore] = useState<number | null>(null);
+  const [trustBreakdown, setTrustBreakdown] = useState<{ chainIntegrity: number; dataProvenance: number; teeAttestation: number } | null>(null);
   const [narrative, setNarrative] = useState('');
   const [narrativeHighlight, setNarrativeHighlight] = useState(false);
   const [storyStage, setStoryStage] = useState<StoryStage>('agent-a-working');
@@ -238,6 +271,9 @@ export default function Demo() {
   const [peers, setPeers] = useState<string[]>([]);
   const [totalReceiptsGenerated, setTotalReceiptsGenerated] = useState(0);
   const [verificationsPassedCount, setVerificationsPassedCount] = useState(0);
+  const [reviewScores, setReviewScores] = useState<{ alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null>(null);
+  const [receiptWeights, setReceiptWeights] = useState<number[]>([]);
+  const [scoreDelta, setScoreDelta] = useState<number | null>(null);
 
   const agentARef = useRef<HTMLDivElement>(null);
   const agentBRef = useRef<HTMLDivElement>(null);
@@ -256,6 +292,12 @@ export default function Demo() {
   useEffect(() => {
     centerRef.current?.scrollTo({ top: centerRef.current.scrollHeight, behavior: 'smooth' });
   }, [centerLog, verifications]);
+
+  useEffect(() => {
+    if (phase === 'done' && receipts.length > 0) {
+      try { localStorage.setItem('receipt_last_chain', JSON.stringify(receipts)); } catch {}
+    }
+  }, [phase, receipts]);
 
   const agentAReceipts = receipts.slice(0, agentACount || receipts.length);
   const agentBReceipts = agentACount > 0 ? receipts.slice(agentACount) : [];
@@ -402,15 +444,37 @@ export default function Demo() {
       case 'trust_score':
         setTrustScore(data.score);
         setDisplayedTrustScore(data.score);
+        if (data.breakdown) setTrustBreakdown(data.breakdown);
         addTiming('Trust score', Math.round(elapsed));
+        break;
+      case 'review_start':
+        setStoryStage('reviewing');
+        addCenterLog('Usefulness review started', 'tee');
+        addTiming('Review start', Math.round(elapsed));
+        break;
+      case 'review_scores':
+        setReviewScores({ alignment: data.alignment, substance: data.substance, quality: data.quality, composite: data.composite, reasoning: data.reasoning });
+        if (Array.isArray(data.weights)) setReceiptWeights(data.weights);
+        if (typeof data.delta === 'number') setScoreDelta(data.delta);
+        addCenterLog(`Usefulness: ${data.composite}/100${typeof data.delta === 'number' ? ` (${data.delta >= 0 ? '+' : ''}${data.delta} vs avg)` : ''}`, 'tee');
+        addTiming('Review scored', Math.round(elapsed));
+        break;
+      case 'quality_gate':
+        if (!data.passed) {
+          setQualityRejected(true);
+          setShowAmberFlash(true);
+          setTimeout(() => setShowAmberFlash(false), 2000);
+          addCenterLog(`QUALITY GATE: ${data.score}/${data.threshold} — NOT ANCHORED`, 'fail');
+        }
+        addTiming('Quality gate', Math.round(elapsed));
         break;
       case 'storage':
         setStoryStage('anchoring');
-        addCenterLog('Stored on 0G Storage', 'anchor');
-        addTiming('0G Anchor', Math.round(elapsed));
+        addCenterLog(qualityRejected ? 'Stored for audit (not anchored)' : 'Stored + anchored on 0G', 'anchor');
+        addTiming('0G Storage', Math.round(elapsed));
         break;
     }
-  }, [addCenterLog, addTiming]);
+  }, [addCenterLog, addTiming, qualityRejected]);
 
   const run = useCallback(async () => {
     setPhase('running');
@@ -419,9 +483,12 @@ export default function Demo() {
     setVerifications([]);
     setAgentACount(0);
     setFabricationDetected(false);
+    setQualityRejected(false);
+    setShowAmberFlash(false);
     setTamperedIds(new Set());
     setChainRootHash(null);
     setTrustScore(null);
+    setTrustBreakdown(null);
     setDisplayedTrustScore(null);
     setStoryStage('agent-a-working');
     setTimings([]);
@@ -432,6 +499,9 @@ export default function Demo() {
     setPeers([]);
     setTotalReceiptsGenerated(0);
     setVerificationsPassedCount(0);
+    setReviewScores(null);
+    setReceiptWeights([]);
+    setScoreDelta(null);
     eventIndexRef.current = 0;
     lastEventTimeRef.current = 0;
     setNarrative('Starting agent pipeline. Each action will produce a cryptographically signed receipt.');
@@ -510,12 +580,30 @@ export default function Demo() {
               <span style={{ color: 'var(--text-dim)' }}>TIME</span>
               <span>{new Date(receipt.timestamp).toLocaleTimeString()}</span>
             </div>
-            {receipt.action.type === 'llm_call' && (
+            {(receipt.action.type === 'llm_call' || receipt.action.type === 'usefulness_review') && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-dim)' }}>SOURCE</span>
                 <span style={{ fontWeight: 600, color: meta?.teeAttested ? 'var(--green)' : meta?.llmSource === '0g-compute' ? 'var(--amber)' : 'var(--text-muted)' }}>
                   {meta?.teeAttested ? 'TEE (TDX)' : meta?.llmSource === '0g-compute' ? '0G Compute' : 'Simulated'}
                 </span>
+              </div>
+            )}
+            {receipt.action.type === 'usefulness_review' && reviewScores && (
+              <div style={{ marginTop: '0.2rem' }}>
+                {(['alignment', 'substance', 'quality'] as const).map(axis => (
+                  <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
+                    <span style={{ color: 'var(--text-dim)', width: '42px', textTransform: 'uppercase', fontSize: '0.48rem' }}>{axis.slice(0, 5)}</span>
+                    <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '2px',
+                        width: `${reviewScores[axis]}%`,
+                        background: reviewScores[axis] >= 70 ? 'var(--green)' : reviewScores[axis] >= 40 ? 'var(--amber)' : 'var(--red)',
+                        transition: 'width 1s ease-out',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '0.5rem', fontWeight: 600, width: '20px', textAlign: 'right' }}>{reviewScores[axis]}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -526,6 +614,25 @@ export default function Demo() {
               OUT {receipt.outputHash.slice(0, 20)}...
             </div>
           </div>
+          {receiptWeights[index] !== undefined && receipt.action.type !== 'usefulness_review' && (
+            <>
+              <div className="dashed" />
+              <div style={{ padding: '0.25rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', width: '50px' }}>USEFUL</span>
+                <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: '2px',
+                    width: `${receiptWeights[index] * 100}%`,
+                    background: receiptWeights[index] >= 0.7 ? 'var(--green)' : receiptWeights[index] >= 0.4 ? 'var(--amber)' : 'var(--red)',
+                    transition: 'width 1s ease-out',
+                  }} />
+                </div>
+                <span style={{ ...mono, fontSize: '0.48rem', fontWeight: 700, color: receiptWeights[index] >= 0.7 ? 'var(--green)' : receiptWeights[index] >= 0.4 ? 'var(--amber)' : 'var(--red)' }}>
+                  {(receiptWeights[index] * 100).toFixed(0)}%
+                </span>
+              </div>
+            </>
+          )}
           <div className="dashed" />
           <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.52rem', color: 'var(--text-dim)' }}>
             SIG {receipt.signature.slice(0, 20)}...
@@ -575,7 +682,7 @@ export default function Demo() {
           <div style={{
             ...mono, fontSize: '0.55rem', fontWeight: 700,
             color: '#fff',
-            background: isAgent === 'A' ? 'var(--agent-a)' : 'var(--agent-b)',
+            background: isAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
             padding: '0.1rem 0.4rem', borderRadius: '10px',
             lineHeight: 1.4,
           }}>
@@ -604,7 +711,7 @@ export default function Demo() {
           R.E.C.E.I.P.T.
         </div>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: '1.5rem', ...mono }}>
-          Recorded Execution Chains & Integrity Proofs for Trustworthy agents
+          Proof layer for agent work
         </p>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
           Watch two AI agents work together with cryptographic proof. Every action produces a
@@ -660,7 +767,7 @@ export default function Demo() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '2rem',
         }}>
-          {['Researcher', 'AXL handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder deploys', '0G anchor'].map((step, i) => (
+          {['Researcher', 'AXL handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder deploys', adversarial ? null : 'Review', '0G anchor'].filter(Boolean).map((step, i, arr) => (
             <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <div style={{
                 ...mono, fontSize: '0.62rem', padding: '0.3rem 0.6rem',
@@ -669,7 +776,7 @@ export default function Demo() {
               }}>
                 {step}
               </div>
-              {i < 4 && <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>&#8594;</span>}
+              {i < arr.length - 1 && <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>&#8594;</span>}
             </div>
           ))}
         </div>
@@ -718,7 +825,7 @@ export default function Demo() {
           }}>
             <div style={{
               width: '28px', height: '28px', borderRadius: '50%',
-              background: 'var(--agent-a)', display: 'flex', alignItems: 'center',
+              background: 'var(--researcher)', display: 'flex', alignItems: 'center',
               justifyContent: 'center', color: '#fff', fontSize: '0.55rem', fontWeight: 700,
               boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.2)',
             }}>R</div>
@@ -731,8 +838,8 @@ export default function Demo() {
                   position: 'absolute', top: '-4px',
                   width: '10px', height: '10px',
                   borderRadius: '2px',
-                  background: 'var(--agent-a)',
-                  boxShadow: '0 0 6px var(--agent-a)',
+                  background: 'var(--researcher)',
+                  boxShadow: '0 0 6px var(--researcher)',
                   animation: `axl-packet-traverse 2s ease-in-out infinite`,
                   animationDelay: `${i * 0.4}s`,
                 }} />
@@ -740,7 +847,7 @@ export default function Demo() {
             </div>
             <div style={{
               width: '28px', height: '28px', borderRadius: '50%',
-              background: 'var(--agent-b)', display: 'flex', alignItems: 'center',
+              background: 'var(--builder)', display: 'flex', alignItems: 'center',
               justifyContent: 'center', color: '#fff', fontSize: '0.55rem', fontWeight: 700,
               boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)',
             }}>B</div>
@@ -759,7 +866,7 @@ export default function Demo() {
         {/* Verification checklist */}
         {verifications.length > 0 && (
           <div style={{ marginBottom: '0.3rem' }}>
-            <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--agent-b)', fontWeight: 700, marginBottom: '0.3rem', letterSpacing: '0.04em' }}>
+            <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--builder)', fontWeight: 700, marginBottom: '0.3rem', letterSpacing: '0.04em' }}>
               VERIFICATION
             </div>
             {verifications.map((v, i) => (
@@ -797,13 +904,13 @@ export default function Demo() {
             borderRadius: '3px', lineHeight: 1.4,
             color: entry.type === 'fail' ? 'var(--red)'
               : entry.type === 'pass' ? 'var(--green)'
-              : entry.type === 'handoff' ? 'var(--agent-b)'
-              : entry.type === 'mcp' ? 'var(--agent-b)'
+              : entry.type === 'handoff' ? 'var(--builder)'
+              : entry.type === 'mcp' ? 'var(--builder)'
               : entry.type === 'anchor' ? 'var(--amber)'
               : entry.type === 'tee' ? 'var(--green)'
-              : entry.type === 'rebroadcast' ? 'var(--agent-b)'
-              : entry.type === 'adopt' ? 'var(--agent-a)'
-              : entry.type === 'agent-card' ? 'var(--agent-a)'
+              : entry.type === 'rebroadcast' ? 'var(--builder)'
+              : entry.type === 'adopt' ? 'var(--researcher)'
+              : entry.type === 'agent-card' ? 'var(--researcher)'
               : 'var(--text-muted)',
             background: entry.type === 'fail' ? '#fef2f2'
               : entry.type === 'handoff' ? '#f5f3ff'
@@ -850,8 +957,24 @@ export default function Demo() {
           </div>
         )}
 
+        {/* Quality rejected */}
+        {qualityRejected && !fabricationDetected && (
+          <div className="slide-up" style={{
+            padding: '0.5rem', borderRadius: '6px',
+            background: '#fffbeb', border: '2px solid var(--amber)',
+            textAlign: 'center', marginBottom: '0.4rem',
+          }}>
+            <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 800, letterSpacing: '0.06em' }}>
+              NOT ANCHORED
+            </div>
+            <div style={{ fontSize: '0.55rem', color: '#92400e', marginTop: '0.15rem' }}>
+              Quality below threshold — no on-chain reputation
+            </div>
+          </div>
+        )}
+
         {/* Chain verified */}
-        {phase === 'done' && !fabricationDetected && (
+        {phase === 'done' && !fabricationDetected && !qualityRejected && (
           <div className="slide-up" style={{ textAlign: 'center', marginBottom: '0.4rem' }}>
             <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--green)', fontWeight: 700 }}>
               CHAIN VERIFIED
@@ -875,6 +998,48 @@ export default function Demo() {
           </div>
         )}
 
+        {/* Usefulness scores */}
+        {reviewScores && (
+          <div style={{
+            padding: '0.5rem', borderRadius: '6px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            marginBottom: '0.4rem',
+          }}>
+            <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.3rem', textAlign: 'center' }}>
+              Usefulness
+            </div>
+            {(['alignment', 'substance', 'quality'] as const).map(axis => (
+              <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+                <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)', width: '36px', textTransform: 'uppercase' }}>{axis.slice(0, 5)}</span>
+                <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: '3px',
+                    width: `${reviewScores[axis]}%`,
+                    background: reviewScores[axis] >= 70 ? 'var(--green)' : reviewScores[axis] >= 40 ? 'var(--amber)' : 'var(--red)',
+                    transition: 'width 1.2s ease-out',
+                  }} />
+                </div>
+                <span style={{ ...mono, fontSize: '0.5rem', fontWeight: 700, width: '18px', textAlign: 'right', color: 'var(--text)' }}>{reviewScores[axis]}</span>
+              </div>
+            ))}
+            <div style={{ textAlign: 'center', marginTop: '0.2rem' }}>
+              <AnimatedCounter
+                target={reviewScores.composite}
+                color={reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)'}
+              />
+              <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>COMPOSITE</div>
+              {scoreDelta !== null && (
+                <div style={{
+                  ...mono, fontSize: '0.5rem', fontWeight: 700, marginTop: '0.15rem',
+                  color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
+                }}>
+                  {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Trust score */}
         {displayedTrustScore !== null && (
           <div style={{
@@ -889,6 +1054,28 @@ export default function Demo() {
               target={displayedTrustScore}
               color={displayedTrustScore >= 80 ? 'var(--green)' : displayedTrustScore >= 50 ? 'var(--amber)' : 'var(--red)'}
             />
+            {trustBreakdown && (
+              <div style={{ marginTop: '0.3rem', textAlign: 'left' }}>
+                {([
+                  { label: 'Chain', value: trustBreakdown.chainIntegrity, max: 70 },
+                  { label: 'Data', value: trustBreakdown.dataProvenance, max: 15 },
+                  { label: 'TEE', value: trustBreakdown.teeAttestation, max: 15 },
+                ] as const).map(item => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', width: '26px' }}>{item.label}</span>
+                    <div style={{ flex: 1, height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '2px',
+                        width: `${(item.value / item.max) * 100}%`,
+                        background: item.value === item.max ? 'var(--green)' : 'var(--amber)',
+                        transition: 'width 0.8s ease-out',
+                      }} />
+                    </div>
+                    <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)', width: '22px', textAlign: 'right' }}>{item.value}/{item.max}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -901,7 +1088,7 @@ export default function Demo() {
 
   const agentAActive = phase === 'running' && (storyStage === 'agent-a-working');
   const agentABorderStyle = agentAActive
-    ? '3px solid var(--agent-a)'
+    ? '3px solid var(--researcher)'
     : '1px solid var(--border)';
 
   const renderAgentAPanel = () => (
@@ -916,19 +1103,19 @@ export default function Demo() {
         background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0,
       }}>
         <div style={{
-          width: '28px', height: '28px', borderRadius: '50%', background: 'var(--agent-a)',
+          width: '28px', height: '28px', borderRadius: '50%', background: 'var(--researcher)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', fontWeight: 700, fontSize: '0.65rem',
           boxShadow: agentAActive ? '0 0 0 3px rgba(37, 99, 235, 0.25)' : 'none',
           transition: 'box-shadow 0.3s ease',
         }}>A</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Researcher <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 400 }}>Agent A</span></div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Researcher</div>
           <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
             {agentAReceipts.length > 0 && agentACount > 0 ? (
               <span style={{ color: 'var(--green)' }}>finished -- {agentAReceipts.length} receipts</span>
             ) : agentAReceipts.length > 0 ? (
-              <span className="typing-indicator" style={{ color: 'var(--agent-a)' }}>working</span>
+              <span className="typing-indicator" style={{ color: 'var(--researcher)' }}>working</span>
             ) : 'waiting'}
           </div>
         </div>
@@ -956,12 +1143,12 @@ export default function Demo() {
   /*  Render: Agent B Panel                                            */
   /* ---------------------------------------------------------------- */
 
-  const agentBActive = phase === 'running' && (storyStage === 'agent-b-working' || storyStage === 'agent-b-verifying');
+  const agentBActive = phase === 'running' && (storyStage === 'agent-b-working' || storyStage === 'agent-b-verifying' || storyStage === 'reviewing');
 
   const renderAgentBPanel = () => (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      borderLeft: agentBActive ? '3px solid var(--agent-b)' : '1px solid transparent',
+      borderLeft: agentBActive ? '3px solid var(--builder)' : '1px solid transparent',
       transition: 'border 0.3s ease',
       boxShadow: agentBActive ? 'inset -3px 0 12px -4px rgba(124, 58, 237, 0.15)' : 'none',
     }}>
@@ -970,14 +1157,14 @@ export default function Demo() {
         background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0,
       }}>
         <div style={{
-          width: '28px', height: '28px', borderRadius: '50%', background: 'var(--agent-b)',
+          width: '28px', height: '28px', borderRadius: '50%', background: 'var(--builder)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', fontWeight: 700, fontSize: '0.65rem',
           boxShadow: agentBActive ? '0 0 0 3px rgba(124, 58, 237, 0.25)' : 'none',
           transition: 'box-shadow 0.3s ease',
         }}>B</div>
         <div>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Builder <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 400 }}>Agent B</span></div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Builder</div>
           <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
             {fabricationDetected ? (
               <span style={{ color: 'var(--red)', fontWeight: 600 }}>rejected handoff</span>
@@ -985,10 +1172,10 @@ export default function Demo() {
               phase === 'done' ? (
                 <span style={{ color: 'var(--green)' }}>finished -- {agentBReceipts.length} receipts</span>
               ) : (
-                <span className="typing-indicator" style={{ color: 'var(--agent-b)' }}>working</span>
+                <span className="typing-indicator" style={{ color: 'var(--builder)' }}>working</span>
               )
             ) : verifications.length > 0 ? (
-              <span className="typing-indicator" style={{ color: 'var(--agent-b)' }}>verifying chain...</span>
+              <span className="typing-indicator" style={{ color: 'var(--builder)' }}>verifying chain...</span>
             ) : 'waiting for handoff'}
           </div>
         </div>
@@ -1055,14 +1242,13 @@ export default function Demo() {
           justifyContent: 'space-between', fontSize: '0.6rem', color: 'var(--text-dim)',
           flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', gap: '0.8rem' }}>
-            {['ed25519 signatures', 'SHA-256 hash chains', 'TEE attestation', '0G integration'].map(tag => (
-              <span key={tag} style={{ ...mono, fontSize: '0.55rem' }}>{tag}</span>
-            ))}
+          <div style={{ display: 'flex', gap: '1.2rem' }}>
+            <a href="/verify" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Verify</a>
+            <a href="/dashboard" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Dashboard</a>
           </div>
-          <a href="/dashboard" style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>
-            Dashboard
-          </a>
+          <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+            {adversarial ? 'adversarial mode' : 'honest mode'}
+          </span>
         </div>
       );
     }
@@ -1119,12 +1305,49 @@ export default function Demo() {
               Verified
             </div>
           </div>
+
+          {/* Usefulness */}
+          {reviewScores && (
+            <>
+              <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  ...mono, fontSize: '1.1rem', fontWeight: 700,
+                  color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
+                }}>
+                  {reviewScores.composite}
+                </div>
+                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                  Useful
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textAlign: 'right', lineHeight: 1.5 }}>
-            Powered by <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>0G Compute</span> + <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Gensyn AXL</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {!fabricationDetected && receipts.length > 0 && (
+            <button
+              onClick={() => {
+                const chainJson = JSON.stringify(receipts);
+                const encoded = encodeURIComponent(chainJson);
+                if (encoded.length < 8000) {
+                  window.open(`/verify?chain=${encoded}&auto=1`, '_blank');
+                } else {
+                  sessionStorage.setItem('receipt-verify-chain', chainJson);
+                  window.open('/verify?from=session&auto=1', '_blank');
+                }
+              }}
+              style={{
+                padding: '0.35rem 0.8rem', borderRadius: '6px',
+                border: '1px solid var(--green)', background: 'rgba(22, 163, 74, 0.06)',
+                color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: '0.72rem', fontWeight: 600,
+              }}
+            >
+              Verify This Chain
+            </button>
+          )}
           <button onClick={run} style={{
             padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',
             background: adversarial ? 'var(--red)' : 'var(--text)',
@@ -1170,6 +1393,13 @@ export default function Demo() {
         <div className="flash-overlay" style={{
           position: 'fixed', inset: 0,
           background: 'rgba(220, 38, 38, 0.3)',
+          pointerEvents: 'none', zIndex: 100,
+        }} />
+      )}
+      {showAmberFlash && (
+        <div className="flash-amber-overlay" style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(217, 119, 6, 0.25)',
           pointerEvents: 'none', zIndex: 100,
         }} />
       )}
@@ -1294,9 +1524,9 @@ export default function Demo() {
                     borderRadius: '4px',
                     background: isActive ? (stage === 'agent-b-rejected' ? '#fef2f2' : '#f0f4ff') :
                       isPast ? 'var(--surface)' : 'transparent',
-                    border: isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--agent-a)'}` :
+                    border: isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)'}` :
                       isPast ? '1px solid var(--border)' : '1px solid transparent',
-                    color: isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--agent-a)') :
+                    color: isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)') :
                       isPast ? 'var(--green)' : 'var(--text-dim)',
                     fontWeight: isActive ? 700 : 400,
                     transition: 'all 0.3s ease',

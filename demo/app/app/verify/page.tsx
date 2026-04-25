@@ -100,7 +100,86 @@ const ACTION_LABELS: Record<string, string> = {
   llm_call: 'LLM Inference',
   decision: 'Decision',
   output: 'Output',
+  usefulness_review: 'Usefulness Review',
 };
+
+// ── Valid example chain (generated with real WebCrypto Ed25519) ────────────
+
+interface ValidChainResult {
+  receipts: Receipt[];
+  publicKeyHex: string;
+}
+
+async function generateValidExample(): Promise<ValidChainResult> {
+  const keyPair = await crypto.subtle.generateKey(
+    { name: 'Ed25519' } as Algorithm,
+    true,
+    ['sign', 'verify'],
+  ) as CryptoKeyPair;
+
+  const pubRaw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+  const pubHex = bytesToHex(new Uint8Array(pubRaw));
+
+  async function makeReceipt(
+    agentId: string,
+    prevId: string | null,
+    actionType: string,
+    actionDesc: string,
+    rawInput: string,
+    rawOutput: string,
+    attestation: Receipt['attestation'],
+    baseTime: number,
+    offsetMs: number,
+  ): Promise<Receipt> {
+    const id = `rcpt_${crypto.getRandomValues(new Uint8Array(8)).reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')}`;
+    const timestamp = baseTime + offsetMs;
+    const inputHash = await sha256Hex(rawInput);
+    const outputHash = await sha256Hex(rawOutput);
+    const sigPayload = `${id}:${prevId ?? 'null'}:${agentId}:${timestamp}:${actionType}:${inputHash}:${outputHash}`;
+    const sigBytes = await crypto.subtle.sign(
+      { name: 'Ed25519' } as Algorithm,
+      keyPair.privateKey,
+      new TextEncoder().encode(sigPayload),
+    );
+    const signature = bytesToHex(new Uint8Array(sigBytes));
+    return { id, prevId, agentId, timestamp, action: { type: actionType, description: actionDesc }, inputHash, outputHash, signature, attestation };
+  }
+
+  const now = Date.now();
+  const receipts: Receipt[] = [];
+
+  const r1 = await makeReceipt('researcher', null, 'file_read', 'Read SDK source code', 'packages/receipt-sdk/package.json', '{"name":"@receipt/sdk","version":"0.1.0","dependencies":{"@noble/ed25519":"^2.1.0"}}', null, now, 0);
+  receipts.push(r1);
+
+  const r2 = await makeReceipt('researcher', r1.id, 'api_call', 'Verify ReceiptAnchor on 0G Mainnet', 'https://chainscan-newton.0g.ai/api?module=contract&action=getabi&address=0x53D96861a37e82FF174324872Fc4d037a61520e3', '{"status":"1","result":"contract verified","chain":"0G Mainnet (16661)"}', null, now, 500);
+  receipts.push(r2);
+
+  const r3 = await makeReceipt('researcher', r2.id, 'llm_call', 'TEE-attested code review via 0G Compute', 'Code review: @receipt/sdk uses ed25519 signing and SHA-256 hashing. Review security of receipt chain.', 'Analysis: The receipt chain implements sound cryptographic primitives. Ed25519 provides 128-bit security. SHA-256 hash linking creates tamper-evident ordering.', { provider: '0G Compute', type: 'tee' }, now, 2000);
+  receipts.push(r3);
+
+  const r4 = await makeReceipt('researcher', r3.id, 'decision', 'Research verdict', 'SDK: @receipt/sdk, Contract: 0x53D96861... on 0G Mainnet (16661). Code review via 0g-compute (TEE: verified). No critical vulnerabilities.', 'Research complete. Safe to hand off to Builder for deployment and anchoring.', null, now, 3000);
+  receipts.push(r4);
+
+  const r5 = await makeReceipt('researcher', r4.id, 'output', 'Research report — SDK reviewed, contract verified', 'Research report — SDK reviewed, contract verified', JSON.stringify({ sdk: '@receipt/sdk', contractDeployed: true, contractAddress: '0x53D96861a37e82FF174324872Fc4d037a61520e3', codeReviewSource: '0g-compute', teeAttested: true, verdict: 'No critical issues.' }), null, now, 3500);
+  receipts.push(r5);
+
+  const r6 = await makeReceipt('builder', r5.id, 'file_read', 'Read research handoff', 'research-handoff.json', JSON.stringify({ from: 'researcher', receiptsReceived: 5, chainVerified: true }), null, now, 5000);
+  receipts.push(r6);
+
+  const r7 = await makeReceipt('builder', r6.id, 'api_call', 'Query 0G Mainnet for deployment context', 'https://evmrpc.0g.ai', '{"jsonrpc":"2.0","result":"0x4f1a2b"}', null, now, 5500);
+  receipts.push(r7);
+
+  const r8 = await makeReceipt('builder', r7.id, 'decision', 'Deployment decision', 'Researcher verified 5 actions. Contract confirmed on 0G Mainnet. Code review via 0g-compute (TEE: verified). Proceeding with chain anchoring.', 'Deploy: anchor receipt chain on 0G Storage + Chain. Mint agent identity (ERC-7857).', null, now, 6000);
+  receipts.push(r8);
+
+  const r9 = await makeReceipt('builder', r8.id, 'output', 'Deployment manifest — anchoring receipt chain', 'Deployment manifest — anchoring receipt chain', JSON.stringify({ researchVerified: 5, builderActions: 5, totalChain: 10, deployments: ['0G Storage', '0G Chain', 'ERC-7857'] }), null, now, 6500);
+  receipts.push(r9);
+
+  const r10 = await makeReceipt('builder', r9.id, 'usefulness_review', 'Usefulness review — TEE-attested quality assessment', receipts.map(r => `[${r.action.type}] ${r.action.description}`).join('\n'), JSON.stringify({ alignment: 88, substance: 82, quality: 85, composite: 85, reasoning: 'Chain demonstrates real 0G integration with verified contract interactions and TEE-attested inference.' }), { provider: '0G Compute', type: 'tee' }, now, 8000);
+  receipts.push(r10);
+
+  return { receipts, publicKeyHex: pubHex };
+}
 
 // ── Tampered example chain ─────────────────────────────────────────────────
 
@@ -245,9 +324,33 @@ export default function VerifyPage() {
     } catch {}
   }, []);
 
+  const [generatingValid, setGeneratingValid] = useState(false);
+
+  const loadValidExample = useCallback(async () => {
+    if (ed25519Supported === false) {
+      setError('Your browser does not support Ed25519. Use Chrome 113+ or Edge 113+.');
+      return;
+    }
+    setGeneratingValid(true);
+    try {
+      const { receipts, publicKeyHex: pubHex } = await generateValidExample();
+      setInput(JSON.stringify(receipts, null, 2));
+      setPublicKeyHex(pubHex);
+      setCards([]);
+      setPhase('idle');
+      setRootHash(null);
+      setChainValid(null);
+      setError(null);
+    } catch (e: unknown) {
+      setError(`Failed to generate valid chain: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setGeneratingValid(false);
+  }, [ed25519Supported]);
+
   const loadTamperedExample = useCallback(() => {
     const tampered = makeTamperedExample();
     setInput(JSON.stringify(tampered, null, 2));
+    setPublicKeyHex('');
     setCards([]);
     setPhase('idle');
     setRootHash(null);
@@ -391,6 +494,19 @@ export default function VerifyPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: "'IBM Plex Mono', 'Courier New', monospace" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .verify-container { padding: 1rem 1rem 3rem !important; }
+          .verify-nav-links { gap: 0.8rem !important; }
+          .verify-buttons { flex-direction: column !important; }
+          .verify-buttons button { width: 100% !important; }
+          .verify-input-row { flex-direction: column !important; }
+          .verify-input-row input { width: 100% !important; }
+          .verify-input-row button { width: 100% !important; }
+          .verify-card-checks { flex-wrap: wrap !important; gap: 0.5rem !important; }
+          .verify-summary { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; }
+        }
+      `}</style>
       {/* Nav */}
       <nav style={{
         padding: '0.6rem 1.5rem',
@@ -403,7 +519,7 @@ export default function VerifyPage() {
         <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.03em' }}>
           R.E.C.E.I.P.T.
         </a>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        <div className="verify-nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Verify</a>
@@ -421,27 +537,27 @@ export default function VerifyPage() {
         </p>
       </header>
 
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem 2rem 4rem' }}>
+      <div className="verify-container" style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem 2rem 4rem' }}>
         {/* Quick load buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          {hasLastRun && (
-            <button
-              onClick={loadLastRun}
-              style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '4px',
-                border: '1px solid var(--agent-a)',
-                background: 'rgba(37, 99, 235, 0.06)',
-                color: 'var(--agent-a)',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-              }}
-            >
-              Load last pipeline run
-            </button>
-          )}
+        <div className="verify-buttons" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={loadValidExample}
+            disabled={generatingValid}
+            style={{
+              padding: '0.4rem 0.8rem',
+              borderRadius: '4px',
+              border: '1px solid var(--green)',
+              background: 'rgba(22, 163, 74, 0.06)',
+              color: 'var(--green)',
+              cursor: generatingValid ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              opacity: generatingValid ? 0.6 : 1,
+            }}
+          >
+            {generatingValid ? 'Generating...' : 'Load valid chain'}
+          </button>
           <button
             onClick={loadTamperedExample}
             style={{
@@ -456,8 +572,26 @@ export default function VerifyPage() {
               fontWeight: 600,
             }}
           >
-            Load example (tampered)
+            Load tampered chain
           </button>
+          {hasLastRun && (
+            <button
+              onClick={loadLastRun}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '4px',
+                border: '1px solid var(--researcher)',
+                background: 'rgba(37, 99, 235, 0.06)',
+                color: 'var(--researcher)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+              }}
+            >
+              Load last pipeline run
+            </button>
+          )}
         </div>
 
         {/* Input area */}
@@ -492,7 +626,7 @@ export default function VerifyPage() {
           <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Public Key (hex, optional)
           </label>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="verify-input-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
               type="text"
               value={publicKeyHex}
@@ -517,7 +651,7 @@ export default function VerifyPage() {
                 padding: '0.5rem 1.5rem',
                 borderRadius: '4px',
                 border: 'none',
-                background: phase === 'verifying' || !input.trim() ? 'var(--border)' : 'var(--agent-a)',
+                background: phase === 'verifying' || !input.trim() ? 'var(--border)' : 'var(--researcher)',
                 color: '#fff',
                 cursor: phase === 'verifying' || !input.trim() ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
@@ -563,7 +697,7 @@ export default function VerifyPage() {
             {/* Summary banner — appears when done */}
             {phase === 'done' && chainValid !== null && (
               <div
-                className="slide-up"
+                className="slide-up verify-summary"
                 style={{
                   padding: '1rem 1.2rem',
                   borderRadius: '4px',
@@ -696,7 +830,7 @@ export default function VerifyPage() {
                   </div>
 
                   {/* Three check columns */}
-                  <div style={{
+                  <div className="verify-card-checks" style={{
                     display: 'flex',
                     gap: '1.2rem',
                     marginTop: '0.5rem',
@@ -749,6 +883,27 @@ export default function VerifyPage() {
                       </span>
                     </div>
                   )}
+
+                  {/* Usefulness review badge */}
+                  {card.receipt.action.type === 'usefulness_review' && (
+                    <div style={{
+                      marginTop: '0.4rem',
+                      paddingLeft: '2rem',
+                      fontSize: '0.58rem',
+                    }}>
+                      <span style={{
+                        padding: '0.15rem 0.5rem',
+                        background: 'rgba(22, 163, 74, 0.06)',
+                        border: '1px solid rgba(22, 163, 74, 0.25)',
+                        borderRadius: '2px',
+                        fontSize: '0.56rem',
+                        color: 'var(--green)',
+                        fontWeight: 600,
+                      }}>
+                        Layer 2: Proof of Usefulness
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -786,9 +941,9 @@ export default function VerifyPage() {
                   style={{
                     padding: '0.4rem 0.8rem',
                     borderRadius: '4px',
-                    border: '1px solid var(--agent-a)',
+                    border: '1px solid var(--researcher)',
                     background: 'rgba(37, 99, 235, 0.06)',
-                    color: 'var(--agent-a)',
+                    color: 'var(--researcher)',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
                     fontSize: '0.68rem',

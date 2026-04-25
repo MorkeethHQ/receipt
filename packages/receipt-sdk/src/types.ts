@@ -1,4 +1,4 @@
-export type ActionType = 'file_read' | 'api_call' | 'llm_call' | 'decision' | 'output';
+export type ActionType = 'file_read' | 'api_call' | 'llm_call' | 'decision' | 'output' | 'usefulness_review';
 
 export interface ReceiptAction {
   type: ActionType;
@@ -44,6 +44,7 @@ export interface AnchorResult {
   blockNumber: number;
   rootHash: string;
   storageRef: string | null;
+  usefulnessScore?: number;
 }
 
 export interface StorageResult {

@@ -65,6 +65,10 @@ export class ReceiptAgent {
     return this.act('output', description, description, output);
   }
 
+  reviewUsefulness(chainSummary: string, reviewResult: string, attestation: Attestation | null = null): Receipt {
+    return this.act('usefulness_review', 'Usefulness review — TEE-attested quality assessment', chainSummary, reviewResult, attestation);
+  }
+
   getReceipts(): Receipt[] {
     return this.chain.getReceipts();
   }

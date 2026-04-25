@@ -9,8 +9,8 @@
   --text: #1a1a1a;
   --text-muted: #6b6560;
   --text-dim: #a09a92;
-  --agent-a: #2563eb;
-  --agent-b: #7c3aed;
+  --researcher: #2563eb;
+  --builder: #7c3aed;
   --green: #16a34a;
   --red: #dc2626;
   --amber: #d97706;
@@ -83,6 +83,17 @@ body {
   0%, 100% { border-color: #fecaca; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
   50% { border-color: var(--red); box-shadow: 0 0 8px rgba(220, 38, 38, 0.15); }
 }
+
+@keyframes flash-amber-overlay {
+  0% { opacity: 0; }
+  10% { opacity: 0.5; }
+  30% { opacity: 0.15; }
+  50% { opacity: 0.3; }
+  70% { opacity: 0.1; }
+  100% { opacity: 0; }
+}
+
+.flash-amber-overlay { animation: flash-amber-overlay 2s ease-out forwards; }
 
 .slide-up { animation: slide-up 0.3s ease-out; }
 .stamp { animation: stamp 0.4s ease-out; }

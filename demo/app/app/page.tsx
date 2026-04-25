@@ -140,7 +140,7 @@ export default function LandingPage() {
           {[
             { n: '1', title: 'Instrument', desc: 'Wrap your agent\'s actions. Each one produces a signed receipt automatically.' },
             { n: '2', title: 'Chain', desc: 'Receipts link together cryptographically. Change one and the whole chain breaks.' },
-            { n: '3', title: 'Verify', desc: 'The next agent checks the full chain before accepting. Trust is math, not faith.' },
+            { n: '3', title: 'Review', desc: 'A TEE-attested review scores the chain\'s usefulness. Not just proof of action — proof of value.' },
           ].map(s => (
             <div key={s.n} style={{ textAlign: 'center' }}>
               <div style={{
@@ -175,8 +175,9 @@ export default function LandingPage() {
             agent.<span style={{ color: '#60a5fa' }}>callApi</span>(<span style={{ color: '#4ade80' }}>&apos;https://api.example.com&apos;</span>, response);{'\n'}
             agent.<span style={{ color: '#60a5fa' }}>callLlm</span>(<span style={{ color: '#4ade80' }}>&apos;analyze this&apos;</span>, output);{'\n'}
             {'\n'}
-            <span style={{ color: '#888' }}>// get the verifiable chain</span>{'\n'}
-            <span style={{ color: '#c084fc' }}>const</span> chain = agent.<span style={{ color: '#60a5fa' }}>getChain</span>();{'\n'}
+            <span style={{ color: '#888' }}>// proof of usefulness — TEE-attested review</span>{'\n'}
+            agent.<span style={{ color: '#60a5fa' }}>reviewUsefulness</span>(summary, scores, attestation);{'\n'}
+            {'\n'}
             <span style={{ color: '#c084fc' }}>const</span> valid = agent.<span style={{ color: '#60a5fa' }}>verifyOwnChain</span>(); <span style={{ color: '#888' }}>// true</span>
           </pre>
         </div>
@@ -186,10 +187,11 @@ export default function LandingPage() {
       <section style={{ padding: '0 1.5rem 3rem', maxWidth: '580px', margin: '0 auto', width: '100%' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
           {[
-            'Tamper-proof audit trail for every agent action',
+            'Layer 1: Proof of action — tamper-proof audit trail for every agent step',
+            'Layer 2: Proof of usefulness — TEE-attested quality scoring of chain outputs',
             'Multi-agent handoffs with cryptographic verification',
             'On-chain anchoring on 0G Mainnet',
-            'TEE-attested LLM inference via 0G Compute',
+            'TEE-attested inference and review via 0G Compute',
             'Works with any agent framework — just wrap your calls',
           ].map(item => (
             <div key={item} style={{
