@@ -347,7 +347,7 @@ export default function Demo() {
           }
         } else {
           setStoryStage('agent-b-working');
-          addTiming(`B: ${actionLabel}`, Math.round(elapsed));
+          addTiming(`Builder: ${actionLabel}`, Math.round(elapsed));
         }
         break;
       }
@@ -662,7 +662,7 @@ export default function Demo() {
   };
 
   /* ---------------------------------------------------------------- */
-  /*  Render: Story Step (for Agent A panel)                           */
+  /*  Render: Story Step                                                */
   /* ---------------------------------------------------------------- */
 
   const renderStoryStep = (receipt: Receipt, index: number) => {
@@ -1083,7 +1083,7 @@ export default function Demo() {
   );
 
   /* ---------------------------------------------------------------- */
-  /*  Render: Agent A Panel                                            */
+  /*  Render: Researcher Panel                                         */
   /* ---------------------------------------------------------------- */
 
   const agentAActive = phase === 'running' && (storyStage === 'agent-a-working');
@@ -1108,7 +1108,7 @@ export default function Demo() {
           color: '#fff', fontWeight: 700, fontSize: '0.65rem',
           boxShadow: agentAActive ? '0 0 0 3px rgba(37, 99, 235, 0.25)' : 'none',
           transition: 'box-shadow 0.3s ease',
-        }}>A</div>
+        }}>R</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Researcher</div>
           <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
@@ -1140,7 +1140,7 @@ export default function Demo() {
   );
 
   /* ---------------------------------------------------------------- */
-  /*  Render: Agent B Panel                                            */
+  /*  Render: Builder Panel                                            */
   /* ---------------------------------------------------------------- */
 
   const agentBActive = phase === 'running' && (storyStage === 'agent-b-working' || storyStage === 'agent-b-verifying' || storyStage === 'reviewing');
@@ -1513,7 +1513,7 @@ export default function Demo() {
           {phase === 'running' && (
             <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
               {(['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'] as StoryStage[]).map((stage, i) => {
-                const labels = ['A works', 'Handoff', 'B verifies', adversarial ? 'Rejected' : 'B works', 'Anchor'];
+                const labels = ['Researcher', 'Handoff', 'Verifying', adversarial ? 'Rejected' : 'Builder', 'Anchor'];
                 const stageOrder: StoryStage[] = ['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'];
                 const currentIdx = stageOrder.indexOf(storyStage);
                 const isActive = stage === storyStage;
