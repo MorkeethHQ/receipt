@@ -249,12 +249,12 @@ export default function Dashboard() {
   const hasData = receipts.length > 0;
 
   const PIPELINE_STEPS = [
-    { label: 'Agent A: Generating Receipts', key: 'agent_a' },
-    { label: 'AXL P2P Handoff', key: 'axl_handoff' },
-    { label: 'Chain Verification', key: 'verification' },
-    { label: 'Agent B: Processing', key: 'agent_b' },
-    { label: 'ERC-7857 Identity Mint', key: 'agentic_id' },
-    { label: '0G Storage + Anchor', key: 'storage' },
+    { label: 'Researcher: Reading docs + reviewing code', key: 'agent_a' },
+    { label: 'AXL P2P Handoff to Builder', key: 'axl_handoff' },
+    { label: 'Builder: Verifying research chain', key: 'verification' },
+    { label: 'Builder: Deploying + anchoring', key: 'agent_b' },
+    { label: 'ERC-7857 Agent Identity Mint', key: 'agentic_id' },
+    { label: '0G Storage + Chain Anchor', key: 'storage' },
   ];
 
   const getCurrentPipelineStep = (): number => {
@@ -570,7 +570,7 @@ case 'axl_handoff':
               R.E.C.E.I.P.T.
             </div>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-              Cryptographic proof layer for AI agent work. Every action produces a signed, hash-linked receipt. Tamper-proof handoffs between agents.
+              Proof your agents actually did the work. Every action — reading docs, reviewing code, deploying contracts — produces a signed, hash-linked receipt. When agents collaborate, they verify each other's work before continuing.
             </p>
 
             {/* 0G Pillar Status — visible even without running */}
@@ -668,8 +668,8 @@ case 'axl_handoff':
                   width: '32px', height: '32px', borderRadius: '50%',
                   background: 'var(--agent-a)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
-                }}>A</div>
-                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>researcher</div>
+                }}>R</div>
+                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Researcher</div>
               </div>
               <div style={{ flex: 1, maxWidth: '120px', position: 'relative', height: '2px' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--border)', borderRadius: '1px' }} />
@@ -677,7 +677,7 @@ case 'axl_handoff':
                   position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)',
                   ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
                 }}>
-                  AXL A2A Protocol
+                  AXL P2P Handoff
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -686,7 +686,7 @@ case 'axl_handoff':
                   background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'var(--text-dim)', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
                 }}>B</div>
-                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>builder</div>
+                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Builder</div>
               </div>
             </div>
           </div>
@@ -976,8 +976,8 @@ case 'axl_handoff':
               Agents
             </div>
             {[
-              { key: 'A' as const, label: 'Agent A', color: 'var(--agent-a)', stats: statsA, receipts: agentAReceipts },
-              { key: 'B' as const, label: 'Agent B', color: 'var(--agent-b)', stats: statsB, receipts: agentBReceipts },
+              { key: 'A' as const, label: 'Researcher', color: 'var(--agent-a)', stats: statsA, receipts: agentAReceipts },
+              { key: 'B' as const, label: 'Builder', color: 'var(--agent-b)', stats: statsB, receipts: agentBReceipts },
             ].filter(a => a.stats.count > 0).map(agent => (
               <div
                 key={agent.key}
@@ -1248,8 +1248,8 @@ case 'axl_handoff':
                     background: 'var(--agent-a)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
                     boxShadow: axlHandoff ? '0 0 6px var(--agent-a)' : 'none',
-                  }}>A</div>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>researcher</div>
+                  }}>R</div>
+                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Researcher</div>
                 </div>
                 <div style={{ flex: 1, position: 'relative', height: '2px', margin: '0 0.2rem' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--border)' }} />
@@ -1268,7 +1268,7 @@ case 'axl_handoff':
                     position: 'absolute', top: '5px', left: '50%', transform: 'translateX(-50%)',
                     ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
                   }}>
-                    {axlHandoff?.broadcastMode === 'all-peers' ? 'A2A Broadcast' : 'A2A Protocol'}
+                    {axlHandoff?.broadcastMode === 'all-peers' ? 'P2P Broadcast' : 'P2P Handoff'}
                   </div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -1279,7 +1279,7 @@ case 'axl_handoff':
                     color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
                     boxShadow: axlReceived?.verified ? '0 0 6px var(--agent-b)' : 'none',
                   }}>B</div>
-                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>builder</div>
+                  <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)' }}>Builder</div>
                 </div>
               </div>
 
@@ -1433,7 +1433,7 @@ case 'axl_handoff':
                     REBROADCAST
                   </div>
                   <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)' }}>
-                    Agent B extended chain ({axlRebroadcast.receiptCount || axlRebroadcast.chainLength || '?'} receipts) broadcast back to peers
+                    Builder extended chain ({axlRebroadcast.receiptCount || axlRebroadcast.chainLength || '?'} receipts) broadcast back to peers
                   </div>
                   {axlRebroadcast.newReceipts && (
                     <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.05rem' }}>
@@ -1452,7 +1452,7 @@ case 'axl_handoff':
                     CHAIN ADOPTED
                   </div>
                   <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)' }}>
-                    Agent A adopted extended chain from Agent B
+                    Researcher adopted extended chain from Builder
                   </div>
                   {axlAdopt.finalLength && (
                     <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.05rem' }}>
@@ -1619,7 +1619,7 @@ case 'axl_handoff':
                   color: '#fff', fontSize: '0.7rem', fontWeight: 700,
                 }}>{selectedAgent}</div>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
-                  Agent {selectedAgent}
+                  {selectedAgent === 'A' ? 'Researcher' : 'Builder'}
                 </h2>
                 <span style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-dim)' }}>
                   {selectedReceipts.length} receipts
@@ -1654,7 +1654,7 @@ case 'axl_handoff':
                 FABRICATION DETECTED
               </div>
               <div style={{ fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.5 }}>
-                Agent A modified data after signing. The output hash no longer matches the ed25519 signature. Chain integrity is broken.
+                The Researcher fabricated data after signing. The output hash no longer matches the ed25519 signature. Builder refused the handoff.
               </div>
               {Object.values(tamperDetails).map(td => (
                 <div key={td.index} style={{ marginTop: '0.4rem', ...mono, fontSize: '0.68rem', color: '#b91c1c' }}>
@@ -1967,8 +1967,8 @@ case 'axl_handoff':
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {verifications.every(v => v.valid)
-                  ? 'Every receipt in Agent A\'s chain has been independently verified. Signatures match, hash links are intact, timestamps are monotonic.'
-                  : 'One or more receipts failed verification. The chain has been tampered with.'}
+                  ? 'Every receipt in the Researcher\'s chain has been independently verified by the Builder. Signatures match, hash links intact, timestamps monotonic.'
+                  : 'One or more receipts failed verification. The Researcher\'s chain has been tampered with. Builder refused the handoff.'}
               </div>
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                 {verifications.map((v, i) => (
@@ -1993,7 +1993,7 @@ case 'axl_handoff':
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>0G Integration Summary</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>0G Proof Trail</div>
                   <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
                     {[
                       receipts.some(r => receiptMeta[r.id]?.llmSource === '0g-compute') && 'Compute',
@@ -2177,6 +2177,33 @@ case 'axl_handoff':
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Verify This Chain */}
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    const chainJson = JSON.stringify(receipts);
+                    const encoded = encodeURIComponent(chainJson);
+                    if (encoded.length < 8000) {
+                      window.open(`/verify?chain=${encoded}`, '_blank');
+                    } else {
+                      sessionStorage.setItem('receipt-verify-chain', chainJson);
+                      window.open('/verify?from=session', '_blank');
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem', borderRadius: '6px', border: '2px solid var(--green)',
+                    background: 'rgba(34, 197, 94, 0.08)', color: 'var(--green)',
+                    cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  Verify This Chain Independently
+                </button>
+                <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+                  Opens the public verifier with this chain pre-loaded
+                </span>
               </div>
             </div>
           )}

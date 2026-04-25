@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -139,6 +139,29 @@ export default function VerifyPage() {
   useState(() => {
     detectEd25519Support().then(setEd25519Supported);
   });
+
+  // Load chain from URL params or sessionStorage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const chainParam = params.get('chain');
+    const fromSession = params.get('from');
+    if (chainParam) {
+      try {
+        const decoded = decodeURIComponent(chainParam);
+        JSON.parse(decoded); // validate
+        setInput(decoded);
+      } catch {}
+    } else if (fromSession === 'session') {
+      try {
+        const stored = sessionStorage.getItem('receipt-verify-chain');
+        if (stored) {
+          JSON.parse(stored); // validate
+          setInput(stored);
+          sessionStorage.removeItem('receipt-verify-chain');
+        }
+      } catch {}
+    }
+  }, []);
 
   const verify = useCallback(async () => {
     setState({ status: 'verifying', results: [], rootHash: null, chainValid: null, publicKey: null, error: null });
