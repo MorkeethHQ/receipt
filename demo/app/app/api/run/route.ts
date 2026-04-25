@@ -8,12 +8,15 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-const PROVIDER_ADDRESSES = [
-  '0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C',
-  '0xBB3f5b0b5062CB5B3245222C5917afD1f6e13aF6',
-  '0x1B3AAef3ae5050EEE04ea38cD4B087472BD85EB0',
-  '0x25F8f01cA76060ea40895472b1b79f76613Ca497',
-];
+// DeepSeek V3: TEE-attested, fast analysis
+const DEEPSEEK_V3 = '0x1B3AAef3ae5050EEE04ea38cD4B087472BD85EB0';
+// GLM-5: TEE-attested, good for review/scoring
+const GLM_5 = '0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C';
+
+const PROVIDER_ORDER: Record<string, string[]> = {
+  analysis: [DEEPSEEK_V3, GLM_5],
+  review: [GLM_5, DEEPSEEK_V3],
+};
 
 interface TeeVerifiedPayload {
   provider: string;
@@ -38,7 +41,7 @@ interface InferResult {
   teeVerifiedPayload?: TeeVerifiedPayload;
 }
 
-async function tryInfer(prompt: string): Promise<InferResult> {
+async function tryInfer(prompt: string, role: 'analysis' | 'review' = 'analysis'): Promise<InferResult> {
   const privateKey = process.env.PRIVATE_KEY;
   if (!privateKey) throw new Error('PRIVATE_KEY not configured');
 
@@ -50,6 +53,7 @@ async function tryInfer(prompt: string): Promise<InferResult> {
   const wallet = new ethers.Wallet(privateKey, provider);
   const broker = await createZGComputeNetworkBroker(wallet);
 
+  const providers = PROVIDER_ORDER[role] || PROVIDER_ORDER.analysis;
   const MAX_PASSES = 2;
   const RETRY_DELAY_MS = 1500;
   const allErrors: string[] = [];
@@ -60,7 +64,7 @@ async function tryInfer(prompt: string): Promise<InferResult> {
     }
 
     const passErrors: string[] = [];
-    for (const addr of PROVIDER_ADDRESSES) {
+    for (const addr of providers) {
       try {
         const { endpoint, model } = await broker.inference.getServiceMetadata(addr);
         const headers = await broker.inference.getRequestHeaders(addr);
@@ -164,6 +168,18 @@ export async function POST(request: Request) {
       };
 
       try {
+        // === LEDGER TOP-UP — ensure compute balance ===
+        try {
+          const { createZGComputeNetworkBroker } = await import('@0glabs/0g-serving-broker');
+          const { ethers: eth } = await import('ethers');
+          const net = new eth.Network('0g-mainnet', 16661);
+          const rpc = new eth.JsonRpcProvider('https://evmrpc.0g.ai', net, { staticNetwork: net });
+          const w = new eth.Wallet(process.env.PRIVATE_KEY!, rpc);
+          const b = await createZGComputeNetworkBroker(w);
+          await b.ledger.depositFund(5);
+          send('status', { message: 'Compute ledger: deposited 5 A0GI' });
+        } catch {}
+
         // === RESEARCHER — reads docs, fetches APIs, analyzes architecture ===
         const agentA = new ReceiptAgent();
         send('status', { message: `Researcher online — ${agentA.agentId}` });
@@ -191,10 +207,10 @@ export async function POST(request: Request) {
 
         // 3. TEE-attested code review via 0G Compute
         await sleep(200);
-        send('status', { message: 'Researcher: Requesting code review via 0G Compute (TEE)...' });
+        send('status', { message: 'Researcher: Analyzing via 0G Compute (TEE) — DeepSeek V3 primary...' });
         const pkgParsed = (() => { try { return JSON.parse(pkgData); } catch { return { name: '@receipt/sdk' }; } })();
         const inferPrompt = `Code review: ${pkgParsed.name} v${pkgParsed.version ?? '0.1.0'} uses ed25519 signing and SHA-256 hashing. The ReceiptAnchor contract is deployed on 0G Mainnet. Review the security of: (1) receipt chain hash linking, (2) signature verification, (3) on-chain anchoring. Are there risks for a multi-agent handoff protocol?`;
-        const inferResult = await tryInfer(inferPrompt);
+        const inferResult = await tryInfer(inferPrompt, 'analysis');
         const { response: llmResponse, source, attested, provider: llmProvider, providerAddress, teeType, chatId, teeSigEndpoint, teeError, teeVerifiedPayload: teePayload } = inferResult;
         if (teePayload) {
           send('tee_verified', teePayload);
@@ -536,8 +552,8 @@ export async function POST(request: Request) {
 
         // === PROOF OF USEFULNESS — TEE-attested quality review ===
         await sleep(300);
-        send('review_start', { message: 'Builder: Evaluating chain usefulness via 0G Compute (TEE)...' });
-        send('status', { message: 'Builder: Requesting TEE-attested usefulness review...' });
+        send('review_start', { message: 'Builder: Reviewing via independent model (GLM-5, TEE-attested)...' });
+        send('status', { message: 'Builder: Usefulness review via GLM-5 (independent model, TEE)...' });
 
         const preReviewReceipts = agentB.getReceipts().filter(r => r.action.type !== 'usefulness_review');
         const chainSummary = preReviewReceipts.map((r, i) =>
@@ -568,7 +584,7 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
         let reviewAttestation: { provider: string; type: 'tee' | 'zkp' | 'none'; evidence: string; timestamp: number } | null = null;
 
         try {
-          const reviewInfer = await tryInfer(reviewPrompt);
+          const reviewInfer = await tryInfer(reviewPrompt, 'review');
           reviewSource = reviewInfer.source;
           reviewAttested = reviewInfer.attested;
 
