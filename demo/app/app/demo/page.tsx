@@ -97,7 +97,9 @@ function getNarrative(event: string, data: any): string {
     const name = data.agent === 'A' ? 'the Researcher' : 'the Builder';
     switch (type) {
       case 'file_read':
-        return `This receipt proves ${name} actually read the file -- the input hash is the SHA-256 of the file path, the output hash covers the file contents. If anyone modifies the data later, the hash won't match and the receipt becomes invalid.`;
+        return data.agent === 'B'
+          ? 'The Builder\'s first receipt chains directly to the Researcher\'s last. One unbroken proof trail across two agents -- if a third agent receives this chain tomorrow, it can verify the entire history.'
+          : `This receipt proves ${name} actually read the file -- the input hash is the SHA-256 of the file path, the output hash covers the contents. If anyone modifies the data later, the hash won't match.`;
       case 'api_call':
         return `${name} queried an external service. Both the request and response are hashed -- the receipt proves exactly what data was returned, even if the source changes later.`;
       case 'llm_call':
@@ -107,7 +109,9 @@ function getNarrative(event: string, data: any): string {
       case 'decision':
         return `Notice the previousHash field -- it chains back to the last receipt, creating a tamper-evident linked list. ${name}'s reasoning is captured and signed, so you can audit exactly why this path was chosen.`;
       case 'output':
-        return `${name} produced its deliverable. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
+        return data.agent === 'A'
+          ? 'The Researcher finished. 5 actions, 5 receipts, every step cryptographically proven. But proven to whom? Right now only the Researcher knows this chain is real.'
+          : `${name} produced its deliverable. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
       case 'usefulness_review':
         return data.teeAttested
           ? `The Builder scored the chain's usefulness inside a hardware-verified environment. The review itself is a signed receipt -- proving the quality assessment is trustworthy, not just the actions.`
@@ -118,7 +122,7 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'status') {
     if (data.message?.includes('Verifying') || data.message?.includes('verifying'))
-      return 'The Builder received the Researcher\'s full receipt chain. Before doing any work, it independently verifies every single receipt -- checking signatures, hash links, and timestamps.';
+      return 'The Builder doesn\'t take the Researcher\'s word for it. It verifies every receipt independently -- signature, hash link, timestamp. If any single receipt was fabricated, modified, or reordered, the chain breaks here.';
     if (data.message?.includes('Fabricating'))
       return 'The Researcher is about to lie. It will modify the contract verification data after signing the receipt. The cryptographic signature was computed on the original data -- the modified hash won\'t match.';
     if (data.message?.includes('Broadcasting') || data.message?.includes('Handing off'))
@@ -129,23 +133,23 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'verified') {
     return data.result.valid
-      ? `Receipt verified: cryptographic signature matches the data, linked to the previous receipt, timestamp is valid. This action is authentic.`
-      : `VERIFICATION FAILED. The cryptographic signature does not match the receipt data. Someone modified this receipt after it was signed.`;
+      ? 'Receipt verified: signature matches, hash link intact, timestamp valid. This action is authentic.'
+      : 'VERIFICATION FAILED. The cryptographic signature does not match. Someone modified this receipt after it was signed.';
   }
   if (event === 'fabrication_detected') {
-    return `CAUGHT. The output hash doesn't match the cryptographic signature. SHA-256 of the actual data differs from what the Researcher signed. The Builder rejects the entire handoff -- no fabricated data gets through.`;
+    return 'CAUGHT. Receipt #2 was tampered. The hash doesn\'t match the signature. The Builder rejects the entire chain -- the Researcher\'s work is worthless. Not because it was bad, but because it can\'t be trusted.';
   }
   if (event === 'axl_handoff') {
-    return 'The Researcher is handing off its full receipt chain to the Builder. The handoff includes the chain root hash, receipt count, and sender public key.';
+    return 'The chain travels peer-to-peer. No central server touches it. No API relays it. The proof moves directly from one agent to another -- because if a middleman could modify it in transit, the whole system breaks.';
   }
   if (event === 'axl_received') {
-    return 'The Builder has received the receipt chain. It will now independently verify every receipt before accepting the handoff.';
+    return 'The Builder has the chain. But having it doesn\'t mean trusting it.';
   }
   if (event === 'axl_rebroadcast') {
-    return 'The Builder extends the receipt chain with its own work. Other agents can now see the combined work of both agents.';
+    return 'The Builder extends the chain with its own work. Every new receipt links back to the Researcher\'s chain -- one continuous proof trail. Any agent on the network can now verify the full history.';
   }
   if (event === 'axl_adopt') {
-    return 'The chain is updated with the Builder\'s work. The receipt chain now includes both agents\' contributions as a single verifiable history.';
+    return 'Chain updated. Both agents\' contributions are now a single verifiable history. This is what makes RECEIPT a trust protocol, not a logging library.';
   }
   if (event === 'agent_card') {
     return `Agent card discovered: ${data.name || data.agentName || 'peer'}. Capabilities and public key exchanged via A2A protocol.`;
@@ -158,8 +162,8 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'done') {
     return data.fabricated
-      ? 'Pipeline complete. The fabrication was caught and the handoff was rejected. No tampered data reaches the next agent.'
-      : 'Pipeline complete. All receipts verified. The entire chain is cryptographically sound -- every action is proven.';
+      ? 'The fabrication was caught at the handoff. No tampered data reaches the next agent. This is the trust guarantee -- agents can collaborate without blind trust.'
+      : 'Every action proven. Every handoff verified. The chain is cryptographically sound across both agents -- stored and anchored on-chain.';
   }
   if (event === 'review_start') {
     return 'The Builder evaluates the chain\'s usefulness using verified inference. This is Layer 2 -- not just proving actions happened, but proving they were useful.';
@@ -395,18 +399,18 @@ export default function Demo() {
         break;
       case 'verification_complete':
         if (data.valid) {
-          addCenterLog('All receipts verified', 'pass');
+          addCenterLog('Chain verified — Builder trusts the work', 'pass');
         }
         break;
       case 'axl_handoff':
         setStoryStage('axl-handoff');
         setShowHandoffAnimation(true);
         setTimeout(() => setShowHandoffAnimation(false), 3500);
-        addCenterLog(`Chain sent to Builder (${data.receiptCount} receipts)`, 'handoff');
+        addCenterLog(`Chain traveling to Builder (${data.receiptCount} receipts)`, 'handoff');
         addTiming('Handoff', Math.round(elapsed));
         break;
       case 'axl_received':
-        addCenterLog(`Builder received chain`, 'handoff');
+        addCenterLog(`Builder received chain — verifying...`, 'handoff');
         addTiming('Received', Math.round(elapsed));
         break;
       case 'mcp_tool_call':
@@ -894,7 +898,7 @@ export default function Demo() {
             }}>B</div>
           </div>
           <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            {agentAReceipts.length} receipts handed off
+            Chain traveling peer-to-peer
           </div>
         </div>
       )}

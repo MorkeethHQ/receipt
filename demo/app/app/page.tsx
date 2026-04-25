@@ -189,7 +189,7 @@ export default function LandingPage() {
         <div className="cases-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
           {[
             'Your coding agent says it reviewed 50 files. Prove which ones it actually opened.',
-            'Agent A hands work to Agent B. Agent B verifies the chain before continuing — no blind trust.',
+            'Agent A hands work to Agent B. Agent B verifies every receipt before continuing. No blind trust between agents — ever.',
             'Your research agent claims 12 sources. The receipt chain shows exactly what it fetched and when.',
             'An agent scores 34/100 on usefulness. The chain gets flagged — not anchored, not used for training.',
           ].map(item => (

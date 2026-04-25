@@ -830,7 +830,7 @@ export default function VerifyPage() {
 
             {/* Receipt cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {cards.map((card) => {
+              {cards.map((card, i) => {
                 const isExpanded = expandedCards.has(card.index);
                 const actionLabel = ACTION_LABELS[card.receipt.action.type] || card.receipt.action.type;
                 const statusLabel = card.status === 'pass' ? 'verified' :
@@ -849,8 +849,23 @@ export default function VerifyPage() {
                 }
 
                 return (
+                <div key={card.receipt.id} style={{ display: 'contents' }}>
+                {i > 0 && cards[i]?.receipt.agentId !== cards[i-1]?.receipt.agentId && (
+                  <div style={{
+                    padding: '0.4rem 0.8rem',
+                    margin: '0.3rem 0',
+                    background: 'linear-gradient(90deg, rgba(37,99,235,0.06), rgba(124,58,237,0.06))',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.65rem',
+                    color: 'var(--text-muted)',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    textAlign: 'center',
+                  }}>
+                    &#8592; Handoff: chain transferred from {cards[i-1]?.receipt.agentId} to {cards[i]?.receipt.agentId}
+                  </div>
+                )}
                 <div
-                  key={card.receipt.id}
                   className={card.status === 'pass' || card.status === 'fail' ? 'slide-up' : ''}
                   style={{
                     padding: '0.7rem 0.9rem',
@@ -1050,6 +1065,7 @@ export default function VerifyPage() {
                       )}
                     </div>
                   )}
+                </div>
                 </div>
                 );
               })}
