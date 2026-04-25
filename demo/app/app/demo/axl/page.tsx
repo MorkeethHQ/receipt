@@ -86,9 +86,25 @@ export default function AxlDemo() {
   const [handoffComplete, setHandoffComplete] = useState(false);
   const [fabricationDetected, setFabricationDetected] = useState(false);
   const [agentACount, setAgentACount] = useState(0);
+  const [axlMode, setAxlMode] = useState<'checking' | 'live' | 'simulated'>('checking');
+  const [axlTopology, setAxlTopology] = useState<{ peerId?: string; peers?: number } | null>(null);
 
   const senderRef = useRef<HTMLDivElement>(null);
   const receiverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const baseUrl = 'http://127.0.0.1:9002';
+    fetch(`${baseUrl}/topology`, { signal: AbortSignal.timeout(3000) })
+      .then(r => r.json())
+      .then((data: any) => {
+        setAxlMode('live');
+        setAxlTopology({
+          peerId: data.our_ipv6 || data.peerId || '',
+          peers: (data.peers || []).filter((p: any) => p.up !== false).length,
+        });
+      })
+      .catch(() => setAxlMode('simulated'));
+  }, []);
 
   useEffect(() => {
     senderRef.current?.scrollTo({ top: senderRef.current.scrollHeight, behavior: 'smooth' });
@@ -153,10 +169,11 @@ export default function AxlDemo() {
         setPacketAnimating(true);
         setHandoffComplete(false);
         setNetworkStatus('transmitting');
+        if (data.mode) setAxlMode(data.mode);
         if (data.envelope) {
           setA2aEnvelope(data.envelope);
         }
-        addSenderEvent(`AXL broadcast: ${data.receiptCount} receipts via ${data.protocol || 'A2A'}`, 'handoff');
+        addSenderEvent(`AXL broadcast (${data.mode || 'simulated'}): ${data.receiptCount} receipts via ${data.protocol || 'A2A'}`, 'handoff');
         setTimeout(() => {
           setPacketAnimating(false);
           setNetworkStatus('connected');
@@ -645,10 +662,20 @@ export default function AxlDemo() {
             Receipt Demo
           </a>
           <div>
-            <h1 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>AXL Network Demo</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h1 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>AXL Network Demo</h1>
+              <span style={{
+                ...mono, fontSize: '0.42rem', padding: '0.1rem 0.35rem', borderRadius: '3px', fontWeight: 600,
+                background: axlMode === 'live' ? 'rgba(34, 197, 94, 0.1)' : axlMode === 'checking' ? 'rgba(217, 119, 6, 0.1)' : 'rgba(217, 119, 6, 0.1)',
+                color: axlMode === 'live' ? 'var(--green)' : 'var(--amber)',
+                border: `1px solid ${axlMode === 'live' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(217, 119, 6, 0.3)'}`,
+              }}>
+                {axlMode === 'live' ? `LIVE P2P${axlTopology?.peers ? ` (${axlTopology.peers} peers)` : ''}` : axlMode === 'checking' ? 'CHECKING...' : 'SIMULATED'}
+              </span>
+            </div>
             <p style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
               {phase === 'idle' ? 'Peer-to-peer receipt chain handoff via Gensyn AXL' :
-                phase === 'running' ? 'Simulating sender/receiver handoff...' :
+                phase === 'running' ? 'Running sender/receiver handoff...' :
                 fabricationDetected ? 'Complete -- handoff rejected' :
                 'Complete -- handoff verified'}
             </p>
