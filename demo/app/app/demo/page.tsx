@@ -107,7 +107,7 @@ function getNarrative(event: string, data: any): string {
           ? `This inference was hardware-verified -- a trusted execution environment confirmed it was real, not simulated. The cryptographic signature can be independently checked.`
           : `${name} ran LLM inference. The prompt and response are hashed into the receipt. With hardware verification, even the model execution is proven.`;
       case 'decision':
-        return `Notice the previousHash field -- it chains back to the last receipt, creating a tamper-evident linked list. ${name}'s reasoning is captured and signed, so you can audit exactly why this path was chosen.`;
+        return `Each receipt links to the one before it — like a chain. If anyone tries to insert, remove, or reorder a step, the chain breaks. The reasoning behind this decision is captured and signed.`;
       case 'output':
         return data.agent === 'A'
           ? 'The Researcher finished. 5 actions, 5 receipts, every step cryptographically proven. But proven to whom? Right now only the Researcher knows this chain is real.'
@@ -393,7 +393,7 @@ export default function Demo() {
         setTimeout(() => setShowFlash(false), 2000);
         setTimeout(() => setShowShake(false), 800);
         addCenterLog('FABRICATION DETECTED', 'fail');
-        addCenterLog('outputHash mismatch: SHA-256(actual) ≠ SHA-256(signed)', 'fail');
+        addCenterLog('The data was modified after signing — the proof doesn\'t match', 'fail');
         addCenterLog('Chain integrity compromised — handoff rejected', 'fail');
         addTiming('Detection', Math.round(elapsed));
         break;
@@ -435,7 +435,7 @@ export default function Demo() {
         addTiming('Updated', Math.round(elapsed));
         break;
       case 'tee_verified': {
-        const provider = data.provider || 'TeeML';
+        const provider = data.provider || 'Verified';
         const method = data.verificationMethod || 'Intel TDX';
         addCenterLog(`Verified in secure enclave (${method})`, 'tee');
         addTiming('Secure verify', Math.round(elapsed));
@@ -1010,7 +1010,7 @@ export default function Demo() {
             textAlign: 'center', marginBottom: '0.4rem',
           }}>
             <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 800, letterSpacing: '0.06em' }}>
-              NOT ANCHORED
+              NOT RECORDED
             </div>
             <div style={{ fontSize: '0.55rem', color: '#92400e', marginTop: '0.15rem' }}>
               Quality below threshold — no on-chain reputation
@@ -1256,7 +1256,7 @@ export default function Demo() {
               marginTop: '0.2rem', lineHeight: 1.6,
               animation: 'pulse-red-border 2s ease-in-out infinite',
             }}>
-              <div>outputHash: SHA-256(actual) ≠ SHA-256(signed)</div>
+              <div>The data was modified after signing — the proof doesn't match</div>
               <div style={{ marginTop: '0.2rem', color: '#b91c1c' }}>Chain integrity compromised</div>
             </div>
             <div style={{

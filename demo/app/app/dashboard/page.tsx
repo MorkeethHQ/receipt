@@ -761,6 +761,14 @@ export default function Dashboard() {
               textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem',
             }}>
               The Chain
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.3rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.55rem', color: 'var(--text-dim)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--researcher)' }} /> Researcher
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.55rem', color: 'var(--text-dim)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--builder)' }} /> Builder
+                </span>
+              </div>
             </div>
 
             {/* Fabrication alert */}
@@ -996,7 +1004,7 @@ export default function Dashboard() {
                 </div>
               )}
               <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
-                Contract: {('0xf964d45c3Ea5368918B1FDD49551E373028108c9').slice(0, 10)}...
+                Contract: {(agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9').slice(0, 10)}...
               </div>
               {agenticId.chainRootHash && (
                 <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
@@ -1009,7 +1017,7 @@ export default function Dashboard() {
                 </div>
               )}
               <a
-                href={`https://chainscan-newton.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9`}
+                href={`https://chainscan-newton.0g.ai/address/${agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9'}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ ...mono, fontSize: '0.55rem', color: '#60a5fa', textDecoration: 'none' }}
