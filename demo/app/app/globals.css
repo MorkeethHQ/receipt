@@ -66,6 +66,19 @@ body {
   100% { opacity: 0; }
 }
 
+@keyframes axl-packet-traverse {
+  0% { left: 0%; opacity: 0.6; }
+  15% { opacity: 1; }
+  50% { left: 50%; }
+  85% { opacity: 1; }
+  100% { left: 100%; opacity: 0.6; }
+}
+
+@keyframes axl-packet-pulse {
+  0%, 100% { box-shadow: 0 0 4px currentColor; }
+  50% { box-shadow: 0 0 10px currentColor, 0 0 16px currentColor; }
+}
+
 .slide-up { animation: slide-up 0.3s ease-out; }
 .stamp { animation: stamp 0.4s ease-out; }
 .screen-shake { animation: shake 0.8s ease-out; }
