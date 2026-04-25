@@ -155,7 +155,7 @@ async function fetchReal(url: string, fallback: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const { adversarial } = await request.json();
+  const { adversarial, lowQuality } = await request.json();
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -593,6 +593,14 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
             }
           }
 
+          // Low-quality demo mode: override scores to force quality gate rejection
+          if (lowQuality) {
+            const lqJitter = () => Math.floor(Math.random() * 11) - 5;
+            const lqA = 25 + lqJitter(), lqS = 20 + lqJitter(), lqQ = 30 + lqJitter();
+            reviewScores = { alignment: lqA, substance: lqS, quality: lqQ, composite: Math.round((lqA + lqS + lqQ) / 3), reasoning: 'Low-quality demo — agents produced shallow, low-value output' };
+            perReceiptWeights = preReviewReceipts.map(() => Math.round((0.15 + Math.random() * 0.2) * 100) / 100);
+          }
+
           if (reviewAttested) {
             reviewAttestation = {
               provider: reviewInfer.provider,
@@ -604,10 +612,17 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
         } catch (reviewErr: unknown) {
           const msg = reviewErr instanceof Error ? reviewErr.message : String(reviewErr);
           send('status', { message: `Usefulness review fallback: ${msg.slice(0, 60)}` });
-          const jitter = () => Math.floor(Math.random() * 13) - 6;
-          const a = 80 + jitter(), s = 74 + jitter(), q = 77 + jitter();
-          reviewScores = { alignment: a, substance: s, quality: q, composite: Math.round((a + s + q) / 3), reasoning: 'Simulated review — 0G Compute unavailable' };
-          perReceiptWeights = [0.6, 0.8, 0.9, 0.7, 0.8, 0.7, 0.8, 0.85, 0.9].slice(0, preReviewReceipts.length);
+          if (lowQuality) {
+            const lqJitter = () => Math.floor(Math.random() * 11) - 5;
+            const lqA = 25 + lqJitter(), lqS = 20 + lqJitter(), lqQ = 30 + lqJitter();
+            reviewScores = { alignment: lqA, substance: lqS, quality: lqQ, composite: Math.round((lqA + lqS + lqQ) / 3), reasoning: 'Low-quality demo — agents produced shallow, low-value output' };
+            perReceiptWeights = preReviewReceipts.map(() => Math.round((0.15 + Math.random() * 0.2) * 100) / 100);
+          } else {
+            const jitter = () => Math.floor(Math.random() * 13) - 6;
+            const a = 80 + jitter(), s = 74 + jitter(), q = 77 + jitter();
+            reviewScores = { alignment: a, substance: s, quality: q, composite: Math.round((a + s + q) / 3), reasoning: 'Simulated review — 0G Compute unavailable' };
+            perReceiptWeights = [0.6, 0.8, 0.9, 0.7, 0.8, 0.7, 0.8, 0.85, 0.9].slice(0, preReviewReceipts.length);
+          }
         }
 
         while (perReceiptWeights.length < preReviewReceipts.length) perReceiptWeights.push(0.5);

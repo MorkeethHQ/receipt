@@ -80,11 +80,12 @@ The full receipt chain serializes to bytes, gets Merkle-treed via `@0gfoundation
 
 **[receipt-demo.vercel.app](https://receipt-demo.vercel.app)**
 
-Four pages:
+Five pages:
 - **[Home](https://receipt-demo.vercel.app)** — Two-layer value prop, SDK install, quick start code with `reviewUsefulness()`
-- **[Demo](https://receipt-demo.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time, with usefulness scoring and adversarial tamper detection
+- **[Demo](https://receipt-demo.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time, with three modes: honest, adversarial (tamper detection), and low-quality (quality gate rejection)
+- **[AXL](https://receipt-demo.vercel.app/demo/axl)** — Gensyn AXL P2P handoff deep-dive: topology, A2A agent discovery, MCP tool calls, broadcast + adopt
 - **[Verify](https://receipt-demo.vercel.app/verify)** — Independent chain verifier with valid and tampered example chains. Load a valid chain (real Ed25519 signatures), verify it passes, then load a tampered chain and watch it break
-- **[Dashboard](https://receipt-demo.vercel.app/dashboard)** — Operator view: receipt timeline, usefulness review scores, 0G 5-pillar status, trust scoring, provider health
+- **[Dashboard](https://receipt-demo.vercel.app/dashboard)** — Operator view: receipt timeline, per-receipt usefulness weights, quality gate status, 0G 5-pillar status, trust scoring, provider health
 
 ## Integrations
 

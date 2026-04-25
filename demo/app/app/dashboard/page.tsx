@@ -94,6 +94,9 @@ interface PersistedState {
   tamperedIds: string[];
   tamperDetails: Record<string, { index: number; field: string; detail: string }>;
   reviewScores: { alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null;
+  qualityRejected: boolean;
+  receiptWeights: number[];
+  scoreDelta: number | null;
   timestamp: number;
 }
 
@@ -130,6 +133,9 @@ export default function Dashboard() {
   const [axlAdopt, setAxlAdopt] = useState<any>(null);
   const [fineTuning, setFineTuning] = useState<any>(null);
   const [reviewScores, setReviewScores] = useState<{ alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null>(null);
+  const [qualityRejected, setQualityRejected] = useState(false);
+  const [receiptWeights, setReceiptWeights] = useState<number[]>([]);
+  const [scoreDelta, setScoreDelta] = useState<number | null>(null);
   const [buttonDots, setButtonDots] = useState('');
   const [mountedReceiptIds, setMountedReceiptIds] = useState<Set<string>>(new Set());
   const [providers, setProviders] = useState<ProviderHealth[]>([]);
@@ -197,6 +203,9 @@ export default function Dashboard() {
           if (s.tamperedIds?.length) setTamperedIds(new Set(s.tamperedIds));
           if (s.tamperDetails) setTamperDetails(s.tamperDetails);
           if (s.reviewScores) setReviewScores(s.reviewScores);
+          if (s.qualityRejected) setQualityRejected(s.qualityRejected);
+          if (s.receiptWeights) setReceiptWeights(s.receiptWeights);
+          if (s.scoreDelta !== undefined) setScoreDelta(s.scoreDelta);
           setIsCachedData(true);
           setMountedReceiptIds(new Set(s.receipts.map(r => r.id)));
         }
@@ -213,7 +222,8 @@ export default function Dashboard() {
           trustScore, anchor0g, storage, agenticId, axlHandoff,
           axlReceived, mcpToolCalls, peers, teeVerified, agentCard,
           axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
-          tamperedIds: [...tamperedIds], tamperDetails, reviewScores, timestamp: Date.now(),
+          tamperedIds: [...tamperedIds], tamperDetails, reviewScores,
+          qualityRejected, receiptWeights, scoreDelta, timestamp: Date.now(),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         localStorage.setItem('receipt_last_chain', JSON.stringify(receipts));
@@ -223,7 +233,7 @@ export default function Dashboard() {
     trustScore, anchor0g, storage, agenticId, axlHandoff,
     axlReceived, mcpToolCalls, peers, teeVerified, agentCard,
     axlRebroadcast, axlAdopt, fineTuning, trainingData, fabricationDetected,
-    tamperedIds, tamperDetails, reviewScores, running]);
+    tamperedIds, tamperDetails, reviewScores, qualityRejected, receiptWeights, scoreDelta, running]);
 
   // Fetch provider health on mount
   useEffect(() => {
@@ -254,11 +264,13 @@ export default function Dashboard() {
     { label: 'Builder: Verifying research chain', key: 'verification' },
     { label: 'Builder: Deploying + anchoring', key: 'agent_b' },
     { label: 'ERC-7857 Agent Identity Mint', key: 'agentic_id' },
+    { label: 'Usefulness Review (TEE)', key: 'review' },
     { label: '0G Storage + Chain Anchor', key: 'storage' },
   ];
 
   const getCurrentPipelineStep = (): number => {
-    if (storage || anchor0g) return 6;
+    if (storage || anchor0g) return 7;
+    if (reviewScores) return 6;
     if (agenticId) return 5;
     if (agentBReceipts.length > 0) return 4;
     if (verifications.length > 0) return 3;
@@ -315,6 +327,9 @@ export default function Dashboard() {
     setAxlAdopt(null);
     setFineTuning(null);
     setReviewScores(null);
+    setQualityRejected(false);
+    setReceiptWeights([]);
+    setScoreDelta(null);
     setPipelineError(null);
     setSelectedAgent('A');
 
@@ -436,6 +451,11 @@ case 'axl_handoff':
         break;
       case 'review_scores':
         setReviewScores({ alignment: data.alignment, substance: data.substance, quality: data.quality, composite: data.composite, reasoning: data.reasoning || '' });
+        if (data.weights) setReceiptWeights(data.weights);
+        if (data.delta !== undefined) setScoreDelta(data.delta);
+        break;
+      case 'quality_gate':
+        setQualityRejected(!data.passed);
         break;
       case 'error':
         setPipelineError(data.message);
@@ -497,6 +517,7 @@ case 'axl_handoff':
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
             <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
+            <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
             <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
             <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Dashboard</a>
           </div>
@@ -663,6 +684,7 @@ case 'axl_handoff':
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
+          <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Dashboard</a>
         </div>
@@ -822,14 +844,34 @@ case 'axl_handoff':
               ))}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.3rem' }}>
                 <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)' }}>COMPOSITE</span>
-                <span style={{
-                  ...mono, fontSize: '1rem', fontWeight: 700,
-                  color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
-                }}>{reviewScores.composite}</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
+                  <span style={{
+                    ...mono, fontSize: '1rem', fontWeight: 700,
+                    color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
+                  }}>{reviewScores.composite}</span>
+                  {scoreDelta !== null && (
+                    <span style={{
+                      ...mono, fontSize: '0.48rem', fontWeight: 600,
+                      color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
+                    }}>
+                      {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
+                    </span>
+                  )}
+                </div>
               </div>
               {reviewScores.reasoning && (
                 <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: 1.5 }}>
                   {reviewScores.reasoning}
+                </div>
+              )}
+              {qualityRejected && (
+                <div style={{
+                  marginTop: '0.4rem', padding: '0.25rem 0.5rem', borderRadius: '4px',
+                  background: 'rgba(217, 119, 6, 0.08)', border: '1px solid rgba(217, 119, 6, 0.25)',
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                }}>
+                  <span style={{ ...mono, fontSize: '0.52rem', fontWeight: 700, color: 'var(--amber)' }}>NOT ANCHORED</span>
+                  <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)' }}>quality gate failed</span>
                 </div>
               )}
             </div>
@@ -912,7 +954,7 @@ case 'axl_handoff':
                     width: '24px', height: '24px', borderRadius: '50%', background: agent.color,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0,
-                  }}>{agent.key}</div>
+                  }}>{agent.key === 'A' ? 'R' : 'B'}</div>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{agent.label}</span>
                   {agent.stats.verified !== null && (
                     <span style={{
@@ -1154,7 +1196,7 @@ case 'axl_handoff':
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '28px', height: '28px', borderRadius: '50%',
-                    background: axlReceived ? 'var(--builder)' : 'var(--border)',
+                    background: axlReceived ? 'var(--builder)' : 'var(--builder)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontSize: '0.55rem', fontWeight: 700, margin: '0 auto 0.15rem',
                     boxShadow: axlReceived?.verified ? '0 0 6px var(--builder)' : 'none',
@@ -1497,7 +1539,7 @@ case 'axl_handoff':
                   background: selectedAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontSize: '0.7rem', fontWeight: 700,
-                }}>{selectedAgent}</div>
+                }}>{selectedAgent === 'A' ? 'R' : 'B'}</div>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
                   {selectedAgent === 'A' ? 'Researcher' : 'Builder'}
                 </h2>
@@ -1802,6 +1844,24 @@ case 'axl_handoff':
                         </span>
                         <span>SIG {receipt.signature.slice(0, 12)}...</span>
                       </div>
+
+                      {/* Per-receipt usefulness weight */}
+                      {receiptWeights[globalIndex] !== undefined && receipt.action.type !== 'usefulness_review' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.2rem' }}>
+                          <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', width: '40px' }}>USEFUL</span>
+                          <div style={{ flex: 1, height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', borderRadius: '2px',
+                              width: `${receiptWeights[globalIndex] * 100}%`,
+                              background: receiptWeights[globalIndex] >= 0.7 ? 'var(--green)' : receiptWeights[globalIndex] >= 0.4 ? 'var(--amber)' : 'var(--red)',
+                              transition: 'width 1s ease-out',
+                            }} />
+                          </div>
+                          <span style={{ ...mono, fontSize: '0.42rem', fontWeight: 700, color: receiptWeights[globalIndex] >= 0.7 ? 'var(--green)' : receiptWeights[globalIndex] >= 0.4 ? 'var(--amber)' : 'var(--red)' }}>
+                            {(receiptWeights[globalIndex] * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
 
                       {/* Expanded details */}
                       {expanded && (

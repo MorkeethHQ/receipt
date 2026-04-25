@@ -248,6 +248,7 @@ function AnimatedCounter({ target, duration = 1200, color }: { target: number; d
 export default function Demo() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [adversarial, setAdversarial] = useState(false);
+  const [lowQuality, setLowQuality] = useState(false);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [receiptMeta, setReceiptMeta] = useState<Record<string, ReceiptMeta>>({});
   const [verifications, setVerifications] = useState<VerificationResult[]>([]);
@@ -514,7 +515,7 @@ export default function Demo() {
       const res = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adversarial }),
+        body: JSON.stringify({ adversarial, lowQuality }),
       });
 
       const reader = res.body!.getReader();
@@ -552,7 +553,7 @@ export default function Demo() {
     }
 
     setPhase('done');
-  }, [adversarial, handleEvent]);
+  }, [adversarial, lowQuality, handleEvent]);
 
   /* ---------------------------------------------------------------- */
   /*  Render: Receipt Card                                             */
@@ -718,46 +719,47 @@ export default function Demo() {
           signed receipt. The Builder independently verifies the Researcher's chain before accepting the handoff.
         </p>
 
-        {/* Prominent adversarial toggle */}
+        {/* Mode selector — three radio-style pills */}
         <div style={{
-          background: adversarial ? '#fef2f2' : 'var(--surface)',
-          border: `2px solid ${adversarial ? 'var(--red)' : 'var(--border)'}`,
+          background: adversarial ? '#fef2f2' : lowQuality ? '#fffbeb' : 'var(--surface)',
+          border: `2px solid ${adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--border)'}`,
           borderRadius: '12px', padding: '1.5rem 2rem',
           marginBottom: '2rem',
           transition: 'all 0.3s ease',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.8rem' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: !adversarial ? 'var(--green)' : 'var(--text-dim)' }}>
-              Honest
-            </span>
-            {/* Toggle switch */}
-            <button
-              onClick={() => setAdversarial(!adversarial)}
-              style={{
-                position: 'relative', width: '60px', height: '32px',
-                borderRadius: '16px', border: 'none', cursor: 'pointer',
-                background: adversarial ? 'var(--red)' : 'var(--green)',
-                transition: 'background 0.3s ease',
-                flexShrink: 0,
-              }}
-              aria-label={adversarial ? 'Switch to honest mode' : 'Switch to adversarial mode'}
-            >
-              <div style={{
-                position: 'absolute', top: '3px',
-                left: adversarial ? '31px' : '3px',
-                width: '26px', height: '26px',
-                borderRadius: '50%', background: '#fff',
-                transition: 'left 0.3s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-              }} />
-            </button>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: adversarial ? 'var(--red)' : 'var(--text-dim)' }}>
-              Adversarial
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.8rem' }}>
+            {([
+              { key: 'honest', label: 'Honest', active: !adversarial && !lowQuality, color: 'var(--green)', bg: '#f0fdf4', borderColor: '#bbf7d0' },
+              { key: 'adversarial', label: 'Adversarial', active: adversarial, color: 'var(--red)', bg: '#fef2f2', borderColor: '#fecaca' },
+              { key: 'lowQuality', label: 'Low Quality', active: lowQuality, color: 'var(--amber)', bg: '#fffbeb', borderColor: '#fde68a' },
+            ] as const).map(mode => (
+              <button
+                key={mode.key}
+                onClick={() => {
+                  if (mode.key === 'honest') { setAdversarial(false); setLowQuality(false); }
+                  else if (mode.key === 'adversarial') { setAdversarial(true); setLowQuality(false); }
+                  else { setAdversarial(false); setLowQuality(true); }
+                }}
+                style={{
+                  padding: '0.5rem 1.2rem', borderRadius: '8px',
+                  border: `2px solid ${mode.active ? mode.color : 'var(--border)'}`,
+                  background: mode.active ? mode.bg : 'transparent',
+                  color: mode.active ? mode.color : 'var(--text-dim)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: '0.78rem', fontWeight: mode.active ? 700 : 500,
+                  transition: 'all 0.2s ease',
+                }}
+                aria-label={`Switch to ${mode.label} mode`}
+              >
+                {mode.label}
+              </button>
+            ))}
           </div>
-          <p style={{ fontSize: '0.82rem', color: adversarial ? '#991b1b' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+          <p style={{ fontSize: '0.82rem', color: adversarial ? '#991b1b' : lowQuality ? '#92400e' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
             {adversarial
-              ? 'The Researcher will lie. It will fabricate data after signing. Watch the Builder catch it.'
+              ? 'The Researcher will lie. Watch the Builder catch it.'
+              : lowQuality
+              ? 'Both agents work truthfully, but output quality is low. Watch the quality gate reject the chain.'
               : 'Both agents work truthfully. Every receipt verifies cleanly.'}
           </p>
         </div>
@@ -767,7 +769,7 @@ export default function Demo() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '2rem',
         }}>
-          {['Researcher', 'AXL handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder deploys', adversarial ? null : 'Review', '0G anchor'].filter(Boolean).map((step, i, arr) => (
+          {['Researcher', 'AXL handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder deploys', 'Review', adversarial ? null : lowQuality ? 'Quality Gate' : '0G anchor'].filter(Boolean).map((step, i, arr) => (
             <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <div style={{
                 ...mono, fontSize: '0.62rem', padding: '0.3rem 0.6rem',
@@ -783,11 +785,11 @@ export default function Demo() {
 
         <button onClick={run} style={{
           padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
-          background: adversarial ? 'var(--red)' : 'var(--text)',
+          background: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--text)',
           color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
           fontSize: '1rem', fontWeight: 600, transition: 'all 0.2s ease',
         }}>
-          {adversarial ? 'Start Adversarial Demo' : 'Start Demo'}
+          {adversarial ? 'Start Adversarial Demo' : lowQuality ? 'Start Low Quality Demo' : 'Start Demo'}
         </button>
       </div>
     </div>
@@ -1247,7 +1249,7 @@ export default function Demo() {
             <a href="/dashboard" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Dashboard</a>
           </div>
           <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
-            {adversarial ? 'adversarial mode' : 'honest mode'}
+            {adversarial ? 'adversarial mode' : lowQuality ? 'low quality mode' : 'honest mode'}
           </span>
         </div>
       );
@@ -1420,6 +1422,7 @@ export default function Demo() {
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
+          <a href="/demo/axl" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>AXL</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
         </div>
@@ -1428,7 +1431,7 @@ export default function Demo() {
       {/* Demo Sub-Header */}
       <header style={{
         padding: '0.5rem 1.5rem', borderBottom: '1px solid var(--border)',
-        background: adversarial && phase === 'running' ? '#fef8f8' : 'var(--surface)',
+        background: adversarial && phase === 'running' ? '#fef8f8' : lowQuality && phase === 'running' ? '#fffdf5' : 'var(--surface)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, transition: 'background 0.3s ease',
       }}>
@@ -1437,8 +1440,9 @@ export default function Demo() {
             <h1 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>Live Demo</h1>
             <p style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
               {phase === 'idle' ? 'Choose a mode and start the demo' :
-                phase === 'running' ? `Running ${adversarial ? '(adversarial)' : '(honest)'} -- watching agents generate receipts` :
+                phase === 'running' ? `Running ${adversarial ? '(adversarial)' : lowQuality ? '(low quality)' : '(honest)'} -- watching agents generate receipts` :
                   fabricationDetected ? 'Complete -- fabrication detected and rejected' :
+                    qualityRejected ? 'Complete -- quality gate rejected the chain' :
                     'Complete -- all receipts verified'}
             </p>
           </div>
@@ -1449,18 +1453,18 @@ export default function Demo() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.4rem',
               padding: '0.3rem 0.6rem', borderRadius: '6px',
-              background: adversarial ? '#fef2f2' : '#f0fdf4',
-              border: `1px solid ${adversarial ? '#fecaca' : '#bbf7d0'}`,
+              background: adversarial ? '#fef2f2' : lowQuality ? '#fffbeb' : '#f0fdf4',
+              border: `1px solid ${adversarial ? '#fecaca' : lowQuality ? '#fde68a' : '#bbf7d0'}`,
             }}>
               <div style={{
                 width: '8px', height: '8px', borderRadius: '50%',
-                background: adversarial ? 'var(--red)' : 'var(--green)',
+                background: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--green)',
               }} />
               <span style={{
                 ...mono, fontSize: '0.6rem', fontWeight: 600,
-                color: adversarial ? 'var(--red)' : 'var(--green)',
+                color: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--green)',
               }}>
-                {adversarial ? 'ADVERSARIAL' : 'HONEST'}
+                {adversarial ? 'ADVERSARIAL' : lowQuality ? 'LOW QUALITY' : 'HONEST'}
               </span>
             </div>
           )}
