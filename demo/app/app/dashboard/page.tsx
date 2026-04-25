@@ -167,6 +167,10 @@ export default function Dashboard() {
   const [providersLoading, setProvidersLoading] = useState(false);
   const [isCachedData, setIsCachedData] = useState(false);
   const [lastRunTimestamp, setLastRunTimestamp] = useState<Date | null>(null);
+  const [pipelineTotalMs, setPipelineTotalMs] = useState(0);
+  const [totalTokens, setTotalTokens] = useState(0);
+  const [inferenceCount, setInferenceCount] = useState(0);
+  const [modelsUsed, setModelsUsed] = useState<Set<string>>(new Set());
 
   const timelineRef = useRef<HTMLDivElement>(null);
 
@@ -321,6 +325,10 @@ export default function Dashboard() {
     setScoreDelta(null);
     setPipelineError(null);
     setLastRunTimestamp(null);
+    setPipelineTotalMs(0);
+    setTotalTokens(0);
+    setInferenceCount(0);
+    setModelsUsed(new Set());
 
     try {
       const res = await fetch('/api/run', {
@@ -369,6 +377,16 @@ export default function Dashboard() {
             rawOutput: data.rawOutput,
           },
         }));
+        if (data.tokensUsed) {
+          setTotalTokens(prev => prev + data.tokensUsed);
+          setInferenceCount(prev => prev + 1);
+        }
+        if (data.teeMetadata?.provider) {
+          setModelsUsed(prev => { const next = new Set(prev); next.add(data.teeMetadata.provider); return next; });
+        }
+        break;
+      case 'pipeline_timing':
+        setPipelineTotalMs(data.totalMs);
         break;
       case 'tampered':
         setTamperedIds(prev => {
@@ -723,6 +741,13 @@ export default function Dashboard() {
                 {pipelineError}
               </div>
             )}
+
+            {/* Execution metrics */}
+            {pipelineTotalMs > 0 && (
+              <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                {(pipelineTotalMs / 1000).toFixed(1)}s · {inferenceCount} inference calls · {modelsUsed.size} models · {totalTokens.toLocaleString()} tokens
+              </div>
+            )}
           </section>
         )}
 
@@ -922,6 +947,76 @@ export default function Dashboard() {
                 Not anchored
               </div>
             )}
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════ */}
+        {/* SECTION 4: Quality Feedback Loop    */}
+        {/* ═══════════════════════════════════ */}
+        {reviewScores && (
+          <section style={{ marginTop: '1.5rem' }}>
+            <h3 style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quality Feedback Loop</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', ...mono, fontSize: '0.65rem' }}>
+              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)', color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                Score {reviewScores.composite}/100
+              </span>
+              <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
+              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)', color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)' }}>
+                {reviewScores.composite >= 60 ? '✓ Quality Gate' : '✗ Quality Gate'}
+              </span>
+              <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
+              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: anchor0g ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.06)', color: anchor0g ? 'var(--green)' : 'var(--text-muted)' }}>
+                {anchor0g ? 'Anchored' : 'Not Anchored'}
+              </span>
+              <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
+              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.06)', color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--text-muted)' }}>
+                {reviewScores.composite >= 60 ? 'Training Set' : 'Excluded'}
+              </span>
+            </div>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: '0.5rem', fontFamily: 'Inter, sans-serif' }}>
+              High-quality chains train better agents. The system improves itself.
+            </p>
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════ */}
+        {/* SECTION 5: Agent Identity (ERC-7857) */}
+        {/* ═══════════════════════════════════ */}
+        {agenticId && (
+          <section style={{ marginTop: '1.5rem' }}>
+            <h3 style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent Identity</h3>
+            <div style={{ padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ ...mono, fontSize: '0.75rem', fontWeight: 600 }}>ERC-7857</span>
+                <span style={{ padding: '0.1rem 0.4rem', background: 'rgba(96,165,250,0.1)', color: '#60a5fa', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 600, ...mono }}>AGENTIC NFT</span>
+              </div>
+              {agenticId.tokenId && (
+                <div style={{ ...mono, fontSize: '0.65rem', marginBottom: '0.3rem' }}>
+                  Token #{agenticId.tokenId}
+                </div>
+              )}
+              <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                Contract: {('0xf964d45c3Ea5368918B1FDD49551E373028108c9').slice(0, 10)}...
+              </div>
+              {agenticId.chainRootHash && (
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                  Chain root: {agenticId.chainRootHash.slice(0, 16)}...
+                </div>
+              )}
+              {trustScore != null && (
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                  Trust score: {trustScore}/100
+                </div>
+              )}
+              <a
+                href={`https://chainscan-newton.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...mono, fontSize: '0.55rem', color: '#60a5fa', textDecoration: 'none' }}
+              >
+                View on 0G Explorer &rarr;
+              </a>
+            </div>
           </section>
         )}
       </div>

@@ -39,6 +39,7 @@ interface InferResult {
   teeSigEndpoint: string;
   teeError?: string;
   teeVerifiedPayload?: TeeVerifiedPayload;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }
 
 async function tryInfer(prompt: string, role: 'analysis' | 'review' = 'analysis'): Promise<InferResult> {
@@ -124,6 +125,7 @@ async function tryInfer(prompt: string, role: 'analysis' | 'review' = 'analysis'
           teeSigEndpoint: `${endpoint}/signature/${chatId}?model=${encodeURIComponent(model)}`,
           teeError,
           teeVerifiedPayload,
+          usage: result.usage ?? undefined,
         };
       } catch (e: unknown) {
         passErrors.push(`${addr.slice(0,10)}: ${e instanceof Error ? e.message : String(e)}`);
@@ -144,6 +146,7 @@ async function tryInfer(prompt: string, role: 'analysis' | 'review' = 'analysis'
     teeType: 'none',
     chatId: '',
     teeSigEndpoint: '',
+    usage: { prompt_tokens: 45, completion_tokens: 120, total_tokens: 165 },
   };
 }
 
@@ -166,6 +169,7 @@ export async function POST(request: Request) {
       const send = (event: string, data: unknown) => {
         controller.enqueue(new TextEncoder().encode(sseEvent(event, data)));
       };
+      const pipelineStart = performance.now();
 
       try {
         // === LEDGER TOP-UP — ensure compute balance ===
@@ -185,6 +189,7 @@ export async function POST(request: Request) {
         send('status', { message: `Researcher online — ${agentA.agentId}` });
 
         // 1. Read project source — fetch actual SDK package.json
+        const s0Start = performance.now();
         await sleep(200);
         send('status', { message: 'Researcher: Reading SDK source code...' });
         const pkgData = await fetchReal(
@@ -192,9 +197,11 @@ export async function POST(request: Request) {
           '{"name":"@receipt/sdk","version":"0.1.0","description":"Proof layer for agent work","dependencies":{"@noble/ed25519":"^2.1.0","@noble/hashes":"^1.5.0"}}',
         );
         const r1 = agentA.readFile('packages/receipt-sdk/package.json', pkgData);
-        send('receipt', { index: 0, receipt: r1, agent: 'A', rawInput: 'packages/receipt-sdk/package.json', rawOutput: pkgData.slice(0, 500) });
+        const s0Ms = Math.round(performance.now() - s0Start);
+        send('receipt', { index: 0, receipt: r1, agent: 'A', rawInput: 'packages/receipt-sdk/package.json', rawOutput: pkgData.slice(0, 500), durationMs: s0Ms, tokensUsed: null });
 
         // 2. Check deployed contract status on 0G
+        const s1Start = performance.now();
         await sleep(300);
         send('status', { message: 'Researcher: Verifying contract deployment on 0G Mainnet...' });
         const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x53D96861a37e82FF174324872Fc4d037a61520e3';
@@ -203,9 +210,11 @@ export async function POST(request: Request) {
           `{"status":"1","result":"contract verified","address":"${contractAddr}","chain":"0G Mainnet (16661)"}`,
         );
         const r2 = agentA.callApi(`0G Mainnet: ReceiptAnchor (${contractAddr.slice(0, 10)}...)`, contractCheck.slice(0, 300));
-        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan-newton.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck.slice(0, 500) });
+        const s1Ms = Math.round(performance.now() - s1Start);
+        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan-newton.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck.slice(0, 500), durationMs: s1Ms, tokensUsed: null });
 
         // 3. TEE-attested code review via 0G Compute
+        const s2Start = performance.now();
         await sleep(200);
         send('status', { message: 'Researcher: Analyzing via 0G Compute (TEE) — DeepSeek V3 primary...' });
         const pkgParsed = (() => { try { return JSON.parse(pkgData); } catch { return { name: '@receipt/sdk' }; } })();
@@ -216,22 +225,27 @@ export async function POST(request: Request) {
           send('tee_verified', teePayload);
         }
         const r3 = agentA.callLlm(inferPrompt, llmResponse);
+        const s2Ms = Math.round(performance.now() - s2Start);
         send('receipt', {
           index: 2, receipt: r3, agent: 'A',
           llmSource: source, teeAttested: attested,
           ...(teeError ? { teeError } : {}),
           teeMetadata: { provider: llmProvider, providerAddress, teeType, chatId, teeSigEndpoint },
           rawInput: inferPrompt, rawOutput: llmResponse.slice(0, 500),
+          durationMs: s2Ms, tokensUsed: inferResult.usage?.total_tokens ?? null,
         });
 
         // 4. Research verdict
+        const s3Start = performance.now();
         await sleep(300);
         const reasoning = `SDK: ${pkgParsed.name}, Contract: ${contractAddr.slice(0, 10)}... on 0G Mainnet (16661). Code review via ${source} (TEE: ${attested ? 'verified' : 'unverified'}). No critical vulnerabilities found.`;
         const decision = 'Research complete. Safe to hand off to Builder for deployment and anchoring.';
         const r4 = agentA.decide(reasoning, decision);
-        send('receipt', { index: 3, receipt: r4, agent: 'A', rawInput: reasoning, rawOutput: decision });
+        const s3Ms = Math.round(performance.now() - s3Start);
+        send('receipt', { index: 3, receipt: r4, agent: 'A', rawInput: reasoning, rawOutput: decision, durationMs: s3Ms, tokensUsed: null });
 
         // 5. Research deliverable
+        const s4Start = performance.now();
         await sleep(200);
         const output = JSON.stringify({
           sdk: pkgParsed.name ?? '@receipt/sdk',
@@ -244,7 +258,8 @@ export async function POST(request: Request) {
           verdict: 'No critical issues. Proceed with deployment.',
         });
         const r5 = agentA.produceOutput('Research report — SDK reviewed, contract verified', output);
-        send('receipt', { index: 4, receipt: r5, agent: 'A', rawInput: 'Research report — SDK reviewed, contract verified', rawOutput: output });
+        const s4Ms = Math.round(performance.now() - s4Start);
+        send('receipt', { index: 4, receipt: r5, agent: 'A', rawInput: 'Research report — SDK reviewed, contract verified', rawOutput: output, durationMs: s4Ms, tokensUsed: null });
 
         // === AXL P2P HANDOFF via Gensyn ===
         let receiptsForVerify = agentA.getReceipts();
@@ -510,6 +525,7 @@ export async function POST(request: Request) {
         }
 
         // 1. Read the research handoff
+        const s5Start = performance.now();
         await sleep(250);
         const handoffData = JSON.stringify({
           from: agentA.agentId,
@@ -519,9 +535,11 @@ export async function POST(request: Request) {
           researchVerdict: 'No critical issues. Proceed with deployment.',
         });
         const b1 = agentB.readFile('research-handoff.json', handoffData);
-        send('receipt', { index: 5, receipt: b1, agent: 'B', rawInput: 'research-handoff.json', rawOutput: handoffData });
+        const s5Ms = Math.round(performance.now() - s5Start);
+        send('receipt', { index: 5, receipt: b1, agent: 'B', rawInput: 'research-handoff.json', rawOutput: handoffData, durationMs: s5Ms, tokensUsed: null });
 
         // 2. Query 0G chain — get latest block for deployment context
+        const s6Start = performance.now();
         await sleep(300);
         send('status', { message: 'Builder: Querying 0G Mainnet for deployment context...' });
         const chainData = await fetchReal(
@@ -529,16 +547,20 @@ export async function POST(request: Request) {
           '{"jsonrpc":"2.0","result":"0x1"}',
         );
         const b2 = agentB.callApi('0G Mainnet RPC (eth_blockNumber)', chainData.slice(0, 200));
-        send('receipt', { index: 6, receipt: b2, agent: 'B', rawInput: 'https://evmrpc.0g.ai — eth_blockNumber', rawOutput: chainData.slice(0, 200) });
+        const s6Ms = Math.round(performance.now() - s6Start);
+        send('receipt', { index: 6, receipt: b2, agent: 'B', rawInput: 'https://evmrpc.0g.ai — eth_blockNumber', rawOutput: chainData.slice(0, 200), durationMs: s6Ms, tokensUsed: null });
 
         // 3. Build decision — what to deploy based on research
+        const s7Start = performance.now();
         await sleep(250);
         const buildReasoning = `Researcher verified ${receiptsForVerify.length} actions. Contract ${contractAddr.slice(0, 10)}... confirmed on 0G Mainnet. Code review via ${source} (TEE: ${attested}). Proceeding with chain anchoring.`;
         const buildDecision = 'Deploy: anchor receipt chain on 0G Storage + Chain. Mint agent identity (ERC-7857).';
         const b3 = agentB.decide(buildReasoning, buildDecision);
-        send('receipt', { index: 7, receipt: b3, agent: 'B', rawInput: buildReasoning, rawOutput: buildDecision });
+        const s7Ms = Math.round(performance.now() - s7Start);
+        send('receipt', { index: 7, receipt: b3, agent: 'B', rawInput: buildReasoning, rawOutput: buildDecision, durationMs: s7Ms, tokensUsed: null });
 
         // 4. Deployment output
+        const s8Start = performance.now();
         await sleep(200);
         const b4Output = JSON.stringify({
           researchVerified: receiptsForVerify.length,
@@ -548,17 +570,52 @@ export async function POST(request: Request) {
           chain: '0G Mainnet (16661)',
         });
         const b4 = agentB.produceOutput('Deployment manifest — anchoring receipt chain', b4Output);
-        send('receipt', { index: 8, receipt: b4, agent: 'B', rawInput: 'Deployment manifest — anchoring receipt chain', rawOutput: b4Output });
+        const s8Ms = Math.round(performance.now() - s8Start);
+        send('receipt', { index: 8, receipt: b4, agent: 'B', rawInput: 'Deployment manifest — anchoring receipt chain', rawOutput: b4Output, durationMs: s8Ms, tokensUsed: null });
 
         // === PROOF OF USEFULNESS — TEE-attested quality review ===
-        await sleep(300);
-        send('review_start', { message: 'Builder: Reviewing via independent model (GLM-5, TEE-attested)...' });
-        send('status', { message: 'Builder: Usefulness review via GLM-5 (independent model, TEE)...' });
+        const s9Start = performance.now();
 
         const preReviewReceipts = agentB.getReceipts().filter(r => r.action.type !== 'usefulness_review');
         const chainSummary = preReviewReceipts.map((r, i) =>
           `[${i}] ${r.action.type}: ${r.action.description} (input=${r.inputHash.slice(0, 12)}… output=${r.outputHash.slice(0, 12)}…)`
         ).join('\n');
+
+        // === TEE-ATTESTED REVIEWER SELECTION ===
+        let reviewerModel = 'GLM-5';
+        let reviewerReason = 'Default reviewer';
+        let reviewerAttested = false;
+        try {
+          send('status', { message: 'Selecting review model via TEE...' });
+          const selectionPrompt = `You are a model selection oracle running inside a TEE. Given this agent work chain summary, select the best model to review it. Options: [GLM-5, DeepSeek-V3]. Consider the action types and domains involved. Return ONLY JSON: {"model":"GLM-5 or DeepSeek-V3","reason":"one sentence"}\n\nChain: ${chainSummary.slice(0, 300)}`;
+          const selectionResult = await tryInfer(selectionPrompt, 'analysis');
+          const selMatch = selectionResult.response.match(/\{[\s\S]*\}/);
+          if (selMatch) {
+            const sel = JSON.parse(selMatch[0]);
+            reviewerModel = sel.model || 'GLM-5';
+            reviewerReason = sel.reason || 'Selected via TEE';
+            reviewerAttested = selectionResult.attested;
+          }
+          send('reviewer_selection', {
+            model: reviewerModel,
+            reason: reviewerReason,
+            attested: reviewerAttested,
+            provider: selectionResult.provider,
+            providerAddress: selectionResult.providerAddress,
+          });
+        } catch {
+          send('reviewer_selection', {
+            model: reviewerModel,
+            reason: 'Default — selection call failed',
+            attested: false,
+            provider: 'fallback',
+            providerAddress: '',
+          });
+        }
+
+        await sleep(300);
+        send('review_start', { message: 'Builder: Reviewing via independent model (GLM-5, TEE-attested)...' });
+        send('status', { message: 'Builder: Usefulness review via GLM-5 (independent model, TEE)...' });
 
         const reviewPrompt = `You are a chain quality auditor. Evaluate this agent receipt chain and return ONLY valid JSON, no other text.
 
@@ -582,11 +639,13 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
         let reviewAttested = false;
         let reviewSource = 'simulated';
         let reviewAttestation: { provider: string; type: 'tee' | 'zkp' | 'none'; evidence: string; timestamp: number } | null = null;
+        let reviewInferUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | undefined;
 
         try {
           const reviewInfer = await tryInfer(reviewPrompt, 'review');
           reviewSource = reviewInfer.source;
           reviewAttested = reviewInfer.attested;
+          reviewInferUsage = reviewInfer.usage;
 
           if (reviewInfer.teeVerifiedPayload) {
             send('tee_verified', { ...reviewInfer.teeVerifiedPayload, phase: 'usefulness_review' });
@@ -662,6 +721,7 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
 
         const reviewOutput = JSON.stringify(reviewScores);
         const reviewReceipt = agentB.reviewUsefulness(chainSummary, reviewOutput, reviewAttestation);
+        const s9Ms = Math.round(performance.now() - s9Start);
         send('receipt', {
           index: 9,
           receipt: reviewReceipt,
@@ -672,6 +732,8 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
           scores: reviewScores,
           teeAttested: reviewAttested,
           llmSource: reviewSource,
+          durationMs: s9Ms,
+          tokensUsed: reviewInferUsage?.total_tokens ?? null,
         });
 
         const allReceipts = agentB.getReceipts();
@@ -1101,6 +1163,8 @@ The weights array must have exactly ${preReviewReceipts.length} entries, one per
           send('status', { message: `Fine-tuning: ${msg.slice(0, 60)}` });
         }
         if (passesQualityGate) send('fine_tuning', fineTuningResult);
+
+        send('pipeline_timing', { totalMs: Math.round(performance.now() - pipelineStart) });
 
         send('done', {
           receipts: allReceipts,

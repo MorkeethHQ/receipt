@@ -24,6 +24,9 @@ interface ReceiptMeta {
   agent?: string;
   rawInput?: string;
   rawOutput?: string;
+  durationMs?: number;
+  tokensUsed?: number | null;
+  teeProvider?: string;
 }
 
 interface VerificationResult {
@@ -334,6 +337,8 @@ export default function Demo() {
           [data.receipt.id]: {
             llmSource: data.llmSource, teeAttested: data.teeAttested,
             agent: data.agent, rawInput: data.rawInput, rawOutput: data.rawOutput,
+            durationMs: data.durationMs, tokensUsed: data.tokensUsed,
+            teeProvider: data.teeMetadata?.provider,
           },
         }));
         setTotalReceiptsGenerated(prev => prev + 1);
@@ -657,6 +662,41 @@ export default function Demo() {
               </span>
             )}
           </div>
+          {/* Execution metrics */}
+          {(() => {
+            const parts: React.ReactNode[] = [];
+            if (meta?.durationMs != null) {
+              parts.push(<span key="dur">{(meta.durationMs / 1000).toFixed(1)}s</span>);
+            }
+            // Model name from teeProvider
+            if (meta?.teeProvider) {
+              const p = meta.teeProvider.toLowerCase();
+              const modelName = p.includes('deepseek') ? 'DeepSeek V3' : p.includes('glm') ? 'GLM-5' : meta.teeProvider;
+              parts.push(<span key="model">{modelName}</span>);
+            } else if (meta?.llmSource && meta.llmSource !== 'simulated') {
+              parts.push(<span key="src" style={{ textTransform: 'capitalize' }}>{meta.llmSource === '0g-compute' ? 'Verified' : meta.llmSource}</span>);
+            }
+            if (meta?.teeAttested) {
+              parts.push(<span key="tee" style={{ color: 'var(--green)' }}>TEE &#10003;</span>);
+            }
+            if (meta?.tokensUsed) {
+              parts.push(<span key="tok">~{meta.tokensUsed} tokens</span>);
+            }
+            if (!meta?.tokensUsed && !meta?.llmSource) {
+              parts.push(<span key="local">local</span>);
+            }
+            if (parts.length === 0) return null;
+            return (
+              <div style={{ display: 'flex', gap: '0.3rem', padding: '0.25rem 0.6rem 0.35rem', ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', alignItems: 'center', flexWrap: 'wrap' }}>
+                {parts.map((part, i) => (
+                  <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    {i > 0 && <span style={{ opacity: 0.5 }}>&middot;</span>}
+                    {part}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
     );
