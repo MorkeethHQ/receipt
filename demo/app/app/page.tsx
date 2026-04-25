@@ -683,8 +683,8 @@ case 'axl_handoff':
               <div style={{ textAlign: 'center' }}>
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-dim)', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
+                  background: 'var(--agent-b)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: '0.6rem', fontWeight: 700, margin: '0 auto 0.2rem',
                 }}>B</div>
                 <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>Builder</div>
               </div>

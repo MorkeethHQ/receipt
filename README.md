@@ -4,14 +4,14 @@
 
 **Proof layer for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs.
 
-Every action an AI agent takes — reading a file, calling an API, running inference, making a decision — produces a cryptographically signed receipt. Receipts chain together via hash links. When Agent B receives work from Agent A, it independently verifies the entire chain before continuing. If any receipt has been tampered with, the chain breaks and Agent B refuses the handoff.
+Every action an AI agent takes — reading a file, calling an API, running inference, making a decision — produces a cryptographically signed receipt. Receipts chain together via hash links. When The Builder receives work from The Researcher, it independently verifies the entire chain before continuing. If any receipt has been tampered with, the chain breaks and The Builder refuses the handoff.
 
 Receipt chains anchor on-chain for permanent, public verifiability.
 
 ## Architecture
 
 ```
-Agent A                    Agent B
+The Researcher                    The Builder
   │                          │
   ├─ file_read → receipt₁    │
   ├─ api_call  → receipt₂    │
@@ -39,16 +39,16 @@ Agent A                    Agent B
 One pipeline run exercises every 0G integration. Here's exactly what happens:
 
 **Step 1 — 0G Compute (TEE Inference)**
-Agent A requests LLM inference via `@0glabs/0g-serving-broker`. The broker routes to one of 4 provider addresses on 0G Mainnet. The response runs inside an Intel TDX hardware enclave. After inference, `broker.inference.processResponse(addr, chatId, usage)` verifies the TEE signature. The receipt carries attestation metadata: provider address, TEE type, chat ID, and a clickable signature endpoint URL.
+The Researcher requests LLM inference via `@0glabs/0g-serving-broker`. The broker routes to one of 4 provider addresses on 0G Mainnet. The response runs inside an Intel TDX hardware enclave. After inference, `broker.inference.processResponse(addr, chatId, usage)` verifies the TEE signature. The receipt carries attestation metadata: provider address, TEE type, chat ID, and a clickable signature endpoint URL.
 
 **Step 2 — Receipt Chain**
-Agent A produces 5 receipts (file_read, api_call, llm_call, decision, output). Each is signed with ed25519 and hash-linked to the previous receipt via `prevId`. The chain is tamper-evident: changing any receipt breaks all downstream hash links.
+The Researcher produces 5 receipts (file_read, api_call, llm_call, decision, output). Each is signed with ed25519 and hash-linked to the previous receipt via `prevId`. The chain is tamper-evident: changing any receipt breaks all downstream hash links.
 
 **Step 3 — Gensyn AXL P2P Handoff**
-Agent A sends the receipt chain to Agent B over Gensyn's AXL transport layer. The pipeline imports `AxlTransport` from the SDK and attempts a real connection to the AXL HTTP bridge. If AXL is live: real `sendHandoffA2A()` with A2A JSON-RPC 2.0 envelope, real `callMcpTool()` for chain verification, real peer discovery via `topology()`. If AXL is unavailable: graceful fallback with `mode: 'simulated'` clearly marked. Agent card discovery uses the A2A agent card spec.
+The Researcher sends the receipt chain to The Builder over Gensyn's AXL transport layer. The pipeline imports `AxlTransport` from the SDK and attempts a real connection to the AXL HTTP bridge. If AXL is live: real `sendHandoffA2A()` with A2A JSON-RPC 2.0 envelope, real `callMcpTool()` for chain verification, real peer discovery via `topology()`. If AXL is unavailable: graceful fallback with `mode: 'simulated'` clearly marked. Agent card discovery uses the A2A agent card spec.
 
-**Step 4 — Chain Verification + Agent B**
-Agent B verifies every receipt: ed25519 signature validity, hash-link integrity, timestamp monotonicity. If any check fails, the handoff is rejected (demonstrated in adversarial mode). Agent B then extends the chain with 4 more receipts.
+**Step 4 — Chain Verification + The Builder**
+The Builder verifies every receipt: ed25519 signature validity, hash-link integrity, timestamp monotonicity. If any check fails, the handoff is rejected (demonstrated in adversarial mode). The Builder then extends the chain with 4 more receipts.
 
 **Step 5 — 0G Fine-Tuning**
 The combined 9-receipt chain converts to JSONL training data via `chainToFineTuningDataset()`. The pipeline calls `listFineTuningProviders('https://evmrpc.0g.ai')` to discover available providers, then attempts `uploadDatasetToTEE()` and `createFineTuningTask()` with the real 0G serving broker. Results are displayed honestly: task created, or "no providers available" if none exist on mainnet.
@@ -78,7 +78,7 @@ Three viewing modes:
 
 Features:
 - Real 0G Compute inference with TEE attestation (Intel TDX)
-- Adversarial mode: toggle to watch Agent A fabricate data and Agent B catch it
+- Adversarial mode: toggle to watch The Researcher fabricate data and The Builder catch it
 - Trust Score: chain integrity (70%) + data provenance (15%) + TEE attestation (15%)
 - ERC-7857 Agentic Identity minting
 - Real fine-tuning pipeline (provider discovery → TEE upload → task creation)
@@ -142,7 +142,7 @@ demo/
 # Build SDK
 cd packages/receipt-sdk && npm install && npm run build
 
-# Run tests (94 passing)
+# Run tests (47 passing)
 npm test
 
 # Run demo app
@@ -179,7 +179,7 @@ OG_COMPUTE_PROVIDER=0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C
 AXL_BASE_URL=http://127.0.0.1:9002  # optional, for live AXL
 ```
 
-## SDK — 94 Tests
+## SDK — 47 Tests
 
 ```bash
 cd packages/receipt-sdk && npm test

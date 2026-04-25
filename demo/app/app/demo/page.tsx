@@ -88,31 +88,31 @@ const STEP_DESCRIPTIONS: Record<string, string> = {
 function getNarrative(event: string, data: any): string {
   if (event === 'receipt') {
     const type = data.receipt.action.type;
-    const agent = data.agent;
+    const name = data.agent === 'A' ? 'the Researcher' : 'the Builder';
     switch (type) {
       case 'file_read':
-        return `This receipt proves Agent ${agent} actually read the file -- the input hash is the SHA-256 of the file path, the output hash covers the file contents. If anyone modifies the file later, the hash won't match and the receipt becomes invalid.`;
+        return `This receipt proves ${name} actually read the file -- the input hash is the SHA-256 of the file path, the output hash covers the file contents. If anyone modifies the data later, the hash won't match and the receipt becomes invalid.`;
       case 'api_call':
-        return `Agent ${agent} called an external API. Both the request and response are hashed -- the receipt proves exactly what data was returned, even if the API changes later.`;
+        return `${name} queried an external service. Both the request and response are hashed -- the receipt proves exactly what data was returned, even if the source changes later.`;
       case 'llm_call':
         return data.teeAttested
           ? `The TEE attestation means 0G's trusted execution environment (Intel TDX) verified this inference was real, not simulated. The signature endpoint can be independently checked.`
-          : `Agent ${agent} ran LLM inference. The prompt and response are hashed into the receipt. With TEE attestation, even the model execution is verified.`;
+          : `${name} ran LLM inference. The prompt and response are hashed into the receipt. With TEE attestation, even the model execution is verified.`;
       case 'decision':
-        return `Notice the previousHash field -- it chains back to the last receipt, creating a tamper-evident linked list. Agent ${agent}'s reasoning is captured and signed, so you can audit exactly why this path was chosen.`;
+        return `Notice the previousHash field -- it chains back to the last receipt, creating a tamper-evident linked list. ${name}'s reasoning is captured and signed, so you can audit exactly why this path was chosen.`;
       case 'output':
-        return `Agent ${agent} produced its final output. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
+        return `${name} produced its deliverable. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
       default:
-        return `Agent ${agent}: ${data.receipt.action.description}`;
+        return `${name}: ${data.receipt.action.description}`;
     }
   }
   if (event === 'status') {
     if (data.message?.includes('Verifying') || data.message?.includes('verifying'))
-      return 'Agent B received Agent A\'s full receipt chain. Before doing any work, it independently verifies every single receipt -- checking signatures, hash links, and timestamps.';
+      return 'The Builder received the Researcher\'s full receipt chain. Before doing any work, it independently verifies every single receipt -- checking signatures, hash links, and timestamps.';
     if (data.message?.includes('Fabricating'))
-      return 'Agent A is about to lie. It will modify the API response data after signing the receipt. The ed25519 signature was computed on the original data -- the modified hash won\'t match.';
-    if (data.message?.includes('Broadcasting'))
-      return 'Agent A broadcasts its receipt chain over AXL peer-to-peer. The bundle includes the chain root hash and the sender\'s ed25519 public key.';
+      return 'The Researcher is about to lie. It will modify the contract verification data after signing the receipt. The ed25519 signature was computed on the original data -- the modified hash won\'t match.';
+    if (data.message?.includes('Broadcasting') || data.message?.includes('Handing off'))
+      return 'The Researcher sends its receipt chain to the Builder via AXL peer-to-peer. The bundle includes the chain root hash, receipt count, and sender public key.';
     if (data.message?.includes('0G Storage'))
       return 'The verified receipt chain is being stored on 0G decentralized storage. This creates a permanent, tamper-proof record.';
     return '';
@@ -123,21 +123,19 @@ function getNarrative(event: string, data: any): string {
       : `VERIFICATION FAILED. The ed25519 signature does not match the receipt data. Someone modified this receipt after it was signed.`;
   }
   if (event === 'fabrication_detected') {
-    const expected = data.expectedHash ? data.expectedHash.slice(0, 16) + '...' : '(original)';
-    const got = data.actualHash ? data.actualHash.slice(0, 16) + '...' : '(tampered)';
-    return `CAUGHT. The output hash doesn't match the ed25519 signature. The SHA-256 hash of the actual API response differs from what Agent A claimed. Expected: ${expected}. Got: ${got}. Agent B rejects the entire handoff.`;
+    return `CAUGHT. The output hash doesn't match the ed25519 signature. SHA-256 of the actual data differs from what the Researcher signed. The Builder rejects the entire handoff -- no fabricated data gets through.`;
   }
   if (event === 'axl_handoff') {
-    return 'Agent A is sending its full receipt chain to Agent B via AXL peer-to-peer protocol. The handoff includes the chain root hash, receipt count, and sender public key.';
+    return 'The Researcher is sending its full receipt chain to the Builder via AXL peer-to-peer protocol. The handoff includes the chain root hash, receipt count, and sender public key.';
   }
   if (event === 'axl_received') {
-    return 'Agent B has received the receipt bundle via AXL. It will now independently verify every receipt in the chain before accepting the handoff.';
+    return 'The Builder has received the receipt bundle via AXL. It will now independently verify every receipt in the chain before accepting the handoff.';
   }
   if (event === 'axl_rebroadcast') {
-    return 'Agent B re-broadcasts the extended receipt chain to the AXL network. Other peers can now see the combined work of both agents.';
+    return 'The Builder re-broadcasts the extended receipt chain to the AXL network. Other peers can now see the combined work of both agents.';
   }
   if (event === 'axl_adopt') {
-    return 'Agent A adopts the extended chain from Agent B. The receipt chain now includes both agents\' work as a single verifiable history.';
+    return 'The Researcher adopts the extended chain from the Builder. The receipt chain now includes both agents\' work as a single verifiable history.';
   }
   if (event === 'agent_card') {
     return `Agent card discovered: ${data.name || data.agentName || 'peer'}. Capabilities and public key exchanged via A2A protocol.`;
@@ -146,7 +144,7 @@ function getNarrative(event: string, data: any): string {
     return `TEE attestation independently verified via ${data.verificationMethod || 'Intel TDX'}. The inference response is cryptographically proven to have executed inside a secure enclave.`;
   }
   if (event === 'mcp_tool_call') {
-    return `Agent B invoked verify_chain via MCP tool protocol. This is how agents programmatically verify each other's work.`;
+    return `The Builder invoked verify_chain via MCP tool protocol. This is how agents programmatically verify each other's work.`;
   }
   if (event === 'done') {
     return data.fabricated
@@ -320,7 +318,7 @@ export default function Demo() {
           });
           return next;
         });
-        addCenterLog('Receipt tampered by Agent A', 'fail');
+        addCenterLog('Receipt tampered by Researcher', 'fail');
         break;
       case 'verified': {
         setVerifications(prev => [...prev, data.result]);
@@ -358,11 +356,11 @@ export default function Demo() {
         addTiming('AXL handoff', Math.round(elapsed));
         break;
       case 'axl_received':
-        addCenterLog(`AXL received by Agent B`, 'handoff');
+        addCenterLog(`AXL received by Builder`, 'handoff');
         addTiming('AXL received', Math.round(elapsed));
         break;
       case 'mcp_tool_call':
-        addCenterLog(`Agent B -> verify_chain via MCP`, 'mcp');
+        addCenterLog(`Builder -> verify_chain via MCP`, 'mcp');
         addTiming('MCP call', Math.round(elapsed));
         break;
       case 'peer_discovery':
@@ -379,7 +377,7 @@ export default function Demo() {
         addTiming('AXL rebroadcast', Math.round(elapsed));
         break;
       case 'axl_adopt':
-        addCenterLog(`Agent A adopted extended chain`, 'adopt');
+        addCenterLog(`Researcher adopted extended chain`, 'adopt');
         addTiming('AXL adopt', Math.round(elapsed));
         break;
       case 'tee_verified': {
@@ -608,7 +606,7 @@ export default function Demo() {
         </p>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
           Watch two AI agents work together with cryptographic proof. Every action produces a
-          signed receipt. Agent B independently verifies Agent A's chain before accepting the handoff.
+          signed receipt. The Builder independently verifies the Researcher's chain before accepting the handoff.
         </p>
 
         {/* Prominent adversarial toggle */}
@@ -650,7 +648,7 @@ export default function Demo() {
           </div>
           <p style={{ fontSize: '0.82rem', color: adversarial ? '#991b1b' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
             {adversarial
-              ? 'Agent A will lie. It will modify the API response after signing. Watch Agent B catch it.'
+              ? 'The Researcher will lie. It will fabricate data after signing. Watch the Builder catch it.'
               : 'Both agents work truthfully. Every receipt verifies cleanly.'}
           </p>
         </div>
@@ -660,7 +658,7 @@ export default function Demo() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '2rem',
         }}>
-          {['Agent A works', 'AXL handoff', 'Agent B verifies', adversarial ? 'Rejected' : 'Agent B works', '0G anchor'].map((step, i) => (
+          {['Researcher', 'AXL handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder deploys', '0G anchor'].map((step, i) => (
             <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <div style={{
                 ...mono, fontSize: '0.62rem', padding: '0.3rem 0.6rem',
@@ -907,7 +905,7 @@ export default function Demo() {
           transition: 'box-shadow 0.3s ease',
         }}>A</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Agent A <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 400 }}>Researcher</span></div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Researcher <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 400 }}>Agent A</span></div>
           <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
             {agentAReceipts.length > 0 && agentACount > 0 ? (
               <span style={{ color: 'var(--green)' }}>finished -- {agentAReceipts.length} receipts</span>
@@ -961,7 +959,7 @@ export default function Demo() {
           transition: 'box-shadow 0.3s ease',
         }}>B</div>
         <div>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Agent B <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 400 }}>Builder</span></div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Builder <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 400 }}>Agent B</span></div>
           <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
             {fabricationDetected ? (
               <span style={{ color: 'var(--red)', fontWeight: 600 }}>rejected handoff</span>
@@ -997,9 +995,9 @@ export default function Demo() {
             </div>
             <div style={{ color: 'var(--red)', fontSize: '1rem', fontWeight: 700 }}>Handoff Rejected</div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', maxWidth: '260px', lineHeight: 1.6 }}>
-              Agent A's receipt chain contains fabricated data.
-              The ed25519 signature does not match the tampered output hash.
-              Agent B refuses to continue.
+              The Researcher's receipt chain contains fabricated data.
+              outputHash mismatch: SHA-256(actual) != SHA-256(signed).
+              The Builder refuses the handoff.
             </div>
             <div style={{
               ...mono, fontSize: '0.6rem', color: '#991b1b',

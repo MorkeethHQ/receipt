@@ -130,9 +130,9 @@ export default function AxlDemo() {
     switch (event) {
       case 'status': {
         const msg = data.message || '';
-        if (msg.includes('Agent A')) {
+        if (msg.includes('Researcher') || msg.includes('Agent A')) {
           addSenderEvent(msg, 'info');
-        } else if (msg.includes('Agent B')) {
+        } else if (msg.includes('Builder') || msg.includes('Agent B')) {
           addReceiverEvent(msg, 'info');
         } else {
           addSenderEvent(msg, 'info');
@@ -192,7 +192,7 @@ export default function AxlDemo() {
         break;
       }
       case 'axl_adopt': {
-        addSenderEvent(`Adopted extended chain from ${data.fromName || data.from || 'Agent B'}`, 'adopt');
+        addSenderEvent(`Adopted extended chain from ${data.fromName || data.from || 'Builder'}`, 'adopt');
         break;
       }
       case 'verified': {
@@ -395,7 +395,7 @@ export default function AxlDemo() {
           Gensyn AXL -- A2A Protocol for agent-to-agent receipt handoff
         </p>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-          Watch the sender and receiver nodes negotiate a receipt chain handoff over the AXL peer-to-peer protocol.
+          Watch the Researcher and Builder negotiate a receipt chain handoff over the AXL peer-to-peer protocol.
           The sender broadcasts its signed receipt chain, the receiver verifies it, then continues the work.
         </p>
 
@@ -580,7 +580,7 @@ export default function AxlDemo() {
     const isSender = side === 'sender';
     const color = isSender ? 'var(--agent-a)' : 'var(--agent-b)';
     const label = isSender ? 'A' : 'B';
-    const name = isSender ? 'Sender Node' : 'Receiver Node';
+    const name = isSender ? 'Researcher' : 'Builder';
     const role = isSender ? 'researcher.receiptagent.eth' : 'builder.receiptagent.eth';
     const isActive = phase === 'running';
     const startIndex = isSender ? 0 : agentACount;
