@@ -505,17 +505,54 @@ export async function POST(request: Request) {
 
           const pk = process.env.PRIVATE_KEY;
           if (pk) {
+            // 0G Storage — manual node selection (turbo indexer returns trusted=null)
             try {
-              const { storeChainOn0G } = await import('@receipt/sdk/integrations/0g-storage');
-              const sr = await storeChainOn0G(
-                chainJson,
-                'https://indexer-storage-turbo.0g.ai',
-                'https://evmrpc.0g.ai',
-                pk,
-              );
-              storageResult = sr;
-            } catch {}
+              const zgSdk = await import('@0gfoundation/0g-ts-sdk');
+              const { ethers } = await import('ethers');
 
+              const encoder = new TextEncoder();
+              const rawData = encoder.encode(chainJson);
+              const memData = new zgSdk.MemData(rawData);
+
+              // Compute Merkle root
+              try {
+                const treeResult = await memData.merkleTree();
+                const [tree, treeErr] = Array.isArray(treeResult) ? treeResult : [treeResult, null];
+                if (treeErr || !tree) throw treeErr ?? new Error('No tree');
+                const rootBuf = tree.rootHash();
+                const merkleRoot = typeof rootBuf === 'string' ? rootBuf : String(rootBuf);
+                storageResult = { rootHash: merkleRoot, uploaded: false };
+              } catch {
+                // Merkle tree failed — keep SHA-256 fallback
+              }
+
+              // Upload: select from discovered nodes (trusted=null on turbo indexer)
+              const storageRpc = 'https://evmrpc.0g.ai';
+              const signer = new ethers.Wallet(pk, new ethers.JsonRpcProvider(storageRpc));
+              const indexer = new zgSdk.Indexer('https://indexer-storage-turbo.0g.ai');
+
+              const sharded = await indexer.getShardedNodes();
+              const nodeList = sharded.trusted ?? sharded.discovered;
+              const [selected] = zgSdk.selectNodes(nodeList, 1);
+              const clients = selected.map((n: any) => new zgSdk.StorageNode(n.url));
+
+              const nodeStatus = await clients[0].getStatus();
+              const flow = zgSdk.getFlowContract(nodeStatus.networkIdentity.flowAddress, signer);
+              const uploader = new zgSdk.Uploader(clients, storageRpc, flow);
+              const opts = zgSdk.mergeUploadOptions();
+
+              const uploadResult = await uploader.uploadFile(memData, opts);
+              const [tx, uploadErr] = Array.isArray(uploadResult) ? uploadResult : [uploadResult, null];
+              if (uploadErr) throw uploadErr;
+              const uploadTxHash = (tx as any)?.txHash ?? (tx as any)?.transactionHash ?? '';
+              storageResult = { rootHash: (tx as any)?.rootHash ?? storageResult.rootHash, uploaded: true };
+              send('status', { message: `0G Storage: uploaded (${uploadTxHash.slice(0, 16)}...)` });
+            } catch (storageErr: unknown) {
+              const msg = storageErr instanceof Error ? storageErr.message : String(storageErr);
+              send('status', { message: `0G Storage: ${msg.slice(0, 80)}` });
+            }
+
+            // 0G Chain anchor
             try {
               const { anchorOnChain } = await import('@receipt/sdk/integrations/0g-chain');
               const ar = await anchorOnChain(rootHash, storageResult.rootHash ?? null, {
