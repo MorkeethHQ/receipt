@@ -1,4 +1,5 @@
 import { ReceiptAgent, verifyChain, hash } from '@receipt/sdk';
+import { AxlTransport } from '@receipt/sdk/integrations/axl';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -220,36 +221,93 @@ export async function POST(request: Request) {
         let receiptsForVerify = agentA.getReceipts();
         const agentAPubKey = Buffer.from(agentA.getPublicKey()).toString('hex');
 
-        // Agent Card Discovery — Agent A discovers Agent B before handoff
+        // Try real AXL connection, fall back to simulated
+        let axlMode: 'live' | 'simulated' = 'simulated';
+        let axlTransport: AxlTransport | null = null;
+        let axlPeers: string[] = [];
+        let axlNodeInfo: { peerId: string; publicKey: string; peers: string[] } | null = null;
+
+        try {
+          const baseUrl = process.env.AXL_BASE_URL || 'http://127.0.0.1:9002';
+          axlTransport = new AxlTransport({ baseUrl });
+          axlNodeInfo = await axlTransport.connect();
+          axlPeers = await axlTransport.discoverPeers();
+          axlMode = 'live';
+          send('status', { message: `AXL node connected (${axlPeers.length} peers discovered)` });
+        } catch {
+          send('status', { message: 'AXL node not available — using simulated handoff' });
+        }
+
+        // Agent Card Discovery
         await sleep(200);
         send('status', { message: 'Agent A: Discovering Agent B via A2A agent card...' });
-        send('agent_card', {
-          agent: 'builder.receiptagent.eth',
-          card: {
-            name: 'builder.receiptagent.eth',
-            description: 'RECEIPT verification agent — verifies and extends cryptographic receipt chains',
-            capabilities: ['verify_chain', 'get_capabilities', 'get_chain_stats', 'extend_chain'],
-            publicKey: '(generated at runtime)',
-            supportedProtocols: ['A2A', 'MCP'],
-            receiptStandard: 'ERC-7857',
-          },
-        });
+        if (axlMode === 'live' && axlTransport && axlPeers.length > 0) {
+          try {
+            const card = await axlTransport.getAgentCard(axlPeers[0]);
+            send('agent_card', { agent: axlPeers[0], card, mode: 'live' });
+          } catch {
+            send('agent_card', {
+              agent: 'builder.receiptagent.eth',
+              card: {
+                name: 'builder.receiptagent.eth',
+                description: 'RECEIPT verification agent — verifies and extends cryptographic receipt chains',
+                capabilities: ['verify_chain', 'get_capabilities', 'get_chain_stats', 'extend_chain'],
+                publicKey: axlNodeInfo?.publicKey ?? '(runtime)',
+                supportedProtocols: ['A2A', 'MCP'],
+                receiptStandard: 'ERC-7857',
+              },
+              mode: 'live',
+            });
+          }
+        } else {
+          send('agent_card', {
+            agent: 'builder.receiptagent.eth',
+            card: {
+              name: 'builder.receiptagent.eth',
+              description: 'RECEIPT verification agent — verifies and extends cryptographic receipt chains',
+              capabilities: ['verify_chain', 'get_capabilities', 'get_chain_stats', 'extend_chain'],
+              publicKey: '(generated at runtime)',
+              supportedProtocols: ['A2A', 'MCP'],
+              receiptStandard: 'ERC-7857',
+            },
+            mode: 'simulated',
+          });
+        }
 
-        // Emit AXL handoff event — Agent A broadcasts receipt chain via A2A protocol
+        // AXL Handoff — broadcast receipt chain
         await sleep(200);
-        send('status', { message: 'Agent A: Broadcasting receipt chain via AXL P2P...' });
+        send('status', { message: `Agent A: Broadcasting receipt chain via AXL P2P (${axlMode})...` });
+        const chainRoot = agentA.getChain().computeRootHash();
         const handoffBundle = {
-          chainRootHash: agentA.getChain().computeRootHash(),
+          chainRootHash: chainRoot,
           receipts: receiptsForVerify.length,
           senderPubkey: agentAPubKey,
           protocol: 'A2A',
         };
+
+        let axlEnvelope: any = null;
+        if (axlMode === 'live' && axlTransport) {
+          try {
+            const fullBundle = { chainRootHash: chainRoot, receipts: receiptsForVerify, senderPubkey: agentAPubKey, protocol: 'A2A' as const };
+            if (axlPeers.length > 0) {
+              axlEnvelope = await axlTransport.sendHandoffA2A(axlPeers[0], receiptsForVerify, agentA.getPublicKey(), fullBundle as any);
+              send('status', { message: `AXL: sent handoff to peer ${axlPeers[0].slice(0, 16)}...` });
+            } else {
+              const broadcastResults = await axlTransport.broadcastHandoff(receiptsForVerify, agentA.getPublicKey(), fullBundle as any);
+              send('status', { message: `AXL: broadcast to ${broadcastResults.length} peers` });
+            }
+          } catch (axlSendErr: unknown) {
+            const msg = axlSendErr instanceof Error ? axlSendErr.message : String(axlSendErr);
+            send('status', { message: `AXL send error: ${msg.slice(0, 80)}` });
+          }
+        }
+
         send('axl_handoff', {
           from: agentA.agentId,
           fromName: 'researcher.receiptagent.eth',
-          to: 'builder.receiptagent.eth',
+          to: axlPeers[0] ?? 'builder.receiptagent.eth',
           protocol: 'A2A',
-          envelope: {
+          envelope: axlEnvelope ?? {
             a2a: true,
             request: {
               jsonrpc: '2.0',
@@ -258,9 +316,10 @@ export async function POST(request: Request) {
             },
           },
           receiptCount: receiptsForVerify.length,
-          chainRoot: handoffBundle.chainRootHash,
+          chainRoot,
           status: 'sent',
           broadcastMode: 'all-peers',
+          mode: axlMode,
         });
 
         if (adversarial) {
@@ -274,7 +333,7 @@ export async function POST(request: Request) {
 
         // Agent B receives via AXL and verifies
         await sleep(300);
-        send('status', { message: 'Agent B: Received handoff via AXL — verifying chain...' });
+        send('status', { message: `Agent B: Received handoff via AXL (${axlMode}) — verifying chain...` });
         send('axl_received', {
           from: agentA.agentId,
           fromName: 'researcher.receiptagent.eth',
@@ -284,6 +343,7 @@ export async function POST(request: Request) {
           senderPubkey: agentAPubKey,
           verified: !adversarial,
           status: 'received',
+          mode: axlMode,
         });
         await sleep(300);
 
@@ -295,46 +355,87 @@ export async function POST(request: Request) {
 
         const allValid = results.every((r) => r.valid);
 
-        // MCP tool call — Agent B calls Agent A's verify_chain tool via AXL MCP
-        await sleep(200);
-        send('mcp_tool_call', {
-          caller: 'builder.receiptagent.eth',
-          target: 'researcher.receiptagent.eth',
-          tool: 'verify_chain',
-          input: { chainRootHash: handoffBundle.chainRootHash, receiptCount: receiptsForVerify.length },
-          output: { valid: allValid, verifiedCount: results.filter(r => r.valid).length },
-          transport: 'axl-mcp',
-          protocol: 'MCP over A2A',
-        });
-
-        // MCP tool call — Agent B calls Agent A's get_capabilities tool
-        await sleep(200);
-        send('mcp_tool_call', {
-          caller: 'builder.receiptagent.eth',
-          target: 'researcher.receiptagent.eth',
-          tool: 'get_capabilities',
-          input: {},
-          output: { capabilities: ['file_read', 'api_call', 'llm_call', 'decision', 'output'], teeProvider: '0g-compute-teeml' },
-          transport: 'axl-mcp',
-          protocol: 'MCP over A2A',
-        });
-
-        // MCP tool call — Agent B calls get_chain_stats
-        await sleep(200);
-        send('mcp_tool_call', {
-          caller: 'builder.receiptagent.eth',
-          target: 'researcher.receiptagent.eth',
-          tool: 'get_chain_stats',
-          input: { chainRootHash: handoffBundle.chainRootHash },
-          output: {
-            receiptCount: receiptsForVerify.length,
-            actionTypes: { file_read: 1, api_call: 1, llm_call: 1, decision: 1, output: 1 },
-            chainLength: receiptsForVerify.length,
-            teeAttested: attested,
-          },
-          transport: 'axl-mcp',
-          protocol: 'MCP over A2A',
-        });
+        // MCP tool calls via AXL — try real calls if AXL is live
+        if (axlMode === 'live' && axlTransport && axlPeers.length > 0) {
+          const targetPeer = axlPeers[0];
+          for (const toolCall of [
+            { tool: 'verify_chain', input: { chainRootHash: chainRoot, receiptCount: receiptsForVerify.length } },
+            { tool: 'get_capabilities', input: {} },
+            { tool: 'get_chain_stats', input: { chainRootHash: chainRoot } },
+          ]) {
+            await sleep(200);
+            try {
+              const mcpResult = await axlTransport.callMcpTool(targetPeer, 'receipt-agent', toolCall.tool, toolCall.input);
+              send('mcp_tool_call', {
+                caller: 'builder.receiptagent.eth',
+                target: targetPeer,
+                tool: toolCall.tool,
+                input: toolCall.input,
+                output: mcpResult?.result ?? mcpResult,
+                transport: 'axl-mcp',
+                protocol: 'MCP over A2A',
+                mode: 'live',
+              });
+            } catch {
+              // MCP endpoint not available on peer — emit with local data
+              const localOutput = toolCall.tool === 'verify_chain'
+                ? { valid: allValid, verifiedCount: results.filter(r => r.valid).length }
+                : toolCall.tool === 'get_capabilities'
+                ? { capabilities: ['file_read', 'api_call', 'llm_call', 'decision', 'output'], teeProvider: '0g-compute-teeml' }
+                : { receiptCount: receiptsForVerify.length, actionTypes: { file_read: 1, api_call: 1, llm_call: 1, decision: 1, output: 1 }, chainLength: receiptsForVerify.length, teeAttested: attested };
+              send('mcp_tool_call', {
+                caller: 'builder.receiptagent.eth',
+                target: targetPeer,
+                tool: toolCall.tool,
+                input: toolCall.input,
+                output: localOutput,
+                transport: 'axl-mcp',
+                protocol: 'MCP over A2A',
+                mode: 'live-local-fallback',
+              });
+            }
+          }
+        } else {
+          // Simulated MCP tool calls
+          await sleep(200);
+          send('mcp_tool_call', {
+            caller: 'builder.receiptagent.eth',
+            target: 'researcher.receiptagent.eth',
+            tool: 'verify_chain',
+            input: { chainRootHash: chainRoot, receiptCount: receiptsForVerify.length },
+            output: { valid: allValid, verifiedCount: results.filter(r => r.valid).length },
+            transport: 'axl-mcp',
+            protocol: 'MCP over A2A',
+            mode: 'simulated',
+          });
+          await sleep(200);
+          send('mcp_tool_call', {
+            caller: 'builder.receiptagent.eth',
+            target: 'researcher.receiptagent.eth',
+            tool: 'get_capabilities',
+            input: {},
+            output: { capabilities: ['file_read', 'api_call', 'llm_call', 'decision', 'output'], teeProvider: '0g-compute-teeml' },
+            transport: 'axl-mcp',
+            protocol: 'MCP over A2A',
+            mode: 'simulated',
+          });
+          await sleep(200);
+          send('mcp_tool_call', {
+            caller: 'builder.receiptagent.eth',
+            target: 'researcher.receiptagent.eth',
+            tool: 'get_chain_stats',
+            input: { chainRootHash: chainRoot },
+            output: {
+              receiptCount: receiptsForVerify.length,
+              actionTypes: { file_read: 1, api_call: 1, llm_call: 1, decision: 1, output: 1 },
+              chainLength: receiptsForVerify.length,
+              teeAttested: attested,
+            },
+            transport: 'axl-mcp',
+            protocol: 'MCP over A2A',
+            mode: 'simulated',
+          });
+        }
 
         send('verification_complete', { valid: allValid, results });
 
@@ -353,16 +454,31 @@ export async function POST(request: Request) {
 
         const agentB = ReceiptAgent.continueFrom(receiptsForVerify);
 
-        // Peer discovery — show discovered peers
+        // Peer discovery — show real or simulated peers
         await sleep(200);
-        send('peer_discovery', {
-          peers: [
-            { name: 'researcher.receiptagent.eth', pubkey: agentAPubKey.slice(0, 16) + '...', role: 'researcher', status: 'online' },
-            { name: 'builder.receiptagent.eth', pubkey: Buffer.from(agentB.getPublicKey()).toString('hex').slice(0, 16) + '...', role: 'builder', status: 'online' },
-          ],
-          topology: 'mesh',
-          broadcastEnabled: true,
-        });
+        const agentBPubKeyHex = Buffer.from(agentB.getPublicKey()).toString('hex');
+        if (axlMode === 'live' && axlNodeInfo) {
+          send('peer_discovery', {
+            peers: [
+              { name: axlNodeInfo.peerId || 'researcher.receiptagent.eth', pubkey: (axlNodeInfo.publicKey || agentAPubKey).slice(0, 16) + '...', role: 'researcher', status: 'online' },
+              ...axlPeers.map(p => ({ name: p.slice(0, 24), pubkey: p.slice(0, 16) + '...', role: 'peer', status: 'online' })),
+              { name: 'builder.receiptagent.eth', pubkey: agentBPubKeyHex.slice(0, 16) + '...', role: 'builder', status: 'online' },
+            ],
+            topology: 'mesh',
+            broadcastEnabled: true,
+            mode: 'live',
+          });
+        } else {
+          send('peer_discovery', {
+            peers: [
+              { name: 'researcher.receiptagent.eth', pubkey: agentAPubKey.slice(0, 16) + '...', role: 'researcher', status: 'online' },
+              { name: 'builder.receiptagent.eth', pubkey: agentBPubKeyHex.slice(0, 16) + '...', role: 'builder', status: 'online' },
+            ],
+            topology: 'mesh',
+            broadcastEnabled: true,
+            mode: 'simulated',
+          });
+        }
 
         // 1. Read the handoff data
         await sleep(250);
@@ -410,8 +526,21 @@ export async function POST(request: Request) {
 
         // === Re-broadcast + Adopt ===
         await sleep(200);
-        send('status', { message: 'Agent B: Broadcasting extended chain to all peers...' });
-        const agentBPubKey = Buffer.from(agentB.getPublicKey()).toString('hex');
+        send('status', { message: `Agent B: Broadcasting extended chain to all peers (${axlMode})...` });
+
+        let rebroadcastEnvelope: any = null;
+        if (axlMode === 'live' && axlTransport) {
+          try {
+            const extendedBundle = { chainRootHash: rootHash, receipts: allReceipts, senderPubkey: agentBPubKeyHex, protocol: 'A2A' as const };
+            const broadcastResults = await axlTransport.broadcastHandoff(allReceipts, agentB.getPublicKey(), extendedBundle as any);
+            const successCount = broadcastResults.filter(r => r.success).length;
+            send('status', { message: `AXL: rebroadcast to ${successCount}/${broadcastResults.length} peers` });
+          } catch (rbErr: unknown) {
+            const msg = rbErr instanceof Error ? rbErr.message : String(rbErr);
+            send('status', { message: `AXL rebroadcast: ${msg.slice(0, 60)}` });
+          }
+        }
+
         send('axl_rebroadcast', {
           from: agentB.agentId,
           fromName: 'builder.receiptagent.eth',
@@ -419,14 +548,17 @@ export async function POST(request: Request) {
           broadcastMode: 'all-peers',
           receiptCount: allReceipts.length,
           chainRoot: rootHash,
-          envelope: {
+          newReceipts: 4,
+          chainLength: allReceipts.length,
+          envelope: rebroadcastEnvelope ?? {
             a2a: true,
             request: {
               jsonrpc: '2.0',
               method: 'SendMessage',
-              params: { message: { parts: [{ type: 'data', data: { chainRootHash: rootHash, receipts: allReceipts.length, senderPubkey: agentBPubKey, protocol: 'A2A' } }] } },
+              params: { message: { parts: [{ type: 'data', data: { chainRootHash: rootHash, receipts: allReceipts.length, senderPubkey: agentBPubKeyHex, protocol: 'A2A' } }] } },
             },
           },
+          mode: axlMode,
         });
 
         await sleep(300);
@@ -434,8 +566,10 @@ export async function POST(request: Request) {
           adopter: 'researcher.receiptagent.eth',
           from: 'builder.receiptagent.eth',
           receiptCount: allReceipts.length,
+          finalLength: allReceipts.length,
           chainRoot: rootHash,
           status: 'adopted',
+          mode: axlMode,
         });
 
         // === AGENTIC ID (ERC-7857) — inlined to avoid Vercel self-fetch ===

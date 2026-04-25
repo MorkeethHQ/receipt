@@ -43,7 +43,7 @@ export function createAxlClient(config?: AxlConfig) {
       const res = await fetch(`${baseUrl}/send`, {
         method: 'POST',
         headers: { 'X-Destination-Peer-Id': peerId },
-        body: data,
+        body: data as any,
       });
       if (!res.ok) throw new Error(`AXL send error: ${res.status}`);
     },
