@@ -341,6 +341,8 @@ export default function Demo() {
         setTimeout(() => setShowFlash(false), 2000);
         setTimeout(() => setShowShake(false), 800);
         addCenterLog('FABRICATION DETECTED', 'fail');
+        addCenterLog('outputHash mismatch: SHA-256(actual) ≠ SHA-256(signed)', 'fail');
+        addCenterLog('Chain integrity compromised — handoff rejected', 'fail');
         addTiming('Detection', Math.round(elapsed));
         break;
       case 'verification_complete':
@@ -351,7 +353,7 @@ export default function Demo() {
       case 'axl_handoff':
         setStoryStage('axl-handoff');
         setShowHandoffAnimation(true);
-        setTimeout(() => setShowHandoffAnimation(false), 2000);
+        setTimeout(() => setShowHandoffAnimation(false), 3500);
         addCenterLog(`AXL handoff: ${data.receiptCount} receipts`, 'handoff');
         addTiming('AXL handoff', Math.round(elapsed));
         break;
@@ -693,7 +695,7 @@ export default function Demo() {
       width: '240px', display: 'flex', flexDirection: 'column',
       background: 'var(--surface)', borderRight: '1px solid var(--border)',
       flexShrink: 0, overflow: 'hidden',
-    }}>
+    }} className="demo-center-panel">
       {/* Header */}
       <div style={{
         padding: '0.6rem 0.8rem', borderBottom: '1px solid var(--border)',
@@ -707,29 +709,45 @@ export default function Demo() {
       {/* Handoff indicator */}
       {showHandoffAnimation && (
         <div style={{
-          padding: '0.6rem', borderBottom: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-          background: '#f0f4ff',
+          padding: '0.8rem 0.6rem', borderBottom: '1px solid var(--border)',
+          background: 'linear-gradient(90deg, rgba(37,99,235,0.05), rgba(124,58,237,0.05))',
         }}>
           <div style={{
-            width: '24px', height: '24px', borderRadius: '50%',
-            background: 'var(--agent-a)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: '#fff', fontSize: '0.55rem', fontWeight: 700,
-          }}>A</div>
-          <div style={{
-            flex: 1, height: '2px', background: 'var(--border)', position: 'relative', overflow: 'hidden',
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            marginBottom: '0.3rem',
           }}>
             <div style={{
-              position: 'absolute', top: '-3px', width: '8px', height: '8px',
-              borderRadius: '50%', background: 'var(--agent-a)',
-              animation: 'axl-packet-traverse 1.5s ease-in-out infinite',
-            }} />
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: 'var(--agent-a)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: '#fff', fontSize: '0.55rem', fontWeight: 700,
+              boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.2)',
+            }}>R</div>
+            <div style={{
+              flex: 1, height: '3px', background: 'var(--border)', position: 'relative', overflow: 'hidden',
+              borderRadius: '2px',
+            }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  position: 'absolute', top: '-4px',
+                  width: '10px', height: '10px',
+                  borderRadius: '2px',
+                  background: 'var(--agent-a)',
+                  boxShadow: '0 0 6px var(--agent-a)',
+                  animation: `axl-packet-traverse 2s ease-in-out infinite`,
+                  animationDelay: `${i * 0.4}s`,
+                }} />
+              ))}
+            </div>
+            <div style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: 'var(--agent-b)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: '#fff', fontSize: '0.55rem', fontWeight: 700,
+              boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)',
+            }}>B</div>
           </div>
-          <div style={{
-            width: '24px', height: '24px', borderRadius: '50%',
-            background: 'var(--agent-b)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: '#fff', fontSize: '0.55rem', fontWeight: 700,
-          }}>B</div>
+          <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            {agentAReceipts.length} receipts via AXL P2P
+          </div>
         </div>
       )}
 
@@ -986,24 +1004,34 @@ export default function Demo() {
             justifyContent: 'center', height: '100%', gap: '0.8rem', textAlign: 'center',
             width: '100%',
           }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '50%',
-              background: '#fef2f2', border: '3px solid var(--red)',
+            <div className="stamp" style={{
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: '#fef2f2', border: '4px solid var(--red)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.15), 0 0 20px rgba(220, 38, 38, 0.1)',
             }}>
-              <span style={{ fontSize: '2rem', color: 'var(--red)', fontWeight: 800, lineHeight: 1 }}>X</span>
+              <span style={{ fontSize: '2.5rem', color: 'var(--red)', fontWeight: 800, lineHeight: 1 }}>X</span>
             </div>
-            <div style={{ color: 'var(--red)', fontSize: '1rem', fontWeight: 700 }}>Handoff Rejected</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', maxWidth: '260px', lineHeight: 1.6 }}>
+            <div style={{ color: 'var(--red)', fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.05em' }}>Handoff Rejected</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', maxWidth: '280px', lineHeight: 1.6 }}>
               The Researcher's receipt chain contains fabricated data.
-              outputHash mismatch: SHA-256(actual) != SHA-256(signed).
               The Builder refuses the handoff.
+            </div>
+            <div style={{
+              ...mono, fontSize: '0.55rem', color: '#991b1b',
+              padding: '0.5rem 0.8rem', borderRadius: '6px',
+              background: '#fef2f2', border: '2px solid #fecaca',
+              marginTop: '0.2rem', lineHeight: 1.6,
+              animation: 'pulse-red-border 2s ease-in-out infinite',
+            }}>
+              <div>outputHash: SHA-256(actual) ≠ SHA-256(signed)</div>
+              <div style={{ marginTop: '0.2rem', color: '#b91c1c' }}>Chain integrity compromised</div>
             </div>
             <div style={{
               ...mono, fontSize: '0.6rem', color: '#991b1b',
               padding: '0.4rem 0.8rem', borderRadius: '6px',
               background: '#fef2f2', border: '1px solid #fecaca',
-              marginTop: '0.3rem',
+              marginTop: '0.1rem',
             }}>
               Zero trust = zero damage
             </div>
@@ -1032,7 +1060,7 @@ export default function Demo() {
               <span key={tag} style={{ ...mono, fontSize: '0.55rem' }}>{tag}</span>
             ))}
           </div>
-          <a href="/" style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>
+          <a href="/dashboard" style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>
             Dashboard
           </a>
         </div>
@@ -1124,6 +1152,19 @@ export default function Demo() {
         position: 'relative',
       }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          .demo-panels { grid-template-columns: 1fr !important; grid-template-rows: 1fr auto 1fr !important; }
+          .demo-center-panel { width: 100% !important; border-right: none !important; border-bottom: 1px solid var(--border); max-height: 150px; }
+          .demo-agent-panel { border-right: none !important; border-left: none !important; max-height: 50vh; }
+          .demo-idle { padding: 1.5rem 1rem !important; }
+          .demo-idle h2 { font-size: 1.5rem !important; }
+          .demo-nav-links { gap: 0.8rem !important; }
+          .demo-stage-dots { flex-wrap: wrap !important; }
+          .demo-flow-preview { flex-direction: column !important; align-items: stretch !important; }
+        }
+      `}</style>
+
       {/* Flash overlay for fabrication detection */}
       {showFlash && (
         <div className="flash-overlay" style={{
@@ -1133,20 +1174,35 @@ export default function Demo() {
         }} />
       )}
 
-      {/* Header */}
+      {/* Nav */}
+      <nav style={{
+        padding: '0.6rem 1.5rem',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+      }}>
+        <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.03em' }}>
+          R.E.C.E.I.P.T.
+        </a>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
+          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
+          <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
+          <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
+        </div>
+      </nav>
+
+      {/* Demo Sub-Header */}
       <header style={{
-        padding: '0.7rem 1.5rem', borderBottom: '1px solid var(--border)',
+        padding: '0.5rem 1.5rem', borderBottom: '1px solid var(--border)',
         background: adversarial && phase === 'running' ? '#fef8f8' : 'var(--surface)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, transition: 'background 0.3s ease',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <a href="/" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}>
-            Dashboard
-          </a>
-          <a href="/demo/axl" style={{ fontSize: '0.72rem', color: 'var(--agent-a)', textDecoration: 'none', fontWeight: 500 }}>
-            AXL Network Demo
-          </a>
           <div>
             <h1 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>Live Demo</h1>
             <p style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
@@ -1208,6 +1264,21 @@ export default function Demo() {
           }}>
             {narrative}
           </div>
+          {/* Chain integrity meter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${receipts.length > 0 ? ((verificationsPassedCount / Math.max(totalReceiptsGenerated, 1)) * 100) : 0}%`,
+                background: fabricationDetected ? 'var(--red)' : 'var(--green)',
+                borderRadius: '2px',
+                transition: 'width 0.5s ease, background 0.3s ease',
+              }} />
+            </div>
+            <span style={{ ...mono, fontSize: '0.5rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+              {verificationsPassedCount}/{totalReceiptsGenerated} verified
+            </span>
+          </div>
           {/* Story stage indicator */}
           {phase === 'running' && (
             <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
@@ -1244,7 +1315,7 @@ export default function Demo() {
 
       {/* Running / Done -- Dual Panels */}
       {phase !== 'idle' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', flex: 1, overflow: 'hidden' }}>
+        <div className="demo-panels" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', flex: 1, overflow: 'hidden' }}>
           {renderAgentAPanel()}
           {renderCenterPanel()}
           {renderAgentBPanel()}

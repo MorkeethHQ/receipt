@@ -71,20 +71,11 @@ The full receipt chain serializes to bytes, gets Merkle-treed via `@0gfoundation
 
 **[receipt-demo.vercel.app](https://receipt-demo.vercel.app)**
 
-Three viewing modes:
-- **Dashboard** — Full operator view: receipt timeline, 0G 5-pillar status, AXL network topology, trust scoring, provider health
-- **Demo Mode** — Watch agents generate receipts in real-time with narrative explanations and adversarial tamper detection
-- **AXL Demo** — Interactive side-by-side sender/receiver visualization of the Gensyn AXL P2P handoff
-
-Features:
-- Real 0G Compute inference with TEE attestation (Intel TDX)
-- Adversarial mode: toggle to watch The Researcher fabricate data and The Builder catch it
-- Trust Score: chain integrity (70%) + data provenance (15%) + TEE attestation (15%)
-- ERC-7857 Agentic Identity minting
-- Real fine-tuning pipeline (provider discovery → TEE upload → task creation)
-- Training data export (receipts → JSONL)
-- Public verifier at `/verify` — paste any receipt chain JSON to verify independently
-- AXL live/simulated mode indicator
+Four pages:
+- **Home** — Product pitch, SDK install instructions, quick start code
+- **Demo** — Watch agents generate receipts in real-time with narrative explanations and adversarial tamper detection
+- **Verify** — Independent chain verifier — paste any receipt chain JSON, all checks run client-side
+- **Dashboard** — Full operator view: receipt timeline, 0G 5-pillar status, trust scoring, provider health
 
 ## Integrations
 

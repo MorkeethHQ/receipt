@@ -9,10 +9,14 @@ export class ReceiptAgent {
   readonly keys: AgentKeyPair;
   private chain: ReceiptChain;
 
-  constructor(keys?: AgentKeyPair) {
+  constructor(keys?: AgentKeyPair, agentId?: string) {
     this.keys = keys ?? generateKeyPair();
-    this.agentId = publicKeyToHex(this.keys.publicKey).slice(0, 16);
+    this.agentId = agentId ?? publicKeyToHex(this.keys.publicKey).slice(0, 16);
     this.chain = new ReceiptChain();
+  }
+
+  static create(name: string, keys?: AgentKeyPair): ReceiptAgent {
+    return new ReceiptAgent(keys, name);
   }
 
   static continueFrom(verifiedReceipts: Receipt[], keys?: AgentKeyPair): ReceiptAgent {

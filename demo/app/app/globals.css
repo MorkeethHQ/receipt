@@ -79,6 +79,11 @@ body {
   50% { box-shadow: 0 0 10px currentColor, 0 0 16px currentColor; }
 }
 
+@keyframes pulse-red-border {
+  0%, 100% { border-color: #fecaca; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50% { border-color: var(--red); box-shadow: 0 0 8px rgba(220, 38, 38, 0.15); }
+}
+
 .slide-up { animation: slide-up 0.3s ease-out; }
 .stamp { animation: stamp 0.4s ease-out; }
 .screen-shake { animation: shake 0.8s ease-out; }
