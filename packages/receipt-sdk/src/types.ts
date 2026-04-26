@@ -1,4 +1,6 @@
-export type ActionType = 'file_read' | 'api_call' | 'llm_call' | 'decision' | 'output' | 'usefulness_review';
+export type ActionType =
+  | 'file_read' | 'api_call' | 'llm_call' | 'decision' | 'output' | 'usefulness_review'
+  | 'context_read' | 'tool_call' | 'tool_result' | 'message_send';
 
 export interface ReceiptAction {
   type: ActionType;

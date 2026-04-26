@@ -69,6 +69,22 @@ export class ReceiptAgent {
     return this.act('usefulness_review', 'Usefulness review — TEE-attested quality assessment', chainSummary, reviewResult, attestation);
   }
 
+  contextRead(source: string, content: string): Receipt {
+    return this.act('context_read', `Read context: ${source}`, source, content);
+  }
+
+  toolCall(toolName: string, input: string): Receipt {
+    return this.act('tool_call', `Tool call: ${toolName}`, toolName, input);
+  }
+
+  toolResult(toolName: string, result: string): Receipt {
+    return this.act('tool_result', `Tool result: ${toolName}`, toolName, result);
+  }
+
+  messageSend(recipient: string, content: string): Receipt {
+    return this.act('message_send', `Message to ${recipient}`, recipient, content);
+  }
+
   getReceipts(): Receipt[] {
     return this.chain.getReceipts();
   }
