@@ -1100,6 +1100,9 @@ export default function Dashboard() {
             </div>
             {identityExpanded && (
               <div style={{ padding: '0 1rem 0.8rem', ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                <div style={{ fontSize: '0.58rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem', lineHeight: 1.5 }}>
+                  Non-transferable on-chain identity (ERC-7857). This token is soulbound to the agent — it can&apos;t be sold, faked, or reassigned. Quality scores accumulate here as on-chain reputation.
+                </div>
                 {agenticId.tokenId && <div>Token #{agenticId.tokenId}</div>}
                 <div>Contract: {(agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9').slice(0, 10)}...</div>
                 {agenticId.chainRootHash && <div>Chain root: {agenticId.chainRootHash.slice(0, 16)}...</div>}

@@ -10,6 +10,8 @@ function sse(event: string, data: unknown): string {
 const DEEPSEEK_V3 = '0x1B3AAef3ae5050EEE04ea38cD4B087472BD85EB0';
 const GLM_5 = '0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C';
 
+let ledgerDeposited = false;
+
 interface InferResult {
   response: string;
   source: string;
@@ -118,17 +120,20 @@ export async function POST(request: Request) {
       const pipelineStart = performance.now();
 
       try {
-        // Ledger top-up
-        try {
-          const { createZGComputeNetworkBroker } = await import('@0glabs/0g-serving-broker');
-          const { ethers: eth } = await import('ethers');
-          const net = new eth.Network('0g-mainnet', 16661);
-          const rpc = new eth.JsonRpcProvider('https://evmrpc.0g.ai', net, { staticNetwork: net });
-          const w = new eth.Wallet(process.env.PRIVATE_KEY!, rpc);
-          const b = await createZGComputeNetworkBroker(w);
-          await b.ledger.depositFund(5);
-          send('status', { message: 'Compute ledger: deposited 5 A0GI' });
-        } catch {}
+        // Ledger top-up (once per server lifecycle)
+        if (!ledgerDeposited) {
+          try {
+            const { createZGComputeNetworkBroker } = await import('@0glabs/0g-serving-broker');
+            const { ethers: eth } = await import('ethers');
+            const net = new eth.Network('0g-mainnet', 16661);
+            const rpc = new eth.JsonRpcProvider('https://evmrpc.0g.ai', net, { staticNetwork: net });
+            const w = new eth.Wallet(process.env.PRIVATE_KEY!, rpc);
+            const b = await createZGComputeNetworkBroker(w);
+            await b.ledger.depositFund(5);
+            ledgerDeposited = true;
+            send('status', { message: 'Compute ledger: deposited 5 A0GI' });
+          } catch {}
+        }
 
         const agent = new ReceiptAgent();
         send('status', { message: `Researcher online — ${agent.agentId}` });

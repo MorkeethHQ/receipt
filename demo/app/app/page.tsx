@@ -21,6 +21,7 @@ export default function LandingPage() {
           .hero-sub { font-size: 1rem !important; }
           .steps-grid { grid-template-columns: 1fr !important; gap: 1.2rem !important; }
           .cases-grid { grid-template-columns: 1fr !important; }
+          .og-grid { grid-template-columns: 1fr !important; }
           .cta-row { flex-direction: column !important; align-items: stretch !important; }
           .cta-row a { text-align: center !important; }
           .code-block { padding: 1rem !important; }
@@ -192,6 +193,39 @@ export default function LandingPage() {
             {'\n'}
             <span style={{ color: '#c084fc' }}>const</span> valid = agent.<span style={{ color: '#60a5fa' }}>verifyOwnChain</span>(); <span style={{ color: '#888' }}>// true</span>
           </pre>
+        </div>
+      </section>
+
+      {/* Powered by 0G */}
+      <section style={{ padding: '0 1.5rem 2.5rem', maxWidth: '580px', margin: '0 auto', width: '100%' }}>
+        <div style={{
+          padding: '1.4rem 1.6rem',
+          border: '1px solid var(--border)',
+          borderRadius: '10px',
+          background: 'var(--surface)',
+        }}>
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '0.6rem',
+            color: 'var(--text-dim)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '1rem',
+          }}>
+            Powered by 0G
+          </div>
+          <div className="og-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            {[
+              { label: 'Verified Compute', desc: '0G Compute runs every inference in a TEE enclave. Not just logged — hardware-attested.' },
+              { label: 'Verified Identity', desc: 'ERC-7857 non-transferable identity. Each agent gets an on-chain soul, minted through 0G.' },
+              { label: 'Verified Training', desc: 'Quality-gated chains feed 0G fine-tuning. Bad work is rejected before it touches training data.' },
+            ].map(v => (
+              <div key={v.label}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text)' }}>{v.label}</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{v.desc}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

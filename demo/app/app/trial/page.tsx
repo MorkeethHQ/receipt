@@ -412,7 +412,7 @@ export default function TrialPage() {
 
       <footer style={{ marginTop: 'auto', padding: '0.8rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          {['/demo', '/verify', '/dashboard'].map(h => <a key={h} href={h} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{h.slice(1).charAt(0).toUpperCase() + h.slice(2)}</a>)}
+          {[['Demo', '/demo'], ['Verify', '/verify'], ['Dashboard', '/dashboard']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
         </div>
         <span style={{ ...mono, fontSize: '0.6rem' }}>Execution Replay</span>
       </footer>

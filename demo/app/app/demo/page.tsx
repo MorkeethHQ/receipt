@@ -197,31 +197,6 @@ function getNarrative(event: string, data: any): string {
   return '';
 }
 
-function getDelay(event: string): number {
-  switch (event) {
-    case 'receipt': return 1800;
-    case 'verified': return 1000;
-    case 'fabrication_detected': return 2500;
-    case 'verification_complete': return 1200;
-    case 'tampered': return 1500;
-    case 'status': return 800;
-    case 'done': return 600;
-    case 'trust_score': return 1000;
-    case 'agentic_id': return 800;
-    case 'axl_handoff': return 1400;
-    case 'axl_received': return 1200;
-    case 'mcp_tool_call': return 900;
-    case 'peer_discovery': return 600;
-    case 'agent_card': return 800;
-    case 'axl_rebroadcast': return 1000;
-    case 'axl_adopt': return 1000;
-    case 'tee_verified': return 1200;
-    case 'review_start': return 1200;
-    case 'review_scores': return 2000;
-    case 'quality_gate': return 2500;
-    default: return 500;
-  }
-}
 
 /* ------------------------------------------------------------------ */
 /*  AnimatedCounter — animates a number from 0 to target              */
@@ -631,7 +606,7 @@ export default function Demo() {
             processEvent(item.event, item.data);
             const delay = item.event === 'axl_handoff' ? 1500
               : item.event === 'receipt' ? 500
-              : item.event === 'verified' ? 350
+              : item.event === 'verified' ? 600
               : item.event === 'fabrication_detected' ? 1200
               : 250;
             await sleep(delay);
@@ -649,8 +624,8 @@ export default function Demo() {
               await showChapter(3, 'Fabrication caught',
                 'The Builder found the lie. Receipt #2 was tampered — the hash doesn\'t match the signature. The entire chain is rejected. This is why you don\'t need to trust the other agent.');
             } else if (item.event === 'review_start') {
-              await showChapter(4, 'The review',
-                'Here\'s where it gets interesting. A different model, inside a hardware enclave, is about to score whether this work was actually useful. The agent can\'t pick its own grader. The operator can\'t modify the score.');
+              await showChapter(4, 'Independent review',
+                'A different model, selected inside a hardware enclave, is about to score whether this work was actually useful — not just "did it run" but "was it worth paying for." The agent can\'t pick its own grader. The operator can\'t modify the score.');
             } else if (item.event === 'review_scores' || item.event === 'quality_gate') {
               const isGood = item.event === 'review_scores' && item.data.composite >= 60;
               const isRejected = item.event === 'quality_gate' && !item.data.passed;
@@ -1209,16 +1184,21 @@ export default function Demo() {
         {/* Quality rejected */}
         {qualityRejected && !fabricationDetected && (
           <div className="slide-up" style={{
-            padding: '0.5rem', borderRadius: '6px',
+            padding: '0.8rem 0.6rem', borderRadius: '8px',
             background: '#fffbeb', border: '2px solid var(--amber)',
             textAlign: 'center', marginBottom: '0.4rem',
           }}>
-            <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 800, letterSpacing: '0.06em' }}>
-              NOT RECORDED
+            <div style={{ ...mono, fontSize: '1rem', color: 'var(--amber)', fontWeight: 900, letterSpacing: '0.1em' }}>
+              WASTED
             </div>
-            <div style={{ fontSize: '0.55rem', color: '#92400e', marginTop: '0.15rem' }}>
-              Quality below threshold — no on-chain reputation
+            <div style={{ fontSize: '0.6rem', color: '#92400e', marginTop: '0.25rem', lineHeight: 1.5 }}>
+              Tokens spent, nothing earned. Quality below threshold — this chain is not recorded on-chain, not used for training.
             </div>
+            {reviewScores && (
+              <div style={{ ...mono, fontSize: '0.55rem', color: '#92400e', marginTop: '0.4rem', padding: '0.3rem 0.5rem', background: 'rgba(217,119,6,0.08)', borderRadius: '4px', display: 'inline-block' }}>
+                Score: {reviewScores.composite}/100 — needed 60 to pass
+              </div>
+            )}
           </div>
         )}
 
