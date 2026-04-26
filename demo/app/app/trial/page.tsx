@@ -120,8 +120,10 @@ function Timeline({ receipts, totalMs, hovered, setHovered }: { receipts: TrialR
           );
         })}
       </div>
+      {/* Agent labels with AXL handoff marker */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem', ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>
         <span style={{ color: 'var(--researcher)' }}>Researcher</span>
+        <span style={{ letterSpacing: '0.06em' }}>AXL HANDOFF</span>
         <span style={{ color: 'var(--builder)' }}>Builder</span>
         <span style={{ color: 'var(--green)' }}>Review</span>
       </div>
@@ -144,6 +146,7 @@ function EfficiencyLine({ tokens, quality }: { tokens: number; quality: number|n
     <div style={{ ...mono, fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0.7rem 1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '1.5rem' }}>
       <div style={{ fontWeight: 600, color: eff < 0.005 ? 'var(--green)' : eff < 0.01 ? 'var(--amber)' : 'var(--red)' }}>Cost per useful output: ${eff.toFixed(4)}</div>
       <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>{tokens.toLocaleString()} tokens x $0.15/1K / {quality}% quality</div>
+      <div style={{ fontSize: '0.58rem', color: 'var(--text-dim)', marginTop: '0.25rem', fontFamily: 'Inter, sans-serif' }}>Token cost divided by quality score. Lower = more value per dollar. Compare honest vs low-quality runs to see the difference.</div>
     </div>
   );
 }
@@ -254,9 +257,9 @@ export default function TrialPage() {
   const effTotalMs = compMode ? 0 : (totalTimeMs || trialReceipts.reduce((s, r) => s + r.durationMs, 0));
   const effTokens = compMode ? 0 : totalTokens;
   const verifs = [
-    { label: 'Compute', desc: 'Inference ran in hardware enclave', ok: teeVerified },
-    { label: 'Identity', desc: 'Agent identity minted on-chain', ok: agenticIdMinted },
-    { label: 'Training', desc: 'Quality data fed to fine-tuning', ok: fineTuningStarted },
+    { label: 'Compute', desc: 'Inference ran in hardware enclave via 0G Compute (TeeML)', ok: teeVerified },
+    { label: 'Identity', desc: 'Soulbound agent identity minted via ERC-7857 on 0G Mainnet', ok: agenticIdMinted },
+    { label: 'Training', desc: 'Quality-gated chain fed to 0G fine-tuning pipeline', ok: fineTuningStarted },
   ];
   const btnBase = { padding: '0.6rem 1.4rem', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', fontWeight: 600, cursor: phase === 'running' ? 'not-allowed' as const : 'pointer' as const };
   const running = phase === 'running';
@@ -390,6 +393,18 @@ export default function TrialPage() {
                   return p.length ? ` (${p.join(' + ')})` : '';
                 })()}</div>
                 <div>Root: <span style={{ color: 'var(--text-dim)' }}>0x{rootHash.slice(0, 8)}...</span></div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+                {[
+                  { label: 'Anchor', addr: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651' },
+                  { label: 'Identity', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
+                  { label: 'Validation', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
+                ].map(c => (
+                  <a key={c.addr} href={`https://chainscan-newton.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+                    style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textDecoration: 'none', padding: '0.2rem 0.5rem', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                    {c.label}: {c.addr.slice(0, 8)}...
+                  </a>
+                ))}
               </div>
               <button onClick={() => { sessionStorage.setItem('receipt-verify-chain', JSON.stringify(trialReceipts.map(t => t.receipt))); window.location.href = '/verify?from=session&auto=1'; }}
                 style={{ marginTop: '0.8rem', padding: '0.5rem 1.2rem', borderRadius: '8px', border: '1px solid var(--green)', background: 'rgba(22,163,74,0.06)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '0.78rem', fontWeight: 600 }}>

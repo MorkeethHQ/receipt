@@ -796,6 +796,29 @@ export default function VerifyPage() {
               </div>
             )}
 
+            {/* 0G on-chain links — shown when chain is valid */}
+            {phase === 'done' && chainValid && (
+              <div className="slide-up" style={{
+                display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1rem',
+              }}>
+                {[
+                  { label: 'ReceiptAnchor', addr: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651' },
+                  { label: 'AgentNFT (ERC-7857)', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
+                  { label: 'Validation (ERC-8004)', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
+                ].map(c => (
+                  <a key={c.addr} href={`https://chainscan-newton.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.55rem',
+                      color: 'var(--text-dim)', textDecoration: 'none',
+                      padding: '0.25rem 0.6rem', background: 'var(--surface)',
+                      borderRadius: '4px', border: '1px solid var(--border)',
+                    }}>
+                    {c.label}: {c.addr.slice(0, 8)}...
+                  </a>
+                ))}
+              </div>
+            )}
+
             {/* Verifying indicator */}
             {phase === 'verifying' && (
               <div style={{

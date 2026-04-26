@@ -359,14 +359,41 @@ export default function Dashboard() {
     };
 
     // Phase 1: Researcher
+    const collectedReceipts: any[] = [];
+    const collectedRaw: Record<string, { input?: string; output?: string }> = {};
     const researcherEvents = await readSSE('/api/researcher', { adversarial });
-    for (const { event, data } of researcherEvents) handleEvent(event, data);
+    for (const { event, data } of researcherEvents) {
+      handleEvent(event, data);
+      if (event === 'receipt' && data.receipt) {
+        collectedReceipts.push(data.receipt);
+        if (data.rawInput || data.rawOutput) collectedRaw[data.receipt.id] = { input: data.rawInput, output: data.rawOutput };
+      }
+    }
     const rDone = researcherEvents.find(e => e.event === 'researcher_done');
 
     // Phase 2: Builder
     if (rDone?.data?.receipts) {
       const builderEvents = await readSSE('/api/builder', { lowQuality, receipts: rDone.data.receipts, publicKey: rDone.data.publicKey });
-      for (const { event, data } of builderEvents) handleEvent(event, data);
+      for (const { event, data } of builderEvents) {
+        handleEvent(event, data);
+        if (event === 'receipt' && data.receipt) {
+          collectedReceipts.push(data.receipt);
+          if (data.rawInput || data.rawOutput) collectedRaw[data.receipt.id] = { input: data.rawInput, output: data.rawOutput };
+        }
+      }
+    }
+
+    // Generate training data from real content
+    if (collectedReceipts.length > 0) {
+      try {
+        const tdRes = await fetch('/api/training-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receipts: collectedReceipts, rawData: collectedRaw }),
+        });
+        const td = await tdRes.json();
+        if (td.jsonl) setTrainingData(td);
+      } catch {}
     }
 
     setRunning(false);
@@ -892,14 +919,25 @@ export default function Dashboard() {
                 const weight = receiptWeights[i];
 
                 return (
-                  <div
-                    key={receipt.id}
-                    style={{
+                  <div key={receipt.id}>
+                    {/* AXL handoff marker */}
+                    {i === agentACount && agentACount > 0 && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.6rem',
+                        padding: '0.5rem 0.7rem', margin: '0.3rem 0',
+                      }}>
+                        <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                        <span style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+                          GENSYN AXL HANDOFF
+                        </span>
+                        <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                      </div>
+                    )}
+                    <div style={{
                       opacity: isMounted ? 1 : 0,
                       transform: isMounted ? 'translateY(0)' : 'translateY(6px)',
                       transition: 'opacity 0.3s ease, transform 0.3s ease',
-                    }}
-                  >
+                    }}>
                     {/* One-line receipt */}
                     <div
                       onClick={() => setExpandedReceipt(expanded ? null : receipt.id)}
@@ -980,6 +1018,7 @@ export default function Dashboard() {
                         )}
                       </div>
                     )}
+                  </div>
                   </div>
                 );
               })}
