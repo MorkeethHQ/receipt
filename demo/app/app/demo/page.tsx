@@ -685,13 +685,13 @@ export default function Demo() {
 
     return (
       <div key={receipt.id} className="slide-up" style={{ maxWidth: '320px', width: '100%' }}>
-        <div className={`receipt-card ${isTampered ? 'tampered' : ''}`} style={{ fontSize: '0.68rem' }}>
+        <div className={`receipt-card ${isTampered ? 'tampered' : ''}`} style={{ fontSize: '0.75rem' }}>
           <div style={{ padding: '0.4rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ ...mono, fontWeight: 700, fontSize: '0.6rem', letterSpacing: '0.04em' }}>R.E.C.E.I.P.T.</span>
-            <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>#{index}</span>
+            <span style={{ ...mono, fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.04em' }}>R.E.C.E.I.P.T.</span>
+            <span style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)' }}>#{index}</span>
           </div>
           <div className="dashed" />
-          <div style={{ padding: '0.35rem 0.6rem', ...mono, fontSize: '0.6rem', lineHeight: 1.8 }}>
+          <div style={{ padding: '0.35rem 0.6rem', ...mono, fontSize: '0.68rem', lineHeight: 1.8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-dim)' }}>ACTION</span>
               <span style={{ fontWeight: 600 }}>{receipt.action.type}</span>
@@ -712,8 +712,8 @@ export default function Demo() {
               <div style={{ marginTop: '0.2rem' }}>
                 {(['alignment', 'substance', 'quality'] as const).map(axis => (
                   <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
-                    <span style={{ color: 'var(--text-dim)', width: '42px', textTransform: 'uppercase', fontSize: '0.48rem' }}>{axis.slice(0, 5)}</span>
-                    <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <span style={{ color: 'var(--text-dim)', width: '46px', textTransform: 'uppercase', fontSize: '0.56rem' }}>{axis.slice(0, 5)}</span>
+                    <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', borderRadius: '2px',
                         width: `${reviewScores[axis]}%`,
@@ -721,14 +721,14 @@ export default function Demo() {
                         transition: 'width 1s ease-out',
                       }} />
                     </div>
-                    <span style={{ fontSize: '0.5rem', fontWeight: 600, width: '20px', textAlign: 'right' }}>{reviewScores[axis]}</span>
+                    <span style={{ fontSize: '0.58rem', fontWeight: 600, width: '22px', textAlign: 'right' }}>{reviewScores[axis]}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
           <div className="dashed" />
-          <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.52rem', lineHeight: 1.7, color: 'var(--text-muted)' }}>
+          <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.6rem', lineHeight: 1.7, color: 'var(--text-muted)' }}>
             <div>IN  {receipt.inputHash.slice(0, 20)}...</div>
             <div style={{ color: isTampered ? 'var(--red)' : undefined, textDecoration: isTampered ? 'line-through' : undefined }}>
               OUT {receipt.outputHash.slice(0, 20)}...
@@ -738,8 +738,8 @@ export default function Demo() {
             <>
               <div className="dashed" />
               <div style={{ padding: '0.25rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--text-dim)', width: '50px' }}>QUALITY</span>
-                <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                <span style={{ ...mono, fontSize: '0.54rem', color: 'var(--text-dim)', width: '50px' }}>QUALITY</span>
+                <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: '2px',
                     width: `${receiptWeights[index] * 100}%`,
@@ -747,19 +747,19 @@ export default function Demo() {
                     transition: 'width 1s ease-out',
                   }} />
                 </div>
-                <span style={{ ...mono, fontSize: '0.48rem', fontWeight: 700, color: receiptWeights[index] >= 0.7 ? 'var(--green)' : receiptWeights[index] >= 0.4 ? 'var(--amber)' : 'var(--red)' }}>
+                <span style={{ ...mono, fontSize: '0.56rem', fontWeight: 700, color: receiptWeights[index] >= 0.7 ? 'var(--green)' : receiptWeights[index] >= 0.4 ? 'var(--amber)' : 'var(--red)' }}>
                   {(receiptWeights[index] * 100).toFixed(0)}%
                 </span>
               </div>
             </>
           )}
           <div className="dashed" />
-          <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.52rem', color: 'var(--text-dim)' }}>
+          <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>
             SIG {receipt.signature.slice(0, 20)}...
           </div>
           <div className="dashed" />
           <div style={{ padding: '0.35rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ textAlign: 'center', ...mono, fontSize: '0.6rem', fontWeight: 700, flex: 1 }}>
+            <div style={{ textAlign: 'center', ...mono, fontSize: '0.68rem', fontWeight: 700, flex: 1 }}>
               {isTampered ? (
                 <span className="stamp" style={{ color: 'var(--red)', letterSpacing: '0.1em' }}>TAMPERED</span>
               ) : (
@@ -768,7 +768,7 @@ export default function Demo() {
             </div>
             {timing && (
               <span style={{
-                ...mono, fontSize: '0.5rem', color: 'var(--text-dim)',
+                ...mono, fontSize: '0.58rem', color: 'var(--text-dim)',
                 background: 'var(--bg)', padding: '0.1rem 0.3rem', borderRadius: '3px',
                 border: '1px solid var(--border)',
               }}>
@@ -782,7 +782,6 @@ export default function Demo() {
             if (meta?.durationMs != null) {
               parts.push(<span key="dur">{(meta.durationMs / 1000).toFixed(1)}s</span>);
             }
-            // Model name from teeProvider
             if (meta?.teeProvider) {
               const p = meta.teeProvider.toLowerCase();
               const modelName = p.includes('deepseek') ? 'DeepSeek V3' : p.includes('glm') ? 'GLM-5' : meta.teeProvider;
@@ -801,7 +800,7 @@ export default function Demo() {
             }
             if (parts.length === 0) return null;
             return (
-              <div style={{ display: 'flex', gap: '0.3rem', padding: '0.25rem 0.6rem 0.35rem', ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.3rem', padding: '0.25rem 0.6rem 0.35rem', ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', alignItems: 'center', flexWrap: 'wrap' }}>
                 {parts.map((part, i) => (
                   <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     {i > 0 && <span style={{ opacity: 0.5 }}>&middot;</span>}
@@ -866,10 +865,10 @@ export default function Demo() {
           R.E.C.E.I.P.T.
         </div>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: '1.5rem', ...mono }}>
-          Proof layer for agent work
+          Cryptographic proof that agent work actually mattered
         </p>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-          Watch two AI agents work together. Every action is recorded and signed. The second agent checks the first agent's work before continuing.
+          Two agents. Every action signed and hash-linked. The Builder independently verifies the Researcher&apos;s chain, then a TEE-attested reviewer scores whether the output was worth paying for.
         </p>
 
         {/* Mode selector — three radio-style pills */}
@@ -1220,7 +1219,7 @@ export default function Demo() {
             borderRadius: '4px', border: '1px solid var(--border)',
             marginBottom: '0.4rem',
           }}>
-            <div style={{ fontSize: '0.45rem', fontWeight: 600, marginBottom: '0.15rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.52rem', fontWeight: 600, marginBottom: '0.15rem', color: 'var(--text-muted)' }}>
               ROOT HASH
             </div>
             {chainRootHash.slice(0, 32)}...
@@ -1234,13 +1233,13 @@ export default function Demo() {
             background: 'var(--surface)', border: '1px solid var(--border)',
             marginBottom: '0.4rem',
           }}>
-            <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.3rem', textAlign: 'center' }}>
+            <div style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.3rem', textAlign: 'center' }}>
               Usefulness
             </div>
             {(['alignment', 'substance', 'quality'] as const).map(axis => (
               <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
-                <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)', width: '36px', textTransform: 'uppercase' }}>{axis.slice(0, 5)}</span>
-                <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', width: '40px', textTransform: 'uppercase' }}>{axis.slice(0, 5)}</span>
+                <div style={{ flex: 1, height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: '3px',
                     width: `${reviewScores[axis]}%`,
@@ -1248,7 +1247,7 @@ export default function Demo() {
                     transition: 'width 1.2s ease-out',
                   }} />
                 </div>
-                <span style={{ ...mono, fontSize: '0.5rem', fontWeight: 700, width: '18px', textAlign: 'right', color: 'var(--text)' }}>{reviewScores[axis]}</span>
+                <span style={{ ...mono, fontSize: '0.58rem', fontWeight: 700, width: '20px', textAlign: 'right', color: 'var(--text)' }}>{reviewScores[axis]}</span>
               </div>
             ))}
             <div style={{ textAlign: 'center', marginTop: '0.2rem' }}>
@@ -1256,10 +1255,10 @@ export default function Demo() {
                 target={reviewScores.composite}
                 color={reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)'}
               />
-              <div style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>COMPOSITE</div>
+              <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>COMPOSITE</div>
               {scoreDelta !== null && (
                 <div style={{
-                  ...mono, fontSize: '0.5rem', fontWeight: 700, marginTop: '0.15rem',
+                  ...mono, fontSize: '0.58rem', fontWeight: 700, marginTop: '0.15rem',
                   color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
                 }}>
                   {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
@@ -1276,7 +1275,7 @@ export default function Demo() {
             background: 'var(--surface)', border: '1px solid var(--border)',
             textAlign: 'center',
           }}>
-            <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.15rem' }}>
+            <div style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.15rem' }}>
               Trust Score
             </div>
             <AnimatedCounter
@@ -1291,8 +1290,8 @@ export default function Demo() {
                   { label: 'Enclave', value: trustBreakdown.teeAttestation, max: 15 },
                 ] as const).map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
-                    <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', width: '26px' }}>{item.label}</span>
-                    <div style={{ flex: 1, height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', width: '34px' }}>{item.label}</span>
+                    <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', borderRadius: '2px',
                         width: `${(item.value / item.max) * 100}%`,
@@ -1300,7 +1299,7 @@ export default function Demo() {
                         transition: 'width 0.8s ease-out',
                       }} />
                     </div>
-                    <span style={{ ...mono, fontSize: '0.42rem', color: 'var(--text-muted)', width: '22px', textAlign: 'right' }}>{item.value}/{item.max}</span>
+                    <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-muted)', width: '28px', textAlign: 'right' }}>{item.value}/{item.max}</span>
                   </div>
                 ))}
               </div>
