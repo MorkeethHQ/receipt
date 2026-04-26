@@ -162,6 +162,7 @@ export default function Dashboard() {
   const [axlRebroadcast, setAxlRebroadcast] = useState<any>(null);
   const [axlAdopt, setAxlAdopt] = useState<any>(null);
   const [fineTuning, setFineTuning] = useState<any>(null);
+  const [erc8004, setErc8004] = useState<{ txHash: string; registryAddress: string; requestHash: string; score: number; standard: string } | null>(null);
   const [reviewScores, setReviewScores] = useState<{ alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null>(null);
   const [qualityRejected, setQualityRejected] = useState(false);
   const [receiptWeights, setReceiptWeights] = useState<number[]>([]);
@@ -466,6 +467,9 @@ export default function Dashboard() {
         break;
       case 'fine_tuning':
         setFineTuning(data);
+        break;
+      case 'erc8004_validation':
+        setErc8004(data);
         break;
       case 'review_scores':
         setReviewScores({ alignment: data.alignment, substance: data.substance, quality: data.quality, composite: data.composite, reasoning: data.reasoning || '' });
@@ -1056,6 +1060,39 @@ export default function Dashboard() {
                 )}
               </div>
             )}
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════ */}
+        {/* SECTION 3b: ERC-8004 Validation */}
+        {/* ═══════════════════════════════════ */}
+        {erc8004 && (
+          <section style={{
+            marginTop: '1.5rem', borderRadius: '8px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            padding: '0.7rem 1rem', overflow: 'hidden',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+              <span style={{ ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Agent Proof</span>
+              <span style={{ padding: '0.1rem 0.4rem', background: 'rgba(96,165,250,0.1)', color: '#60a5fa', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 600, ...mono }}>ERC-8004</span>
+            </div>
+            <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
+              <div>Score: <span style={{ fontWeight: 600, color: erc8004.score >= 70 ? 'var(--green)' : erc8004.score >= 40 ? 'var(--amber)' : 'var(--red)' }}>{erc8004.score}/100</span> posted to Validation Registry</div>
+              <div>
+                tx{' '}
+                <a
+                  href={`https://chainscan-newton.0g.ai/tx/${erc8004.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#60a5fa', textDecoration: 'none' }}
+                >
+                  {erc8004.txHash.slice(0, 18)}...
+                </a>
+              </div>
+              <div style={{ color: 'var(--text-dim)', fontSize: '0.55rem' }}>
+                Registry: {erc8004.registryAddress.slice(0, 10)}... (0G Mainnet)
+              </div>
+            </div>
           </section>
         )}
 

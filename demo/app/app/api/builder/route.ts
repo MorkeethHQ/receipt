@@ -493,11 +493,43 @@ export async function POST(request: Request) {
           send('fine_tuning', { status: 'quality-gate', score: reviewScores.composite, threshold: qualityThreshold });
         }
 
+        // ERC-8004 Validation Registry — post usefulness attestation
+        let erc8004Result: any = null;
+        if (passesQualityGate && rootHash) {
+          try {
+            const registryAddr = process.env.VALIDATION_REGISTRY_ADDRESS;
+            const erc8004Key = process.env.PRIVATE_KEY;
+            if (registryAddr && erc8004Key) {
+              const { ethers: eth } = await import('ethers');
+              const net = new eth.Network('0g-mainnet', 16661);
+              const rpc = new eth.JsonRpcProvider('https://evmrpc.0g.ai', net, { staticNetwork: net });
+              const w = new eth.Wallet(erc8004Key, rpc);
+              const registry = new eth.Contract(registryAddr, [
+                'function validationRequest(address validatorAddress, uint256 agentId, string requestURI, bytes32 requestHash) external',
+                'function validationResponse(bytes32 requestHash, uint8 response, string responseURI, bytes32 responseHash, string tag) external',
+              ], w);
+              const requestHash = eth.keccak256(eth.toUtf8Bytes(rootHash));
+              const agentId = 1;
+              const requestURI = `https://receipt-demo.vercel.app/verify?chain=${rootHash.slice(0, 16)}`;
+              await registry.validationRequest(w.address, agentId, requestURI, requestHash);
+              const responseHash = eth.keccak256(eth.toUtf8Bytes(JSON.stringify(reviewScores)));
+              const tx = await registry.validationResponse(requestHash, reviewScores.composite, requestURI, responseHash, 'usefulness-review');
+              const txr = await tx.wait();
+              erc8004Result = { txHash: txr.hash, registryAddress: registryAddr, requestHash, score: reviewScores.composite, standard: 'ERC-8004' };
+              send('erc8004_validation', erc8004Result);
+              send('status', { message: `ERC-8004: Validation posted (score ${reviewScores.composite}/100)` });
+            }
+          } catch (e: unknown) {
+            send('status', { message: `ERC-8004: ${(e instanceof Error ? e.message : String(e)).slice(0, 60)}` });
+          }
+        }
+
         send('pipeline_timing', { totalMs: Math.round(performance.now() - pipelineStart) });
 
         send('done', {
           receipts: allReceipts, agentACount: receiptsForVerify.length, agentBCount: 5,
           rootHash, fabricated: false, storage: storageResult, anchor: anchorResult,
+          erc8004: erc8004Result,
           usefulnessReview: reviewScores, reviewAttested, reviewSource,
           perReceiptWeights, axlReceived,
         });

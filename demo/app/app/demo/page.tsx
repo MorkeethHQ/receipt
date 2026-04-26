@@ -494,6 +494,10 @@ export default function Demo() {
         addCenterLog(qualityRejected ? 'Stored (quality too low to record)' : 'Stored and recorded on-chain', 'anchor');
         addTiming('Stored', Math.round(elapsed));
         break;
+      case 'erc8004_validation':
+        addCenterLog(`ERC-8004: Validation posted (${data.score}/100)`, 'anchor');
+        addTiming('ERC-8004', Math.round(elapsed));
+        break;
     }
   }, [addCenterLog, addTiming, qualityRejected]);
 

@@ -14,9 +14,10 @@
 
 **The feedback loop.** Usefulness scores anchor on-chain alongside the receipt hash — creating on-chain agent reputation. Only chains scoring above a quality threshold become fine-tuning data. The system self-improves: good agent work trains better agents, bad work is excluded.
 
-**Deployed Contracts:**
-- ReceiptAnchorV2: [`0x73B9A7768679B154D7E1eC5F2570a622A3b49651`](https://chainscan-newton.0g.ai/address/0x73B9A7768679B154D7E1eC5F2570a622A3b49651) (0G Mainnet) — stores usefulness scores on-chain
-- AgentNFT: [`0xf964d45c3Ea5368918B1FDD49551E373028108c9`](https://chainscan-newton.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9) (0G Mainnet) — ERC-7857 agent identity
+**Deployed Contracts (0G Mainnet):**
+- ReceiptAnchorV2: [`0x73B9A7768679B154D7E1eC5F2570a622A3b49651`](https://chainscan-newton.0g.ai/address/0x73B9A7768679B154D7E1eC5F2570a622A3b49651) — stores usefulness scores on-chain
+- AgentNFT: [`0xf964d45c3Ea5368918B1FDD49551E373028108c9`](https://chainscan-newton.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9) — ERC-7857 agent identity
+- ValidationRegistry: [`0x2E32E845928A92DB193B59676C16D52923Fa01dd`](https://chainscan-newton.0g.ai/address/0x2E32E845928A92DB193B59676C16D52923Fa01dd) — ERC-8004 agent proof attestations
 
 ## Architecture
 
@@ -39,10 +40,10 @@ The Researcher                    The Builder
                                             │
                                     compute root hash
                                             │
-                  ┌─────────────┬───────────┼───────────┬──────────────┐
-                  │             │                       │              │
-            0G Storage    0G Mainnet              0G Fine-Tune     AgentNFT
-           (Merkle root)  (anchor tx)            (TEE upload)    (ERC-7857)
+                  ┌─────────────┬───────────┼───────────┬──────────────┬──────────────┐
+                  │             │                       │              │              │
+            0G Storage    0G Mainnet              0G Fine-Tune     AgentNFT    Validation
+           (Merkle root)  (anchor tx)            (TEE upload)    (ERC-7857)   (ERC-8004)
 ```
 
 ## Three Verification Layers
@@ -105,6 +106,7 @@ packages/
 contracts/
   ReceiptAnchorV2.sol   On-chain anchor — stores usefulness scores (deployed on 0G Mainnet)
   AgentNFT.sol          ERC-7857 Agentic Identity NFT contract
+  ValidationRegistry.sol ERC-8004 agent proof attestations (deployed on 0G Mainnet)
 
 demo/
   app/                  Next.js demo — 5 pages (home, demo, replay, verify, dashboard)
@@ -183,6 +185,7 @@ npx tsx demo/agents/builder.ts
 PRIVATE_KEY=wallet_private_key
 OG_CONTRACT_ADDRESS=0x73B9A7768679B154D7E1eC5F2570a622A3b49651
 AGENT_NFT_ADDRESS=0xf964d45c3Ea5368918B1FDD49551E373028108c9
+VALIDATION_REGISTRY_ADDRESS=0x2E32E845928A92DB193B59676C16D52923Fa01dd
 OG_COMPUTE_PROVIDER=0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C
 AXL_BASE_URL=http://127.0.0.1:9002  # optional, for live AXL
 ```
