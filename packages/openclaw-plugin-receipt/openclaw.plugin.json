@@ -1,0 +1,37 @@
+{
+  "name": "receipt",
+  "version": "0.1.0",
+  "description": "Cryptographic receipt chain for every agent run. Proves what the agent did, scored by an independent reviewer.",
+  "author": "MorkeethHQ",
+  "license": "MIT",
+  "entry": "dist/index.js",
+  "minimumOpenClawVersion": "2026.4.0",
+  "capabilities": ["hooks", "http"],
+  "config": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable receipt generation for all agent runs"
+    },
+    "maxRawSize": {
+      "type": "number",
+      "default": 2048,
+      "description": "Max payload size before hashing (bytes)"
+    },
+    "httpRoute": {
+      "type": "string",
+      "default": "/plugins/receipt",
+      "description": "Base HTTP path for chain retrieval"
+    },
+    "axlForward": {
+      "type": "boolean",
+      "default": false,
+      "description": "Forward completed chains via Gensyn AXL"
+    },
+    "axlPeerId": {
+      "type": "string",
+      "default": "",
+      "description": "AXL peer ID to forward chains to"
+    }
+  }
+}

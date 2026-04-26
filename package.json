@@ -4,6 +4,7 @@
   "scripts": {
     "build:sdk": "cd packages/receipt-sdk && npm run build",
     "build:cli": "cd packages/receipt-cli && npm run build",
+    "build:plugin": "cd packages/openclaw-plugin-receipt && npm run build",
     "build": "npm run build:sdk && npm run build:cli",
     "test": "cd packages/receipt-sdk && npm test",
     "dev": "cd demo/app && npm run dev"
