@@ -2,6 +2,8 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
+**[Live Demo](https://receipt-demo.vercel.app)** · [Demo](https://receipt-demo.vercel.app/demo) · [Verify](https://receipt-demo.vercel.app/verify) · [Dashboard](https://receipt-demo.vercel.app/dashboard) · [Replay](https://receipt-demo.vercel.app/trial)
+
 **Two-layer proof for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs — with TEE-attested quality scoring.
 
 **Layer 1 — Proof of Action.** Every agent action — reading a file, calling an API, running inference, making a decision — produces a cryptographically signed receipt (ed25519 + SHA-256). Receipts hash-link into a tamper-proof chain. Any modification breaks the chain. When The Builder receives work from The Researcher, it independently verifies every receipt before continuing.
@@ -51,7 +53,7 @@ One pipeline run exercises verified compute, verified identity, and verified tra
 Every LLM call runs inside an Intel TDX hardware enclave via `@0glabs/0g-serving-broker`. Used twice per pipeline: once for the Researcher's analysis inference, once for the Builder's independent quality review. The reviewer model is TEE-selected — the agent can't choose its own grader. Each receipt carries attestation metadata: provider address, TEE type, and a verifiable signature endpoint.
 
 **Verified Identity — ERC-7857 Agentic ID**
-Each agent mints an on-chain identity NFT via `AgentNFT.sol`. The NFT carries the agent's ed25519 public key hash and receipt chain root as `iDatas`. Supports the full iNFT lifecycle: mint, transfer, clone, authorizeUsage. Trust scores evolve as the agent builds on-chain reputation through verified work.
+Each agent mints a soulbound on-chain identity NFT via `AgentNFT.sol`. The NFT carries the agent's ed25519 public key hash and receipt chain root as `iDatas`. Supports the full iNFT lifecycle: mint, transfer, clone, authorizeUsage. Trust scores evolve as the agent builds on-chain reputation through verified work. Designed to be composable with the emerging ERC-8004 (Trustless Agents) standard — RECEIPT receipts map to ERC-8004 Validation Registry responses.
 
 **Verified Training — Quality-Gated Fine-Tuning**
 Only chains scoring ≥60/100 usefulness become training data. The pipeline discovers fine-tuning providers, uploads high-quality chains via TEE, and attempts LoRA deployment. Low-quality chains are excluded — the system self-improves by only training on proven good work.
@@ -86,17 +88,12 @@ Standalone demos:
 - `demo/axl/sender.ts` — Creates receipt chain, sends handoff bundle to peer
 - `demo/axl/receiver.ts` — Receives bundle, verifies chain, extends with new receipts
 
-## Live Demo
+## Demo Pages
 
-**[receipt-demo.vercel.app](https://receipt-demo.vercel.app)**
-
-Five pages:
-
-- **[Home](https://receipt-demo.vercel.app)** — Value prop, SDK install, code example
-- **[Demo](https://receipt-demo.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time with execution metrics (time, tokens, model). Three modes: honest, adversarial (tamper detection), and low-quality (quality gate rejection). The handoff is the centerpiece — see one agent verify another's work before continuing.
-- **[Replay](https://receipt-demo.vercel.app/trial)** — Execution timeline with cost-per-useful-output metrics. See what your agents did, what it cost, and whether it mattered. Includes human review (your rating becomes receipt #11, signed and hash-linked to the chain) and side-by-side comparison of honest vs. low-quality runs.
-- **[Verify](https://receipt-demo.vercel.app/verify)** — Independent chain verifier. Load valid or tampered chains, verify signatures and hash links, see exactly where tampering breaks the chain. Shows agent handoff points.
-- **[Dashboard](https://receipt-demo.vercel.app/dashboard)** — Operator view: execution metrics, quality feedback loop visualization, agent identity (ERC-7857), 0G integration status, and the full receipt chain with researcher/builder color coding.
+- **[Demo](https://receipt-demo.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Three modes: honest, adversarial (tamper detection), low-quality (quality gate rejection). Guided walkthrough explains each stage.
+- **[Replay](https://receipt-demo.vercel.app/trial)** — Execution timeline with cost-per-useful-output. Human review becomes receipt #11, signed and hash-linked. Side-by-side honest vs. low-quality comparison.
+- **[Verify](https://receipt-demo.vercel.app/verify)** — Independent chain verifier. Load valid or tampered chains, see exactly where tampering breaks.
+- **[Dashboard](https://receipt-demo.vercel.app/dashboard)** — Operator view: quality scores, on-chain anchoring, agent identity (ERC-7857), full receipt chain.
 
 ## Project Structure
 

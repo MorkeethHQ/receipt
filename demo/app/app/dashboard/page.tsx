@@ -627,6 +627,9 @@ export default function Dashboard() {
   /* ─── RUNNING STATE (no receipts yet) ─── */
   /* ─────────────────────────────────────────── */
   if (running && receipts.length === 0) {
+    const stages = ['Ledger top-up', 'Researcher online', 'Generating receipts', 'AXL handoff', 'Builder verification', 'Quality review', 'On-chain anchor'];
+    const lastMsg = statusLog[statusLog.length - 1] || '';
+    const activeIdx = lastMsg.includes('Researcher') ? 1 : lastMsg.includes('handoff') || lastMsg.includes('AXL') ? 3 : lastMsg.includes('Builder') || lastMsg.includes('Verif') ? 4 : lastMsg.includes('review') || lastMsg.includes('Review') ? 5 : lastMsg.includes('anchor') || lastMsg.includes('Anchor') ? 6 : lastMsg.includes('ledger') || lastMsg.includes('Ledger') ? 0 : 0;
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
         <style>{`
@@ -636,14 +639,25 @@ export default function Dashboard() {
         <Nav />
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          height: 'calc(100vh - 60px)', gap: '1rem', padding: '2rem',
+          height: 'calc(100vh - 60px)', gap: '1.5rem', padding: '2rem',
         }}>
-          <div style={{
-            width: '12px', height: '12px', borderRadius: '50%',
-            background: 'var(--green)', animation: 'pulse 1.2s ease-in-out infinite',
-          }} />
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            {stages.map((s, i) => (
+              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{
+                  width: '8px', height: '8px', borderRadius: '50%',
+                  background: i < activeIdx ? 'var(--green)' : i === activeIdx ? 'var(--green)' : 'var(--border)',
+                  animation: i === activeIdx ? 'pulse 1.2s ease-in-out infinite' : 'none',
+                }} />
+                {i < stages.length - 1 && <div style={{ width: '12px', height: '1px', background: i < activeIdx ? 'var(--green)' : 'var(--border)' }} />}
+              </div>
+            ))}
+          </div>
           <div style={{ ...mono, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            {statusLog[statusLog.length - 1] || 'Initializing pipeline...'}
+            {lastMsg || 'Initializing pipeline...'}
+          </div>
+          <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>
+            {stages[activeIdx]}
           </div>
         </div>
       </div>
@@ -676,6 +690,18 @@ export default function Dashboard() {
           padding: '2rem 1.5rem 4rem',
         }}
       >
+        {/* Cached data banner */}
+        {isCachedData && !running && (
+          <div style={{
+            padding: '0.5rem 0.8rem', borderRadius: '6px', marginBottom: '1rem',
+            background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.2)',
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            ...mono, fontSize: '0.6rem', color: 'var(--amber)',
+          }}>
+            <span>Showing cached results{lastRunTimestamp ? ` from ${lastRunTimestamp.toLocaleTimeString()}` : ''}. Run the pipeline for fresh data.</span>
+          </div>
+        )}
+
         {/* Run controls */}
         <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem' }}>
           <RunControls />
