@@ -331,33 +331,39 @@ export default function Dashboard() {
     setInferenceCount(0);
     setModelsUsed(new Set());
 
-    try {
-      const res = await fetch('/api/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adversarial, lowQuality }),
-      });
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        let event = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) event = line.slice(7);
-          else if (line.startsWith('data: ') && event) {
-            handleEvent(event, JSON.parse(line.slice(6)));
-            event = '';
+    const readSSE = async (url: string, body: any) => {
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        const events: Array<{ event: string; data: any }> = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n'); buffer = lines.pop() || '';
+          let event = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) event = line.slice(7);
+            else if (line.startsWith('data: ') && event) { events.push({ event, data: JSON.parse(line.slice(6)) }); event = ''; }
           }
         }
-      }
-    } catch {}
+        return events;
+      } catch { return []; }
+    };
+
+    // Phase 1: Researcher
+    const researcherEvents = await readSSE('/api/researcher', { adversarial });
+    for (const { event, data } of researcherEvents) handleEvent(event, data);
+    const rDone = researcherEvents.find(e => e.event === 'researcher_done');
+
+    // Phase 2: Builder
+    if (rDone?.data?.receipts) {
+      const builderEvents = await readSSE('/api/builder', { lowQuality, receipts: rDone.data.receipts, publicKey: rDone.data.publicKey });
+      for (const { event, data } of builderEvents) handleEvent(event, data);
+    }
+
     setRunning(false);
     setLastRunTimestamp(new Date());
   }, [adversarial, lowQuality]);

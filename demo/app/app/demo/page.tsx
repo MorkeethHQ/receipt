@@ -520,33 +520,47 @@ export default function Demo() {
 
     const events: Array<{ event: string; data: any }> = [];
 
-    try {
-      const res = await fetch('/api/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adversarial, lowQuality }),
-      });
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        let ev = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) ev = line.slice(7);
-          else if (line.startsWith('data: ') && ev) {
-            events.push({ event: ev, data: JSON.parse(line.slice(6)) });
-            ev = '';
+    const readSSE = async (url: string, body: any): Promise<Array<{ event: string; data: any }>> => {
+      const collected: Array<{ event: string; data: any }> = [];
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          let ev = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) ev = line.slice(7);
+            else if (line.startsWith('data: ') && ev) { collected.push({ event: ev, data: JSON.parse(line.slice(6)) }); ev = ''; }
           }
         }
-      }
-    } catch { /* SSE fetch failed */ }
+      } catch {}
+      return collected;
+    };
+
+    // Phase 1: Researcher creates chain, sends via AXL
+    const researcherEvents = await readSSE('/api/researcher', { adversarial });
+    events.push(...researcherEvents);
+
+    // Extract chain from researcher's done event for builder fallback
+    const researcherDone = researcherEvents.find(e => e.event === 'researcher_done');
+    const researcherChain = researcherDone?.data?.receipts;
+    const researcherPubKey = researcherDone?.data?.publicKey;
+
+    // Phase 2: Builder receives via AXL (or direct fallback), verifies, extends
+    if (researcherChain) {
+      const builderEvents = await readSSE('/api/builder', {
+        lowQuality,
+        receipts: researcherChain,
+        publicKey: researcherPubKey,
+      });
+      events.push(...builderEvents);
+    }
 
     // Replay events with delays for demo effect
     lastEventTimeRef.current = performance.now();

@@ -13,6 +13,7 @@ interface RunData {
   receipts: TrialReceipt[]; totalMs: number; tokens: number; quality: number|null; rootHash: string;
   reviewerSelection: {model:string;reason:string;attested:boolean}|null;
   teeVerified: boolean; agenticId: boolean; fineTuning: boolean; reviewScores: any;
+  researcherChain?: any[]; researcherKey?: string;
 }
 
 const mono = { fontFamily: "'IBM Plex Mono', 'Courier New', monospace" } as const;
@@ -27,18 +28,17 @@ async function sha256(s: string) {
 function bufToHex(b: Uint8Array) { return Array.from(b).map(x => x.toString(16).padStart(2, '0')).join(''); }
 
 /* SSE Consumer */
-async function runPipeline(
-  lowQuality: boolean,
+async function readSSEStream(
+  res: Response,
+  receipts: TrialReceipt[],
+  d: RunData,
   onReceipt?: (tr: TrialReceipt) => void,
   onStatus?: (msg: string) => void,
   onMeta?: (key: string, value: any) => void,
-): Promise<RunData> {
-  const res = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adversarial: false, lowQuality }) });
+) {
   const reader = res.body!.getReader();
   const dec = new TextDecoder();
   let buf = '';
-  const receipts: TrialReceipt[] = [];
-  const d: RunData = { receipts: [], totalMs: 0, tokens: 0, quality: null, rootHash: '', reviewerSelection: null, teeVerified: false, agenticId: false, fineTuning: false, reviewScores: null };
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -55,11 +55,12 @@ async function runPipeline(
             receipts.push(tr); d.receipts = [...receipts]; d.tokens += tr.tokensUsed || 0; onReceipt?.(tr);
           } else if (ev === 'review_scores') { d.quality = p.composite; d.reviewScores = p; onMeta?.('reviewScores', p); }
           else if (ev === 'reviewer_selection') { d.reviewerSelection = p; onMeta?.('reviewerSelection', p); }
-          else if (ev === 'pipeline_timing') { d.totalMs = p.totalMs; onMeta?.('totalMs', p.totalMs); }
+          else if (ev === 'pipeline_timing') { d.totalMs += p.totalMs || 0; onMeta?.('totalMs', d.totalMs); }
           else if (ev === 'tee_verified') { d.teeVerified = true; onMeta?.('teeVerified', true); }
           else if (ev === 'agentic_id') { d.agenticId = true; onMeta?.('agenticId', true); }
           else if (ev === 'fine_tuning') { d.fineTuning = true; onMeta?.('fineTuning', true); }
           else if (ev === 'done') { d.rootHash = p.rootHash || ''; onMeta?.('rootHash', d.rootHash); }
+          else if (ev === 'researcher_done') { d.researcherChain = p.receipts; d.researcherKey = p.publicKey; }
           else if (ev === 'status') { onStatus?.(p.message || ''); }
           else if (ev === 'error') { onStatus?.(`Error: ${p.message || 'unknown'}`); }
         } catch {}
@@ -67,6 +68,27 @@ async function runPipeline(
       }
     }
   }
+}
+
+async function runPipeline(
+  lowQuality: boolean,
+  onReceipt?: (tr: TrialReceipt) => void,
+  onStatus?: (msg: string) => void,
+  onMeta?: (key: string, value: any) => void,
+): Promise<RunData> {
+  const receipts: TrialReceipt[] = [];
+  const d: RunData = { receipts: [], totalMs: 0, tokens: 0, quality: null, rootHash: '', reviewerSelection: null, teeVerified: false, agenticId: false, fineTuning: false, reviewScores: null };
+
+  // Phase 1: Researcher
+  const r1 = await fetch('/api/researcher', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adversarial: false }) });
+  await readSSEStream(r1, receipts, d, onReceipt, onStatus, onMeta);
+
+  // Phase 2: Builder (passes chain as fallback; Builder tries AXL first)
+  if (d.researcherChain) {
+    const r2 = await fetch('/api/builder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lowQuality, receipts: d.researcherChain, publicKey: d.researcherKey }) });
+    await readSSEStream(r2, receipts, d, onReceipt, onStatus, onMeta);
+  }
+
   return d;
 }
 
