@@ -36,33 +36,45 @@ export function receiptsToTrainingData(receipts: Receipt[]): TrainingExample[] {
         break;
       }
       case 'file_read': {
-        examples.push({
-          messages: [
-            { role: 'system', content: 'You are a verified AI agent that reads and analyzes files. Summarize what you found.' },
-            { role: 'user', content: `Read and analyze the file: ${action.description}` },
-            { role: 'assistant', content: `File read complete. ${action.description}. Content hash: ${receipt.outputHash.slice(0, 16)}...` },
-          ],
-        });
+        const fileInput = action.metadata?.input as string ?? action.description;
+        const fileContent = action.metadata?.output as string ?? action.metadata?.content as string;
+        if (fileContent) {
+          examples.push({
+            messages: [
+              { role: 'system', content: 'You are an AI agent that reads files and extracts relevant information. Provide accurate, structured analysis.' },
+              { role: 'user', content: `Read this file and summarize the key information:\n\n${fileInput}` },
+              { role: 'assistant', content: fileContent },
+            ],
+          });
+        }
         break;
       }
       case 'api_call': {
-        examples.push({
-          messages: [
-            { role: 'system', content: 'You are a verified AI agent that interacts with external APIs. Report what you received.' },
-            { role: 'user', content: `Call the API: ${action.description}` },
-            { role: 'assistant', content: `API call complete. ${action.description}. Response hash: ${receipt.outputHash.slice(0, 16)}...` },
-          ],
-        });
+        const apiInput = action.metadata?.input as string ?? action.description;
+        const apiResponse = action.metadata?.output as string ?? action.metadata?.response as string;
+        if (apiResponse) {
+          examples.push({
+            messages: [
+              { role: 'system', content: 'You are an AI agent that queries APIs and interprets responses. Report findings accurately.' },
+              { role: 'user', content: `Query this endpoint and interpret the result:\n\n${apiInput}` },
+              { role: 'assistant', content: apiResponse },
+            ],
+          });
+        }
         break;
       }
       case 'output': {
-        examples.push({
-          messages: [
-            { role: 'system', content: 'You are a verified AI agent producing final outputs. Provide a clear summary.' },
-            { role: 'user', content: `Produce the final output for: ${action.description}` },
-            { role: 'assistant', content: `Output produced: ${action.description}. All actions in this chain have been cryptographically signed and hash-linked.` },
-          ],
-        });
+        const outputInput = action.metadata?.input as string ?? action.description;
+        const outputContent = action.metadata?.output as string ?? action.metadata?.content as string;
+        if (outputContent) {
+          examples.push({
+            messages: [
+              { role: 'system', content: 'You are an AI agent producing verified outputs. Provide clear, actionable results.' },
+              { role: 'user', content: outputInput },
+              { role: 'assistant', content: outputContent },
+            ],
+          });
+        }
         break;
       }
     }

@@ -21,7 +21,7 @@ export default function LandingPage() {
           .hero-sub { font-size: 1rem !important; }
           .steps-grid { grid-template-columns: 1fr !important; gap: 1.2rem !important; }
           .cases-grid { grid-template-columns: 1fr !important; }
-          .og-grid { grid-template-columns: 1fr !important; }
+          .og-grid { grid-template-columns: 1fr 1fr !important; }
           .cta-row { flex-direction: column !important; align-items: stretch !important; }
           .cta-row a { text-align: center !important; }
           .code-block { padding: 1rem !important; }
@@ -212,18 +212,31 @@ export default function LandingPage() {
             letterSpacing: '0.06em',
             marginBottom: '1rem',
           }}>
-            Powered by 0G
+            Built on
           </div>
-          <div className="og-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="og-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
             {[
-              { label: 'Verified Compute', desc: '0G Compute runs every inference in a TEE enclave. Not just logged — hardware-attested.' },
-              { label: 'Verified Identity', desc: 'ERC-7857 non-transferable identity. Each agent gets an on-chain soul, minted through 0G.' },
-              { label: 'Verified Training', desc: 'Quality-gated chains feed 0G fine-tuning. Bad work is rejected before it touches training data.' },
+              { label: '0G Verified Compute', desc: 'Every inference runs in a TEE enclave via 0G Compute. Hardware-attested, not just logged.' },
+              { label: '0G Verified Identity', desc: 'ERC-7857 soulbound identity on 0G Mainnet. Each agent builds on-chain reputation.' },
+              { label: '0G Verified Training', desc: 'Quality-gated chains feed 0G fine-tuning. Bad work never becomes training data.' },
+              { label: 'Gensyn AXL Transport', desc: 'Agent-to-agent handoff over encrypted P2P mesh. No central server touches the chain.' },
             ].map(v => (
               <div key={v.label}>
                 <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text)' }}>{v.label}</div>
                 <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{v.desc}</div>
               </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Anchor', addr: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651' },
+              { label: 'Identity', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
+              { label: 'Validation', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
+            ].map(c => (
+              <a key={c.addr} href={`https://chainscan-newton.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+                style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', padding: '0.2rem 0.5rem', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                {c.label}: {c.addr.slice(0, 8)}...
+              </a>
             ))}
           </div>
         </div>

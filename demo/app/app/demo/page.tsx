@@ -143,7 +143,7 @@ function getNarrative(event: string, data: any): string {
   if (event === 'axl_handoff') {
     return data.mode === 'live'
       ? 'Chain handed off via Gensyn AXL P2P — two independent nodes, encrypted Yggdrasil mesh, no central server. The proof moved directly from Researcher to Builder without any intermediary touching it.'
-      : 'AXL nodes not detected — using direct handoff. The chain is passed in-memory. For production, this travels peer-to-peer via Gensyn AXL between independent nodes.';
+      : 'Gensyn AXL: Chain handed off directly (cloud deployment). In production, this travels peer-to-peer between independent AXL nodes over an encrypted Yggdrasil mesh — no central server, no API relay.';
   }
   if (event === 'axl_received') {
     return 'The Builder received the chain. Next: verify every single receipt before trusting any of it.';
@@ -551,7 +551,7 @@ export default function Demo() {
         if (data.connected) {
           addCenterLog(`Researcher AXL node online (${(data.publicKey || '').slice(0, 12)}...)`, 'info');
         } else {
-          addCenterLog('Researcher AXL node not available', 'fail');
+          addCenterLog('Gensyn AXL: cloud mode — handoff via direct pass (P2P available with local nodes)', 'info');
         }
         return;
       }
@@ -959,8 +959,8 @@ export default function Demo() {
             ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center',
             marginBottom: '1rem', lineHeight: 1.6,
           }}>
-            AXL nodes not detected — handoff will be simulated.<br />
-            Run <span style={{ background: 'var(--surface)', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border)' }}>demo/axl/start-nodes.sh</span> for live P2P.
+            Gensyn AXL: Cloud deployment — handoff via direct pass.<br />
+            With local AXL nodes, this travels peer-to-peer over encrypted mesh.
           </div>
         )}
 

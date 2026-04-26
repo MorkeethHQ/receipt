@@ -151,7 +151,7 @@ async function generateValidExample(): Promise<ValidChainResult> {
   const r1 = await makeReceipt('researcher', null, 'file_read', 'Read SDK source code', 'packages/receipt-sdk/package.json', '{"name":"@receipt/sdk","version":"0.1.0","dependencies":{"@noble/ed25519":"^2.1.0"}}', null, now, 0);
   receipts.push(r1);
 
-  const r2 = await makeReceipt('researcher', r1.id, 'api_call', 'Verify ReceiptAnchor on 0G Mainnet', 'https://chainscan-newton.0g.ai/api?module=contract&action=getabi&address=0x53D96861a37e82FF174324872Fc4d037a61520e3', '{"status":"1","result":"contract verified","chain":"0G Mainnet (16661)"}', null, now, 500);
+  const r2 = await makeReceipt('researcher', r1.id, 'api_call', 'Verify ReceiptAnchor on 0G Mainnet', 'https://chainscan-newton.0g.ai/api?module=contract&action=getabi&address=0x73B9A7768679B154D7E1eC5F2570a622A3b49651', '{"status":"1","result":"contract verified","chain":"0G Mainnet (16661)"}', null, now, 500);
   receipts.push(r2);
 
   const r3 = await makeReceipt('researcher', r2.id, 'llm_call', 'TEE-attested code review via 0G Compute', 'Code review: @receipt/sdk uses ed25519 signing and SHA-256 hashing. Review security of receipt chain.', 'Analysis: The receipt chain implements sound cryptographic primitives. Ed25519 provides 128-bit security. SHA-256 hash linking creates tamper-evident ordering.', { provider: '0G Compute', type: 'tee' }, now, 2000);
@@ -160,7 +160,7 @@ async function generateValidExample(): Promise<ValidChainResult> {
   const r4 = await makeReceipt('researcher', r3.id, 'decision', 'Research verdict', 'SDK: @receipt/sdk, Contract: 0x53D96861... on 0G Mainnet (16661). Code review via 0g-compute (TEE: verified). No critical vulnerabilities.', 'Research complete. Safe to hand off to Builder for deployment and anchoring.', null, now, 3000);
   receipts.push(r4);
 
-  const r5 = await makeReceipt('researcher', r4.id, 'output', 'Research report — SDK reviewed, contract verified', 'Research report — SDK reviewed, contract verified', JSON.stringify({ sdk: '@receipt/sdk', contractDeployed: true, contractAddress: '0x53D96861a37e82FF174324872Fc4d037a61520e3', codeReviewSource: '0g-compute', teeAttested: true, verdict: 'No critical issues.' }), null, now, 3500);
+  const r5 = await makeReceipt('researcher', r4.id, 'output', 'Research report — SDK reviewed, contract verified', 'Research report — SDK reviewed, contract verified', JSON.stringify({ sdk: '@receipt/sdk', contractDeployed: true, contractAddress: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651', codeReviewSource: '0g-compute', teeAttested: true, verdict: 'No critical issues.' }), null, now, 3500);
   receipts.push(r5);
 
   const r6 = await makeReceipt('builder', r5.id, 'file_read', 'Read research handoff', 'research-handoff.json', JSON.stringify({ from: 'researcher', receiptsReceived: 5, chainVerified: true }), null, now, 5000);
