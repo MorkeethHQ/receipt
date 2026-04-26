@@ -1290,6 +1290,7 @@ export default function Demo() {
           <div style={{ display: 'flex', gap: '1.2rem' }}>
             <a href="/verify" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Verify</a>
             <a href="/dashboard" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Dashboard</a>
+            <a href="/trial" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Replay</a>
           </div>
           <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
             {adversarial ? 'adversarial mode' : lowQuality ? 'low quality mode' : 'honest mode'}
@@ -1467,6 +1468,7 @@ export default function Demo() {
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
+          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Replay</a>
         </div>
       </nav>
 
