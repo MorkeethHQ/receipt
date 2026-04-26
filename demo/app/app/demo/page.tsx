@@ -79,12 +79,12 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const STEP_DESCRIPTIONS: Record<string, string> = {
-  file_read: 'Reading project manifest and hashing contents with SHA-256',
-  api_call: 'Fetching live data from GitHub API',
-  llm_call: 'Running verified inference',
-  decision: 'Analyzing gathered data and making a judgment',
-  output: 'Producing final summary with cryptographic proof',
-  usefulness_review: 'Hardware-verified quality assessment of the full chain',
+  file_read: 'Hashing file contents — if anyone swaps the data later, the proof breaks',
+  api_call: 'Querying live on-chain data — the response is hashed into the receipt',
+  llm_call: 'Running inference inside a hardware enclave — the model can\'t lie about what it ran',
+  decision: 'Making a judgment call — the reasoning is signed so it can\'t be changed after the fact',
+  output: 'Locking the final output — every step that produced it is now cryptographically linked',
+  usefulness_review: 'Scoring the chain\'s actual usefulness — not just "did it run" but "was it worth it"',
 };
 
 /* ------------------------------------------------------------------ */
@@ -94,99 +94,105 @@ const STEP_DESCRIPTIONS: Record<string, string> = {
 function getNarrative(event: string, data: any): string {
   if (event === 'receipt') {
     const type = data.receipt.action.type;
-    const name = data.agent === 'A' ? 'the Researcher' : 'the Builder';
     switch (type) {
       case 'file_read':
         return data.agent === 'B'
-          ? 'The Builder\'s first receipt chains directly to the Researcher\'s last. One unbroken proof trail across two agents -- if a third agent receives this chain tomorrow, it can verify the entire history.'
-          : `This receipt proves ${name} actually read the file -- the input hash is the SHA-256 of the file path, the output hash covers the contents. If anyone modifies the data later, the hash won't match.`;
+          ? 'The Builder\'s first receipt chains directly to the Researcher\'s last — one continuous audit trail across two independent agents. A third agent, or a human auditor, can verify the entire history without trusting either agent.'
+          : 'The file contents are hashed into this receipt. If the Researcher later claims it read different data, the hash won\'t match. This is how you catch an agent that "hallucinated" its source material.';
       case 'api_call':
-        return `${name} queried an external service. Both the request and response are hashed -- the receipt proves exactly what data was returned, even if the source changes later.`;
+        return data.agent === 'A'
+          ? 'The Researcher is querying the 0G Mainnet smart contract. The exact API response is hashed — if the Researcher fabricates contract data (e.g. claims a contract is verified when it isn\'t), the proof won\'t match.'
+          : 'The Builder called an external API. The request and response are locked into the receipt — proving exactly what data the Builder worked with, not what it claims it worked with.';
       case 'llm_call':
         return data.teeAttested
-          ? `This inference was hardware-verified -- a trusted execution environment confirmed it was real, not simulated. The cryptographic signature can be independently checked.`
-          : `${name} ran LLM inference. The prompt and response are hashed into the receipt. With hardware verification, even the model execution is proven.`;
+          ? 'This inference ran inside a hardware-sealed enclave (Intel TDX). The model, the prompt, and the response are cryptographically signed by the hardware itself. Nobody — not even the agent operator — could have swapped the output.'
+          : 'The agent ran inference. The prompt and response are hashed into the receipt — but without hardware attestation, you\'re trusting the operator that it actually ran the model it claims.';
       case 'decision':
-        return `Each receipt links to the one before it — like a chain. If anyone tries to insert, remove, or reorder a step, the chain breaks. The reasoning behind this decision is captured and signed.`;
+        return 'The agent\'s reasoning is now part of the chain. If it later claims it decided something different, the signed receipt proves otherwise. Every judgment call is on the record.';
       case 'output':
         return data.agent === 'A'
-          ? 'The Researcher finished. 5 actions, 5 receipts, every step cryptographically proven. But proven to whom? Right now only the Researcher knows this chain is real.'
-          : `${name} produced its deliverable. Every single step that led here is cryptographically linked in the chain. Nothing was skipped.`;
+          ? 'The Researcher is done. 5 actions, 5 signed receipts. But right now this proof only exists on the Researcher\'s machine. Time to hand it off — and see if it survives independent verification.'
+          : 'The Builder produced its final deliverable. Every step — from the Researcher\'s first file read to this output — is linked in one unbroken chain. Nothing was inserted, skipped, or reordered.';
       case 'usefulness_review':
         return data.teeAttested
-          ? `The Builder scored the chain's usefulness inside a hardware-verified environment. The review itself is a signed receipt -- proving the quality assessment is trustworthy, not just the actions.`
-          : `The Builder reviewed the chain's output quality. Three scores -- alignment, substance, quality -- are hashed into this receipt. Layer 2: proof of usefulness.`;
+          ? 'A different model, running inside a hardware enclave, just scored the chain\'s quality. The agent can\'t pick its own grader and can\'t modify the score. This is proof of usefulness — not just proof of work.'
+          : 'The Builder reviewed the chain\'s output quality. Alignment (did it do what was asked?), Substance (did it use real data?), Quality (is the output good?). These scores determine whether this work earns on-chain reputation.';
       default:
-        return `${name}: ${data.receipt.action.description}`;
+        return `${data.agent === 'A' ? 'Researcher' : 'Builder'}: ${data.receipt.action.description}`;
     }
   }
   if (event === 'status') {
     if (data.message?.includes('Verifying') || data.message?.includes('verifying'))
-      return 'The Builder doesn\'t take the Researcher\'s word for it. It verifies every receipt independently -- signature, hash link, timestamp. If any single receipt was fabricated, modified, or reordered, the chain breaks here.';
+      return 'The Builder doesn\'t take the Researcher\'s word for it. Every receipt is checked independently — signature, hash link, timestamp order. One tampered receipt and the entire chain is rejected.';
     if (data.message?.includes('Fabricating'))
-      return 'The Researcher is about to lie. It will modify the contract verification data after signing the receipt. The cryptographic signature was computed on the original data -- the modified hash won\'t match.';
+      return 'The Researcher is about to lie. It will change the contract verification data after signing. The signature was computed on the real data — the tampered version won\'t match.';
     if (data.message?.includes('Broadcasting') || data.message?.includes('Handing off'))
-      return 'The Researcher sends its receipt chain to the Builder. The bundle includes the chain root hash, receipt count, and sender public key.';
+      return 'The Researcher bundles its chain — 5 receipts, root hash, and public key — for handoff to the Builder.';
     if (data.message?.includes('0G Storage'))
-      return 'The verified receipt chain is being stored permanently. This creates a tamper-proof record.';
+      return 'The chain is being stored on decentralized storage (0G). Once written, it can\'t be altered — anyone with the CID can verify the full history.';
     return '';
   }
   if (event === 'verified') {
     return data.result.valid
-      ? 'Receipt verified: signature matches, hash link intact, timestamp valid. This action is authentic.'
-      : 'VERIFICATION FAILED. The cryptographic signature does not match. Someone modified this receipt after it was signed.';
+      ? 'Verified. Signature matches, hash chain intact, timestamps in order. This action is authentic — the agent did what it claims.'
+      : 'FAILED. The data doesn\'t match the signature. This receipt was modified after signing — the agent is lying about what happened.';
   }
   if (event === 'fabrication_detected') {
-    return 'CAUGHT. Receipt #2 was tampered. The hash doesn\'t match the signature. The Builder rejects the entire chain -- the Researcher\'s work is worthless. Not because it was bad, but because it can\'t be trusted.';
+    return 'CAUGHT. The contract verification receipt was tampered — the hash doesn\'t match what was signed. The Builder rejects the entire chain. The Researcher\'s work is worthless, not because it was wrong, but because it can\'t be trusted.';
   }
   if (event === 'axl_handoff') {
-    return 'The chain travels peer-to-peer. No central server touches it. No API relays it. The proof moves directly from one agent to another -- because if a middleman could modify it in transit, the whole system breaks.';
+    return data.mode === 'live'
+      ? 'Chain handed off via Gensyn AXL P2P — two independent nodes, encrypted Yggdrasil mesh, no central server. The proof moved directly from Researcher to Builder without any intermediary touching it.'
+      : 'AXL nodes not detected — using direct handoff. The chain is passed in-memory. For production, this travels peer-to-peer via Gensyn AXL between independent nodes.';
   }
   if (event === 'axl_received') {
-    return 'The Builder has the chain. But having it doesn\'t mean trusting it.';
+    return 'The Builder received the chain. Next: verify every single receipt before trusting any of it.';
   }
   if (event === 'axl_rebroadcast') {
-    return 'The Builder extends the chain with its own work. Every new receipt links back to the Researcher\'s chain -- one continuous proof trail. Any agent on the network can now verify the full history.';
+    return 'The Builder extends the chain with its own receipts. One continuous proof trail, two independent agents. Any future agent can verify the entire history.';
   }
   if (event === 'axl_adopt') {
-    return 'Chain updated. Both agents\' contributions are now a single verifiable history. This is what makes RECEIPT a trust protocol, not a logging library.';
+    return 'Both agents\' work is now one verifiable chain. This is what makes RECEIPT a trust protocol — agents don\'t need to know or trust each other.';
   }
   if (event === 'agent_card') {
-    return `Agent card discovered: ${data.name || data.agentName || 'peer'}. Capabilities and public key exchanged via A2A protocol.`;
+    return `Peer discovered: ${data.name || data.agentName || 'agent'}. Public key and capabilities exchanged.`;
   }
   if (event === 'tee_verified') {
-    return `Inference hardware-verified via ${data.verificationMethod || 'Intel TDX'}. The response is cryptographically proven to have executed inside a secure enclave.`;
+    return `Hardware-verified via ${data.verificationMethod || 'Intel TDX'}. The inference provably ran inside a sealed enclave — the operator couldn't have faked it.`;
   }
   if (event === 'mcp_tool_call') {
-    return `The Builder is verifying the chain. This is how agents programmatically check each other's work.`;
+    return 'The Builder is programmatically verifying the Researcher\'s chain — checking every signature and hash link.';
   }
   if (event === 'done') {
     return data.fabricated
-      ? 'The fabrication was caught at the handoff. No tampered data reaches the next agent. This is the trust guarantee -- agents can collaborate without blind trust.'
-      : 'Every action proven. Every handoff verified. The chain is cryptographically sound across both agents -- stored and anchored on-chain.';
+      ? 'Fabrication caught. No tampered data reaches the next agent. This is the trust guarantee — if an agent lies, the proof breaks before anyone relies on it.'
+      : 'Complete. Every action proven, every handoff verified, quality scored and recorded on-chain. This chain is a permanent, verifiable record of useful agent work.';
   }
   if (event === 'review_start') {
-    return 'The Builder evaluates the chain\'s usefulness using verified inference. This is Layer 2 -- not just proving actions happened, but proving they were useful.';
+    return 'The Builder is scoring the chain\'s usefulness. Existing tools stop at "did the agent run." RECEIPT answers the harder question: "was the output actually worth paying for?"';
   }
   if (event === 'review_scores') {
     const { alignment, substance, quality, composite } = data;
-    return `Usefulness scores -- Alignment: ${alignment}, Substance: ${substance}, Quality: ${quality}. Composite: ${composite}/100. ${data.attested ? 'Hardware-verified -- the scores are independently verifiable.' : ''}`;
+    const verdict = composite >= 80 ? 'High quality — this chain earns on-chain reputation and becomes fine-tuning data.'
+      : composite >= 60 ? 'Acceptable quality — recorded on-chain but flagged for improvement.'
+      : 'Low quality — this work cost tokens but produced little value.';
+    return `Alignment: ${alignment}/100 (did it follow the task?). Substance: ${substance}/100 (real data or stubs?). Quality: ${quality}/100 (is the output good?). Composite: ${composite}/100. ${verdict}${data.attested ? ' Scores are hardware-verified.' : ''}`;
   }
   if (event === 'quality_gate') {
     if (!data.passed) {
-      return `QUALITY CHECK FAILED. The chain scored ${data.score}/100 -- below the ${data.threshold} threshold. This chain will NOT be recorded on-chain. Low-quality agent work doesn't earn on-chain reputation. Only high-quality chains become training data.`;
+      return `QUALITY GATE: ${data.score}/${data.threshold}. This chain will NOT be recorded on-chain. The agents ran, tokens were spent, but the output wasn't useful enough to earn reputation. This is how RECEIPT filters noise from signal.`;
     }
     return '';
   }
   if (event === 'storage') {
     const score = data.usefulnessScore;
     return score
-      ? `Chain stored permanently and recorded on-chain with a quality score of ${score}/100.`
+      ? `Stored on 0G with quality score ${score}/100. This chain is now permanent — any agent or human can verify it, and high-quality chains become training data for future models.`
       : 'Chain stored permanently for future verification.';
   }
   if (event === 'trust_score') {
     const score = data.score ?? '--';
-    return `Trust score: ${score}/100. Weighted across chain integrity (are all signatures and links valid?), data provenance (was real data used, not stubs?), and hardware verification (did inference run inside a secure enclave?).`;
+    return `Trust score: ${score}/100. Chain integrity (signatures + hash links), data provenance (real data vs stubs), and hardware verification (TEE attestation) — combined into one number.`;
   }
   return '';
 }
@@ -277,11 +283,18 @@ export default function Demo() {
   const [showShake, setShowShake] = useState(false);
   const [displayedTrustScore, setDisplayedTrustScore] = useState<number | null>(null);
   const [peers, setPeers] = useState<string[]>([]);
+  const [axlStatus, setAxlStatus] = useState<{ researcher: boolean | null; builder: boolean | null }>({ researcher: null, builder: null });
   const [totalReceiptsGenerated, setTotalReceiptsGenerated] = useState(0);
   const [verificationsPassedCount, setVerificationsPassedCount] = useState(0);
   const [reviewScores, setReviewScores] = useState<{ alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null>(null);
   const [receiptWeights, setReceiptWeights] = useState<number[]>([]);
   const [scoreDelta, setScoreDelta] = useState<number | null>(null);
+  const [guidedMode, setGuidedMode] = useState(true);
+  const [chapterPause, setChapterPause] = useState<{ chapter: number; title: string; body: string } | null>(null);
+  const chaptersShownRef = useRef<Set<number>>(new Set());
+
+  const guidedRef = useRef(true);
+  const resumeRef = useRef<(() => void) | null>(null);
 
   const agentARef = useRef<HTMLDivElement>(null);
   const agentBRef = useRef<HTMLDivElement>(null);
@@ -306,6 +319,25 @@ export default function Demo() {
       try { localStorage.setItem('receipt_last_chain', JSON.stringify(receipts)); } catch {}
     }
   }, [phase, receipts]);
+
+  useEffect(() => {
+    const probe = async (node: string): Promise<{ connected: boolean; key: string; peers: number }> => {
+      try {
+        const r = await fetch(`/api/axl-probe?node=${node}`, { signal: AbortSignal.timeout(4000) });
+        if (r.ok) return await r.json();
+      } catch {}
+      return { connected: false, key: '', peers: 0 };
+    };
+    Promise.all([probe('researcher'), probe('builder')]).then(([r, b]) => {
+      setAxlStatus({ researcher: r.connected, builder: b.connected });
+      setAxlNodes({ researcher: r, builder: b });
+    });
+  }, []);
+
+  const [axlNodes, setAxlNodes] = useState<{
+    researcher: { connected: boolean; key: string; peers: number };
+    builder: { connected: boolean; key: string; peers: number };
+  }>({ researcher: { connected: false, key: '', peers: 0 }, builder: { connected: false, key: '', peers: 0 } });
 
   const agentAReceipts = receipts.slice(0, agentACount || receipts.length);
   const agentBReceipts = agentACount > 0 ? receipts.slice(agentACount) : [];
@@ -406,7 +438,11 @@ export default function Demo() {
         setStoryStage('axl-handoff');
         setShowHandoffAnimation(true);
         setTimeout(() => setShowHandoffAnimation(false), 3500);
-        addCenterLog(`Chain traveling to Builder (${data.receiptCount} receipts)`, 'handoff');
+        if (data.mode === 'live') {
+          addCenterLog(`AXL P2P: ${data.receiptCount} receipts sent (live)`, 'handoff');
+        } else {
+          addCenterLog(`Handoff: ${data.receiptCount} receipts (direct, AXL offline)`, 'handoff');
+        }
         addTiming('Handoff', Math.round(elapsed));
         break;
       case 'axl_received':
@@ -514,57 +550,35 @@ export default function Demo() {
     setScoreDelta(null);
     eventIndexRef.current = 0;
     lastEventTimeRef.current = 0;
+    setChapterPause(null);
+    chaptersShownRef.current = new Set();
+    guidedRef.current = guidedMode;
     setNarrative('Starting agent pipeline. Each action will produce a cryptographically signed receipt.');
     setNarrativeHighlight(true);
     setTimeout(() => setNarrativeHighlight(false), 600);
 
-    const events: Array<{ event: string; data: any }> = [];
-
-    const readSSE = async (url: string, body: any): Promise<Array<{ event: string; data: any }>> => {
-      const collected: Array<{ event: string; data: any }> = [];
-      try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        const reader = res.body!.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-          let ev = '';
-          for (const line of lines) {
-            if (line.startsWith('event: ')) ev = line.slice(7);
-            else if (line.startsWith('data: ') && ev) { collected.push({ event: ev, data: JSON.parse(line.slice(6)) }); ev = ''; }
-          }
-        }
-      } catch {}
-      return collected;
+    const showChapter = (chapter: number, title: string, body: string): Promise<void> => {
+      if (!guidedRef.current || chaptersShownRef.current.has(chapter)) return Promise.resolve();
+      chaptersShownRef.current.add(chapter);
+      return new Promise(resolve => {
+        resumeRef.current = resolve;
+        setChapterPause({ chapter, title, body });
+      });
     };
 
-    // Phase 1: Researcher creates chain, sends via AXL
-    const researcherEvents = await readSSE('/api/researcher', { adversarial });
-    events.push(...researcherEvents);
-
-    // Extract chain from researcher's done event for builder fallback
-    const researcherDone = researcherEvents.find(e => e.event === 'researcher_done');
-    const researcherChain = researcherDone?.data?.receipts;
-    const researcherPubKey = researcherDone?.data?.publicKey;
-
-    // Phase 2: Builder receives via AXL (or direct fallback), verifies, extends
-    if (researcherChain) {
-      const builderEvents = await readSSE('/api/builder', {
-        lowQuality,
-        receipts: researcherChain,
-        publicKey: researcherPubKey,
-      });
-      events.push(...builderEvents);
-    }
-
-    // Replay events with delays for demo effect
-    lastEventTimeRef.current = performance.now();
-    for (const { event, data } of events) {
+    const processEvent = (event: string, data: any) => {
+      if (event === 'axl_status') {
+        setAxlStatus(prev => ({ ...prev, researcher: data.connected }));
+        if (data.connected) {
+          addCenterLog(`Researcher AXL node online (${(data.publicKey || '').slice(0, 12)}...)`, 'info');
+        } else {
+          addCenterLog('Researcher AXL node not available', 'fail');
+        }
+        return;
+      }
+      if (event === 'axl_received') {
+        setAxlStatus(prev => ({ ...prev, builder: true }));
+      }
       handleEvent(event, data);
       const msg = getNarrative(event, data);
       if (msg) {
@@ -572,11 +586,118 @@ export default function Demo() {
         setNarrativeHighlight(true);
         setTimeout(() => setNarrativeHighlight(false), 400);
       }
-      await new Promise(r => setTimeout(r, getDelay(event)));
+    };
+
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    const streamSSE = async (url: string, body: any): Promise<{ events: Array<{ event: string; data: any }> }> => {
+      const collected: Array<{ event: string; data: any }> = [];
+      const queue: Array<{ event: string; data: any }> = [];
+      let streamDone = false;
+
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
+      if (!res) return { events: collected };
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+
+      const readLoop = async () => {
+        let buffer = '';
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            let ev = '';
+            for (const line of lines) {
+              if (line.startsWith('event: ')) ev = line.slice(7);
+              else if (line.startsWith('data: ') && ev) {
+                try { queue.push({ event: ev, data: JSON.parse(line.slice(6)) }); } catch {}
+                ev = '';
+              }
+            }
+          }
+        } catch {}
+        streamDone = true;
+      };
+
+      const processLoop = async () => {
+        while (!streamDone || queue.length > 0) {
+          if (queue.length > 0) {
+            const item = queue.shift()!;
+            collected.push(item);
+            processEvent(item.event, item.data);
+            const delay = item.event === 'axl_handoff' ? 1500
+              : item.event === 'receipt' ? 500
+              : item.event === 'verified' ? 350
+              : item.event === 'fabrication_detected' ? 1200
+              : 250;
+            await sleep(delay);
+
+            if (item.event === 'axl_handoff') {
+              await showChapter(2,
+                item.data.mode === 'live' ? 'Handoff — live P2P' : 'Handoff — direct',
+                item.data.mode === 'live'
+                  ? 'The chain just traveled peer-to-peer via Gensyn AXL between two independent nodes. Encrypted Yggdrasil mesh, no central server, no API relay. Now the Builder has to decide: trust it, or verify it?'
+                  : 'The chain was passed directly (AXL nodes offline). In production, this travels peer-to-peer via Gensyn AXL between independent nodes. Now the Builder has to decide: trust it, or verify it?');
+            } else if (item.event === 'verification_complete') {
+              await showChapter(3, 'Verification complete',
+                'Every signature checked. Every hash link validated. The Builder independently confirmed that the Researcher\'s work is authentic — not because it trusts the Researcher, but because the math checks out.');
+            } else if (item.event === 'fabrication_detected') {
+              await showChapter(3, 'Fabrication caught',
+                'The Builder found the lie. Receipt #2 was tampered — the hash doesn\'t match the signature. The entire chain is rejected. This is why you don\'t need to trust the other agent.');
+            } else if (item.event === 'review_start') {
+              await showChapter(4, 'The review',
+                'Here\'s where it gets interesting. A different model, inside a hardware enclave, is about to score whether this work was actually useful. The agent can\'t pick its own grader. The operator can\'t modify the score.');
+            } else if (item.event === 'review_scores' || item.event === 'quality_gate') {
+              const isGood = item.event === 'review_scores' && item.data.composite >= 60;
+              const isRejected = item.event === 'quality_gate' && !item.data.passed;
+              if (isRejected) {
+                await showChapter(5, 'Quality gate: REJECTED',
+                  `Score: ${item.data.score}/100. This chain will NOT be recorded on-chain. The agents ran, tokens were spent, but the output wasn't good enough. RECEIPT filters noise from signal — only useful work becomes training data.`);
+              } else if (isGood) {
+                await showChapter(5, 'Verdict: quality work',
+                  `Score: ${item.data.composite}/100. This chain passes the quality gate, gets anchored on 0G Mainnet, and becomes fine-tuning data. Good agent work trains better agents.`);
+              }
+            }
+          } else {
+            await sleep(50);
+          }
+        }
+      };
+
+      await Promise.all([readLoop(), processLoop()]);
+      return { events: collected };
+    };
+
+    // Phase 1: Researcher creates chain, sends via AXL (streams live)
+    lastEventTimeRef.current = performance.now();
+    const { events: researcherEvents } = await streamSSE('/api/researcher', { adversarial });
+
+    const researcherDone = researcherEvents.find(e => e.event === 'researcher_done');
+    const researcherChain = researcherDone?.data?.receipts;
+    const researcherPubKey = researcherDone?.data?.publicKey;
+
+    // Chapter 1: Researcher done
+    await showChapter(1, 'The Researcher is done',
+      adversarial
+        ? '5 actions, 5 signed receipts — but one of them is a lie. The Researcher fabricated the contract verification. Now it\'s about to hand the chain to the Builder. Will the forgery survive?'
+        : '5 actions, 5 signed receipts. Every step cryptographically proven. But right now, only the Researcher knows this chain is real. Time to hand it off — and see if it survives independent verification.');
+
+    // Phase 2: Builder receives via AXL, verifies, extends (streams live)
+    if (researcherChain) {
+      await streamSSE('/api/builder', {
+        lowQuality,
+        receipts: researcherChain,
+        publicKey: researcherPubKey,
+      });
     }
 
+    setChapterPause(null);
     setPhase('done');
-  }, [adversarial, lowQuality, handleEvent]);
+  }, [adversarial, lowQuality, handleEvent, guidedMode]);
 
   /* ---------------------------------------------------------------- */
   /*  Render: Receipt Card                                             */
@@ -821,6 +942,50 @@ export default function Demo() {
           </p>
         </div>
 
+        {/* AXL Node Status */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem',
+          marginBottom: '1.5rem',
+        }}>
+          {(['researcher', 'builder'] as const).map(node => {
+            const info = axlNodes[node];
+            const status = axlStatus[node];
+            return (
+              <div key={node} style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                background: status === null ? 'var(--surface)' : status ? '#f0fdf4' : '#fef2f2',
+                border: `1px solid ${status === null ? 'var(--border)' : status ? '#bbf7d0' : '#fecaca'}`,
+                transition: 'all 0.3s ease',
+              }}>
+                <div style={{
+                  width: '8px', height: '8px', borderRadius: '50%',
+                  background: status === null ? 'var(--text-dim)' : status ? 'var(--green)' : 'var(--red)',
+                  boxShadow: status ? '0 0 6px rgba(34,197,94,0.4)' : 'none',
+                  transition: 'all 0.3s ease',
+                }} />
+                <div>
+                  <div style={{ ...mono, fontSize: '0.58rem', fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>
+                    {node} Node
+                  </div>
+                  <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>
+                    {status === null ? 'Checking...' : status ? (info.key ? `${info.key.slice(0, 12)}... · ${info.peers} peer${info.peers !== 1 ? 's' : ''}` : 'Connected') : 'Not running'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {axlStatus.researcher === false && axlStatus.builder === false && (
+          <div style={{
+            ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center',
+            marginBottom: '1rem', lineHeight: 1.6,
+          }}>
+            AXL nodes not detected — handoff will be simulated.<br />
+            Run <span style={{ background: 'var(--surface)', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border)' }}>demo/axl/start-nodes.sh</span> for live P2P.
+          </div>
+        )}
+
         {/* Story flow preview */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
@@ -840,14 +1005,28 @@ export default function Demo() {
           ))}
         </div>
 
-        <button onClick={run} style={{
-          padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
-          background: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--text)',
-          color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: '1rem', fontWeight: 600, transition: 'all 0.2s ease',
-        }}>
-          {adversarial ? 'Start Adversarial Demo' : lowQuality ? 'Start Low Quality Demo' : 'Start Demo'}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+          <button onClick={run} style={{
+            padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
+            background: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--text)',
+            color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: '1rem', fontWeight: 600, transition: 'all 0.2s ease',
+          }}>
+            {adversarial ? 'Start Adversarial Demo' : lowQuality ? 'Start Low Quality Demo' : 'Start Demo'}
+          </button>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            cursor: 'pointer', ...mono, fontSize: '0.65rem', color: 'var(--text-dim)',
+          }}>
+            <input
+              type="checkbox"
+              checked={guidedMode}
+              onChange={e => setGuidedMode(e.target.checked)}
+              style={{ accentColor: 'var(--researcher)' }}
+            />
+            Guided walkthrough (recommended for first run)
+          </label>
+        </div>
       </div>
     </div>
   );
@@ -862,14 +1041,25 @@ export default function Demo() {
       background: 'var(--surface)', borderRight: '1px solid var(--border)',
       flexShrink: 0, overflow: 'hidden',
     }} className="demo-center-panel">
-      {/* Header */}
+      {/* Header + sticky narrative */}
       <div style={{
         padding: '0.6rem 0.8rem', borderBottom: '1px solid var(--border)',
-        background: 'var(--surface)',
+        background: 'var(--surface)', flexShrink: 0,
       }}>
-        <div style={{ ...mono, fontSize: '0.62rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.04em', textAlign: 'center' }}>
+        <div style={{ ...mono, fontSize: '0.62rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.04em', textAlign: 'center', marginBottom: narrative ? '0.4rem' : 0 }}>
           CHAIN STATUS
         </div>
+        {narrative && (
+          <div style={{
+            fontSize: '0.55rem', lineHeight: 1.5, color: 'var(--text-muted)',
+            padding: '0.35rem 0.4rem', borderRadius: '4px',
+            background: fabricationDetected ? '#fef2f2' : '#f8f9fa',
+            border: `1px solid ${fabricationDetected ? '#fecaca' : 'var(--border)'}`,
+            maxHeight: '4.5em', overflow: 'hidden',
+          }}>
+            {narrative}
+          </div>
+        )}
       </div>
 
       {/* Handoff indicator */}
@@ -1506,6 +1696,24 @@ export default function Demo() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          {/* AXL status during run */}
+          {phase !== 'idle' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              padding: '0.3rem 0.6rem', borderRadius: '6px',
+              background: axlStatus.researcher && axlStatus.builder ? '#f0fdf4' : axlStatus.researcher || axlStatus.builder ? '#fffbeb' : '#fef2f2',
+              border: `1px solid ${axlStatus.researcher && axlStatus.builder ? '#bbf7d0' : axlStatus.researcher || axlStatus.builder ? '#fde68a' : '#fecaca'}`,
+            }}>
+              <div style={{
+                width: '7px', height: '7px', borderRadius: '50%',
+                background: axlStatus.researcher && axlStatus.builder ? 'var(--green)' : axlStatus.researcher || axlStatus.builder ? 'var(--amber)' : 'var(--red)',
+                boxShadow: axlStatus.researcher && axlStatus.builder ? '0 0 5px rgba(34,197,94,0.4)' : 'none',
+              }} />
+              <span style={{ ...mono, fontSize: '0.55rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                AXL {axlStatus.researcher && axlStatus.builder ? 'LIVE' : 'SIM'}
+              </span>
+            </div>
+          )}
           {/* Inline adversarial toggle for header (during run) */}
           {phase !== 'idle' && (
             <div style={{
@@ -1539,65 +1747,116 @@ export default function Demo() {
         </div>
       </header>
 
-      {/* Narrator Bar */}
-      {narrative && phase !== 'idle' && (
+      {/* Narrator Bar / Chapter Pause */}
+      {phase !== 'idle' && (chapterPause || narrative) && (
         <div style={{
-          padding: '0.7rem 1.5rem', borderBottom: '1px solid var(--border)',
-          background: fabricationDetected ? '#fef2f2' : 'var(--surface)',
-          transition: 'background 0.3s',
+          padding: chapterPause ? '1rem 1.5rem' : '0.7rem 1.5rem',
+          borderBottom: `1px solid ${chapterPause ? 'var(--researcher)' : 'var(--border)'}`,
+          background: chapterPause ? '#f0f4ff' : fabricationDetected ? '#fef2f2' : 'var(--surface)',
+          transition: 'all 0.3s',
           flexShrink: 0,
+          minHeight: '90px',
         }}>
-          <div style={{
-            fontSize: '0.78rem', lineHeight: 1.5,
-            color: fabricationDetected ? 'var(--red)' : 'var(--text)',
-            fontWeight: narrativeHighlight ? 500 : 400,
-            transition: 'font-weight 0.3s',
-            maxWidth: '900px',
-          }}>
-            {narrative}
-          </div>
-          {/* Chain integrity meter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+          {chapterPause ? (
+            <div style={{ maxWidth: '700px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                <span style={{
+                  ...mono, fontSize: '0.6rem', fontWeight: 700,
+                  padding: '0.2rem 0.5rem', borderRadius: '4px',
+                  background: 'var(--researcher)', color: '#fff',
+                }}>
+                  {chapterPause.chapter} / 5
+                </span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
+                  {chapterPause.title}
+                </span>
+              </div>
+              <p style={{
+                fontSize: '0.82rem', lineHeight: 1.6, color: 'var(--text-muted)',
+                fontFamily: 'Inter, sans-serif', margin: '0 0 0.8rem 0',
+              }}>
+                {chapterPause.body}
+              </p>
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                <button
+                  onClick={() => { setChapterPause(null); resumeRef.current?.(); }}
+                  style={{
+                    padding: '0.5rem 1.5rem', borderRadius: '6px', border: 'none',
+                    background: 'var(--text)', color: '#fff', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600,
+                  }}
+                >
+                  Continue
+                </button>
+                <button
+                  onClick={() => { guidedRef.current = false; setGuidedMode(false); setChapterPause(null); resumeRef.current?.(); }}
+                  style={{
+                    padding: '0.5rem 1rem', borderRadius: '6px',
+                    border: '1px solid var(--border)', background: 'transparent',
+                    color: 'var(--text-dim)', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 500,
+                  }}
+                >
+                  Skip tour
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
               <div style={{
-                height: '100%',
-                width: `${receipts.length > 0 ? ((verificationsPassedCount / Math.max(totalReceiptsGenerated, 1)) * 100) : 0}%`,
-                background: fabricationDetected ? 'var(--red)' : 'var(--green)',
-                borderRadius: '2px',
-                transition: 'width 0.5s ease, background 0.3s ease',
-              }} />
-            </div>
-            <span style={{ ...mono, fontSize: '0.5rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-              {verificationsPassedCount}/{totalReceiptsGenerated} verified
-            </span>
-          </div>
-          {/* Story stage indicator */}
-          {phase === 'running' && (
-            <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
-              {(['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'] as StoryStage[]).map((stage, i) => {
-                const labels = ['Researcher', 'Handoff', 'Verification', adversarial ? 'Rejected' : 'Builder', 'Record'];
-                const stageOrder: StoryStage[] = ['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'];
-                const currentIdx = stageOrder.indexOf(storyStage);
-                const isActive = stage === storyStage;
-                const isPast = i < currentIdx;
-                return (
-                  <div key={stage} style={{
-                    ...mono, fontSize: '0.52rem', padding: '0.15rem 0.4rem',
-                    borderRadius: '4px',
-                    background: isActive ? (stage === 'agent-b-rejected' ? '#fef2f2' : '#f0f4ff') :
-                      isPast ? 'var(--surface)' : 'transparent',
-                    border: isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)'}` :
-                      isPast ? '1px solid var(--border)' : '1px solid transparent',
-                    color: isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)') :
-                      isPast ? 'var(--green)' : 'var(--text-dim)',
-                    fontWeight: isActive ? 700 : 400,
-                    transition: 'all 0.3s ease',
-                  }}>
-                    {isPast ? '✓ ' : ''}{labels[i]}
-                  </div>
-                );
-              })}
-            </div>
+                fontSize: '0.78rem', lineHeight: 1.5,
+                color: fabricationDetected ? 'var(--red)' : 'var(--text)',
+                fontWeight: narrativeHighlight ? 500 : 400,
+                transition: 'font-weight 0.3s',
+                maxWidth: '900px',
+                minHeight: '24px',
+              }}>
+                {narrative}
+              </div>
+              {/* Chain integrity meter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${receipts.length > 0 ? ((verificationsPassedCount / Math.max(totalReceiptsGenerated, 1)) * 100) : 0}%`,
+                    background: fabricationDetected ? 'var(--red)' : 'var(--green)',
+                    borderRadius: '2px',
+                    transition: 'width 0.5s ease, background 0.3s ease',
+                  }} />
+                </div>
+                <span style={{ ...mono, fontSize: '0.5rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                  {verificationsPassedCount}/{totalReceiptsGenerated} verified
+                </span>
+              </div>
+              {/* Story stage indicator */}
+              {phase === 'running' && (
+                <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
+                  {(['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'] as StoryStage[]).map((stage, i) => {
+                    const labels = ['Researcher', 'Handoff', 'Verification', adversarial ? 'Rejected' : 'Builder', 'Record'];
+                    const stageOrder: StoryStage[] = ['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'];
+                    const currentIdx = stageOrder.indexOf(storyStage);
+                    const isActive = stage === storyStage;
+                    const isPast = i < currentIdx;
+                    return (
+                      <div key={stage} style={{
+                        ...mono, fontSize: '0.52rem', padding: '0.15rem 0.4rem',
+                        borderRadius: '4px',
+                        background: isActive ? (stage === 'agent-b-rejected' ? '#fef2f2' : '#f0f4ff') :
+                          isPast ? 'var(--surface)' : 'transparent',
+                        border: isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)'}` :
+                          isPast ? '1px solid var(--border)' : '1px solid transparent',
+                        color: isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)') :
+                          isPast ? 'var(--green)' : 'var(--text-dim)',
+                        fontWeight: isActive ? 700 : 400,
+                        transition: 'all 0.3s ease',
+                      }}>
+                        {isPast ? '✓ ' : ''}{labels[i]}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

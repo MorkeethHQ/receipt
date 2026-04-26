@@ -143,6 +143,10 @@ export default function Dashboard() {
   const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
+  const [chainExpanded, setChainExpanded] = useState(false);
+  const [onchainExpanded, setOnchainExpanded] = useState(false);
+  const [identityExpanded, setIdentityExpanded] = useState(false);
+  const [qualityExpanded, setQualityExpanded] = useState(false);
 
   const [anchor0g, setAnchor0g] = useState<{ txHash: string; chain: string; contractAddress?: string; chainRootHash?: string; storageRef?: string; explorerUrl?: string; usefulnessScore?: number } | null>(null);
   const [storage, setStorage] = useState<{ rootHash?: string; uploaded?: boolean; dataSize?: number; indexerUrl?: string; uploadTxHash?: string } | null>(null);
@@ -693,10 +697,10 @@ export default function Dashboard() {
             padding: '1.5rem', borderRadius: '10px', marginBottom: '2rem',
             background: 'var(--surface)', border: `1px solid var(--border)`,
           }}>
-            {/* Score */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
+            {/* Score — the ONE number */}
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
               <span style={{
-                ...mono, fontSize: '3rem', fontWeight: 700, lineHeight: 1,
+                ...mono, fontSize: '4rem', fontWeight: 700, lineHeight: 1,
                 color: usefulnessScore === null ? 'var(--text-dim)'
                   : usefulnessScore >= 70 ? 'var(--green)'
                   : usefulnessScore >= 40 ? 'var(--amber)'
@@ -704,31 +708,63 @@ export default function Dashboard() {
               }}>
                 {usefulnessScore !== null ? usefulnessScore : '—'}
               </span>
-              <span style={{ ...mono, fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+              <div style={{ ...mono, fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>
                 {usefulnessScore !== null ? '/ 100 usefulness' : 'no score yet'}
-              </span>
-              {scoreDelta !== null && (
-                <span style={{
-                  ...mono, fontSize: '0.7rem', fontWeight: 600,
-                  color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
-                }}>
-                  {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
-                </span>
+                {scoreDelta !== null && (
+                  <span style={{
+                    marginLeft: '0.8rem', fontWeight: 600,
+                    color: scoreDelta >= 0 ? 'var(--green)' : 'var(--red)',
+                  }}>
+                    {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs avg
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Badge + verdict */}
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                display: 'inline-block', padding: '0.3rem 0.8rem', borderRadius: '4px',
+                background: badge.bg, border: `1px solid ${badge.color}30`,
+                ...mono, fontSize: '0.75rem', fontWeight: 700, color: badge.color,
+                marginBottom: '0.5rem',
+              }}>
+                {badge.label}
+              </div>
+              {usefulnessScore !== null && (
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', lineHeight: 1.6 }}>
+                  {usefulnessScore >= 70
+                    ? 'High-quality work. This chain earns on-chain reputation and becomes fine-tuning data.'
+                    : usefulnessScore >= 40
+                    ? 'Acceptable quality. Recorded on-chain but flagged for improvement.'
+                    : 'Low quality. Tokens were spent but the output wasn\'t useful enough to earn reputation.'}
+                </div>
               )}
             </div>
 
-            {/* Badge */}
-            <div style={{
-              display: 'inline-block', padding: '0.3rem 0.8rem', borderRadius: '4px',
-              background: badge.bg, border: `1px solid ${badge.color}30`,
-              ...mono, fontSize: '0.75rem', fontWeight: 700, color: badge.color,
-              marginBottom: '0.6rem',
-            }}>
-              {badge.label}
-            </div>
+            {/* Breakdown — compact */}
+            {reviewScores && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '1.2rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
+                {([
+                  { label: 'Alignment', value: reviewScores.alignment, desc: 'Did it follow the task?' },
+                  { label: 'Substance', value: reviewScores.substance, desc: 'Real data or stubs?' },
+                  { label: 'Quality', value: reviewScores.quality, desc: 'Is the output good?' },
+                ] as const).map(s => (
+                  <div key={s.label} title={s.desc} style={{ textAlign: 'center' }}>
+                    <div style={{
+                      ...mono, fontSize: '1.2rem', fontWeight: 700,
+                      color: s.value >= 70 ? 'var(--green)' : s.value >= 40 ? 'var(--amber)' : 'var(--red)',
+                    }}>
+                      {s.value}
+                    </div>
+                    <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Meta line */}
-            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', ...mono, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap', ...mono, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
               {lastRunTimestamp && (
                 <span>{lastRunTimestamp.toLocaleString()}</span>
               )}
@@ -736,6 +772,9 @@ export default function Dashboard() {
                 <span>cached run</span>
               )}
               <span>{getReceiptSummary()}</span>
+              {pipelineTotalMs > 0 && (
+                <span>{(pipelineTotalMs / 1000).toFixed(1)}s · {totalTokens.toLocaleString()} tokens</span>
+              )}
             </div>
 
             {/* Error */}
@@ -748,34 +787,45 @@ export default function Dashboard() {
                 {pipelineError}
               </div>
             )}
-
-            {/* Execution metrics */}
-            {pipelineTotalMs > 0 && (
-              <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                {(pipelineTotalMs / 1000).toFixed(1)}s · {inferenceCount} inference calls · {modelsUsed.size} models · {totalTokens.toLocaleString()} tokens
-              </div>
-            )}
           </section>
         )}
 
         {/* ═══════════════════════════════════ */}
-        {/* SECTION 2: The Chain                */}
+        {/* SECTION 2: The Chain (collapsible)  */}
         {/* ═══════════════════════════════════ */}
         {receipts.length > 0 && (
           <section style={{ marginBottom: '2rem' }}>
-            <div style={{
-              ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
-              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem',
-            }}>
-              The Chain
-              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.3rem' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.55rem', color: 'var(--text-dim)' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--researcher)' }} /> Researcher
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.55rem', color: 'var(--text-dim)' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--builder)' }} /> Builder
+            <div
+              onClick={() => setChainExpanded(!chainExpanded)}
+              style={{
+                ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0.5rem 0.7rem', borderRadius: '6px',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+              }}
+            >
+              <div>
+                The Chain
+                <span style={{ fontSize: '0.55rem', fontWeight: 400, marginLeft: '0.6rem', color: 'var(--text-muted)' }}>
+                  {getReceiptSummary()}
                 </span>
               </div>
+              <span style={{ fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: chainExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>
+                ▾
+              </span>
+            </div>
+
+            {chainExpanded && (
+            <div>
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '0.5rem' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--researcher)' }} /> Researcher
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--builder)' }} /> Builder
+              </span>
             </div>
 
             {/* Fabrication alert */}
@@ -904,134 +954,166 @@ export default function Dashboard() {
                 );
               })}
             </div>
+            </div>
+            )}
           </section>
         )}
 
         {/* ═══════════════════════════════════ */}
-        {/* SECTION 3: On-Chain Record           */}
+        {/* SECTION 3: On-Chain Record (collapsible) */}
         {/* ═══════════════════════════════════ */}
         {hasData && !running && (
           <section style={{
-            padding: '1rem 1.2rem', borderRadius: '8px',
+            borderRadius: '8px',
             background: 'var(--surface)', border: '1px solid var(--border)',
+            overflow: 'hidden',
           }}>
-            <div style={{
-              ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
-              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem',
-            }}>
-              On-Chain Record
+            <div
+              onClick={() => setOnchainExpanded(!onchainExpanded)}
+              style={{
+                ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                padding: '0.7rem 1rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                On-Chain Record
+                <span style={{
+                  fontSize: '0.55rem', fontWeight: 600, padding: '0.1rem 0.4rem', borderRadius: '3px',
+                  background: anchor0g?.txHash ? 'rgba(22,163,74,0.1)' : fabricationDetected ? 'rgba(220,38,38,0.08)' : 'transparent',
+                  color: anchor0g?.txHash ? 'var(--green)' : fabricationDetected ? 'var(--red)' : 'var(--text-dim)',
+                }}>
+                  {anchor0g?.txHash ? 'Anchored' : qualityRejected ? 'Rejected' : fabricationDetected ? 'Blocked' : 'Pending'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: onchainExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
             </div>
-
-            {anchor0g?.txHash ? (
-              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
-                <div>
-                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>Anchored on 0G</span>
-                  {usefulnessScore !== null && (
-                    <span style={{ color: 'var(--text-dim)', marginLeft: '0.5rem' }}>score {usefulnessScore}/100</span>
-                  )}
-                </div>
-                <div>
-                  tx{' '}
-                  <a
-                    href={anchor0g.explorerUrl || `https://chainscan-newton.0g.ai/tx/${anchor0g.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--green)', textDecoration: 'none' }}
-                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                  >
-                    {anchor0g.txHash}
-                  </a>
-                </div>
-                {storage?.rootHash && (
-                  <div style={{ color: 'var(--text-dim)' }}>
-                    Stored on 0G decentralized storage
+            {onchainExpanded && (
+              <div style={{ padding: '0 1rem 0.8rem' }}>
+                {anchor0g?.txHash ? (
+                  <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                    <div>
+                      <span style={{ color: 'var(--green)', fontWeight: 600 }}>Anchored on 0G Mainnet</span>
+                    </div>
+                    <div>
+                      tx{' '}
+                      <a
+                        href={anchor0g.explorerUrl || `https://chainscan-newton.0g.ai/tx/${anchor0g.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--green)', textDecoration: 'none' }}
+                        onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                        onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                      >
+                        {anchor0g.txHash}
+                      </a>
+                    </div>
+                    {storage?.rootHash && (
+                      <div style={{ color: 'var(--text-dim)' }}>
+                        Stored on 0G decentralized storage
+                      </div>
+                    )}
+                  </div>
+                ) : qualityRejected ? (
+                  <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--amber)' }}>
+                    Not anchored — quality below threshold. Tokens were spent but the work wasn{"'"}t good enough to record.
+                  </div>
+                ) : fabricationDetected ? (
+                  <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--red)' }}>
+                    Not anchored — fabrication detected. Tampered data never touches the blockchain.
+                  </div>
+                ) : (
+                  <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                    Not anchored
                   </div>
                 )}
-              </div>
-            ) : qualityRejected ? (
-              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--amber)' }}>
-                Not anchored — quality gate failed
-              </div>
-            ) : fabricationDetected ? (
-              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--red)' }}>
-                Not anchored — fabrication detected
-              </div>
-            ) : (
-              <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                Not anchored
               </div>
             )}
           </section>
         )}
 
         {/* ═══════════════════════════════════ */}
-        {/* SECTION 4: Quality Feedback Loop    */}
+        {/* SECTION 4: Quality Pipeline (compact expandable) */}
         {/* ═══════════════════════════════════ */}
         {reviewScores && (
-          <section style={{ marginTop: '1.5rem' }}>
-            <h3 style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quality Feedback Loop</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', ...mono, fontSize: '0.65rem' }}>
-              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)', color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-                Score {reviewScores.composite}/100
-              </span>
-              <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
-              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)', color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)' }}>
-                {reviewScores.composite >= 60 ? '✓ Quality Gate' : '✗ Quality Gate'}
-              </span>
-              <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
-              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: anchor0g ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.06)', color: anchor0g ? 'var(--green)' : 'var(--text-muted)' }}>
-                {anchor0g ? 'Anchored' : 'Not Anchored'}
-              </span>
-              <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
-              <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.06)', color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--text-muted)' }}>
-                {reviewScores.composite >= 60 ? 'Training Set' : 'Excluded'}
-              </span>
+          <section style={{
+            marginTop: '1.5rem', borderRadius: '8px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            overflow: 'hidden',
+          }}>
+            <div
+              onClick={() => setQualityExpanded(!qualityExpanded)}
+              style={{
+                ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                padding: '0.7rem 1rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                Quality Pipeline
+                <span style={{ fontSize: '0.55rem', fontWeight: 400, color: 'var(--text-muted)' }}>
+                  Score {reviewScores.composite} &rarr; {reviewScores.composite >= 60 ? 'Gate passed' : 'Gate failed'} &rarr; {anchor0g ? 'Anchored' : 'Not anchored'} &rarr; {reviewScores.composite >= 60 ? 'Training data' : 'Excluded'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: qualityExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
             </div>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: '0.5rem', fontFamily: 'Inter, sans-serif' }}>
-              High-quality chains train better agents. The system improves itself.
-            </p>
+            {qualityExpanded && (
+              <div style={{ padding: '0 1rem 0.8rem' }}>
+                {reviewScores.reasoning && (
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, marginBottom: '0.5rem' }}>
+                    {reviewScores.reasoning}
+                  </div>
+                )}
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif' }}>
+                  High-quality chains earn on-chain reputation and become fine-tuning data. Low-quality chains are excluded — the system only trains on work that mattered.
+                </div>
+              </div>
+            )}
           </section>
         )}
 
         {/* ═══════════════════════════════════ */}
-        {/* SECTION 5: Agent Identity (ERC-7857) */}
+        {/* SECTION 5: Agent Identity (collapsible) */}
         {/* ═══════════════════════════════════ */}
         {agenticId && (
-          <section style={{ marginTop: '1.5rem' }}>
-            <h3 style={{ ...mono, fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent Identity</h3>
-            <div style={{ padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ ...mono, fontSize: '0.75rem', fontWeight: 600 }}>ERC-7857</span>
-                <span style={{ padding: '0.1rem 0.4rem', background: 'rgba(96,165,250,0.1)', color: '#60a5fa', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 600, ...mono }}>AGENTIC NFT</span>
+          <section style={{
+            marginTop: '1.5rem', borderRadius: '8px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            overflow: 'hidden',
+          }}>
+            <div
+              onClick={() => setIdentityExpanded(!identityExpanded)}
+              style={{
+                ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-dim)',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                padding: '0.7rem 1rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                Agent Identity
+                <span style={{ padding: '0.1rem 0.4rem', background: 'rgba(96,165,250,0.1)', color: '#60a5fa', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 600, ...mono }}>ERC-7857</span>
               </div>
-              {agenticId.tokenId && (
-                <div style={{ ...mono, fontSize: '0.65rem', marginBottom: '0.3rem' }}>
-                  Token #{agenticId.tokenId}
-                </div>
-              )}
-              <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
-                Contract: {(agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9').slice(0, 10)}...
-              </div>
-              {agenticId.chainRootHash && (
-                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
-                  Chain root: {agenticId.chainRootHash.slice(0, 16)}...
-                </div>
-              )}
-              {trustScore != null && (
-                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                  Trust score: {trustScore}/100
-                </div>
-              )}
-              <a
-                href={`https://chainscan-newton.0g.ai/address/${agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9'}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...mono, fontSize: '0.55rem', color: '#60a5fa', textDecoration: 'none' }}
-              >
-                View on 0G Explorer &rarr;
-              </a>
+              <span style={{ fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: identityExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
             </div>
+            {identityExpanded && (
+              <div style={{ padding: '0 1rem 0.8rem', ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                {agenticId.tokenId && <div>Token #{agenticId.tokenId}</div>}
+                <div>Contract: {(agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9').slice(0, 10)}...</div>
+                {agenticId.chainRootHash && <div>Chain root: {agenticId.chainRootHash.slice(0, 16)}...</div>}
+                {trustScore != null && <div>Trust score: {trustScore}/100</div>}
+                <a
+                  href={`https://chainscan-newton.0g.ai/address/${agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9'}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#60a5fa', textDecoration: 'none', fontSize: '0.55rem' }}
+                >
+                  View on 0G Explorer &rarr;
+                </a>
+              </div>
+            )}
           </section>
         )}
       </div>

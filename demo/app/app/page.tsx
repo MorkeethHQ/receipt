@@ -58,6 +58,16 @@ export default function LandingPage() {
         maxWidth: '600px',
         margin: '0 auto',
       }}>
+        <p style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: '0.72rem',
+          color: 'var(--text-dim)',
+          marginBottom: '1rem',
+          letterSpacing: '0.02em',
+        }}>
+          Other tools verify that agents DID work.<br />
+          RECEIPT verifies that agents did GOOD work.
+        </p>
         <h1 className="hero-title" style={{
           fontSize: '2.2rem',
           fontWeight: 700,
@@ -66,7 +76,7 @@ export default function LandingPage() {
           fontFamily: 'Inter, sans-serif',
           lineHeight: 1.2,
         }}>
-          Know what your agents<br />actually did
+          Proof that AI work<br />actually mattered
         </h1>
         <p className="hero-sub" style={{
           fontSize: '1.05rem',
@@ -75,8 +85,8 @@ export default function LandingPage() {
           marginBottom: '2rem',
           fontFamily: 'Inter, sans-serif',
         }}>
-          Your AI agent says it read 5 files, called 2 APIs, and made a decision.
-          RECEIPT proves whether that{"'"}s true — and whether the work was any good.
+          Cryptographic proof that every agent action happened.
+          TEE-attested proof that the output was worth paying for.
         </p>
 
         {/* npm install */}
@@ -142,7 +152,7 @@ export default function LandingPage() {
           {[
             { n: '1', title: 'Wrap your agent', desc: 'Add one import. Every file read, API call, and LLM response gets a cryptographic receipt automatically.' },
             { n: '2', title: 'Catch lies', desc: 'Receipts hash-link together. If an agent skips a step or fabricates a result, the chain breaks and you see exactly where.' },
-            { n: '3', title: 'Score the work', desc: 'An independent model reviews the chain and scores it: did the work actually help, or was it busy work?' },
+            { n: '3', title: 'Score the work', desc: 'A different model reviews the chain inside a hardware enclave. The agent can\'t pick its own grader. Score below 60? The chain is rejected — never touches the blockchain, never becomes training data.' },
           ].map(s => (
             <div key={s.n} style={{ textAlign: 'center' }}>
               <div style={{
