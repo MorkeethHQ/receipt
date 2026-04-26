@@ -1,15 +1,72 @@
 {
-  "name": "@receipt/sdk",
+  "name": "receipt-sdk",
   "version": "0.1.0",
   "type": "module",
-  "description": "Proof layer for agent work — signed, hash-linked receipts for verifiable agent handoffs.",
+  "description": "Cryptographic proof layer for AI agent work — signed, hash-linked receipts with TEE-attested quality scoring and on-chain anchoring.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "receipt": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./integrations/axl": {
+      "types": "./dist/integrations/axl.d.ts",
+      "import": "./dist/integrations/axl.js"
+    },
+    "./integrations/0g-chain": {
+      "types": "./dist/integrations/0g-chain.d.ts",
+      "import": "./dist/integrations/0g-chain.js"
+    },
+    "./integrations/0g-storage": {
+      "types": "./dist/integrations/0g-storage.d.ts",
+      "import": "./dist/integrations/0g-storage.js"
+    },
+    "./integrations/0g-compute": {
+      "types": "./dist/integrations/0g-compute.d.ts",
+      "import": "./dist/integrations/0g-compute.js"
+    },
+    "./integrations/0g-fine-tuning": {
+      "types": "./dist/integrations/0g-fine-tuning.d.ts",
+      "import": "./dist/integrations/0g-fine-tuning.js"
+    },
+    "./integrations/training-data": {
+      "types": "./dist/integrations/training-data.d.ts",
+      "import": "./dist/integrations/training-data.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MorkeethHQ/receipt",
+    "directory": "packages/receipt-sdk"
+  },
+  "homepage": "https://github.com/MorkeethHQ/receipt#readme",
+  "keywords": [
+    "ai-agent",
+    "receipts",
+    "cryptographic-proof",
+    "multi-agent",
+    "tee",
+    "0g",
+    "erc-7857",
+    "erc-8004",
+    "agent-handoff",
+    "quality-scoring"
+  ],
   "scripts": {
     "build": "tsc && node scripts/fix-esm-imports.cjs",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",

@@ -6,7 +6,7 @@ export default function LandingPage() {
   const [copied, setCopied] = useState(false);
 
   const copyInstall = useCallback(() => {
-    navigator.clipboard.writeText('npm install @receipt/sdk').then(() => {
+    navigator.clipboard.writeText('npm install receipt-sdk').then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -105,7 +105,7 @@ export default function LandingPage() {
           }}
         >
           <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', color: '#e5e5e5' }}>
-            npm install @receipt/sdk
+            npm install receipt-sdk
           </code>
           <span style={{
             fontFamily: "'IBM Plex Mono', monospace",
@@ -180,7 +180,7 @@ export default function LandingPage() {
             color: '#e5e5e5',
             margin: 0,
           }}>
-            <span style={{ color: '#c084fc' }}>import</span> {'{'} ReceiptAgent {'}'} <span style={{ color: '#c084fc' }}>from</span> <span style={{ color: '#4ade80' }}>&apos;@receipt/sdk&apos;</span>;{'\n'}
+            <span style={{ color: '#c084fc' }}>import</span> {'{'} ReceiptAgent {'}'} <span style={{ color: '#c084fc' }}>from</span> <span style={{ color: '#4ade80' }}>&apos;receipt-sdk&apos;</span>;{'\n'}
             {'\n'}
             <span style={{ color: '#c084fc' }}>const</span> agent = ReceiptAgent.<span style={{ color: '#60a5fa' }}>create</span>(<span style={{ color: '#4ade80' }}>&apos;my-agent&apos;</span>);{'\n'}
             {'\n'}
