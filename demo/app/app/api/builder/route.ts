@@ -410,8 +410,10 @@ export async function POST(request: Request) {
             const transferLog = txReceipt.logs?.find((l: any) => l.topics?.[0] === ethers.id('Transfer(address,address,uint256)'));
             const tokenId = transferLog ? ethers.toBigInt(transferLog.topics[3]).toString() : null;
             send('agentic_id', { tokenId, txHash: txReceipt.hash, metadataHash, agentId: senderAgentId, standard: 'ERC-7857', status: 'minted', chain: '0g-mainnet', chainId: 16661, iDatas, contractAddress });
+            send('nft_minted', { tokenId, txHash: txReceipt.hash, contract: contractAddress, explorer: `https://chainscan-newton.0g.ai/tx/${txReceipt.hash}` });
           } else {
             send('agentic_id', { tokenId: null, metadataHash, agentId: senderAgentId, standard: 'ERC-7857', status: 'simulated', iDatas, contractAddress: contractAddress ?? null });
+            send('nft_minted', { tokenId: null, txHash: null, contract: contractAddress ?? '0xf964d45c3Ea5368918B1FDD49551E373028108c9', explorer: null });
           }
         } catch {}
 
@@ -474,6 +476,7 @@ export async function POST(request: Request) {
                 privateKey: pk, chainId: 16661, usefulnessScore: reviewScores.composite,
               });
               anchorResult = { txHash: ar.txHash, chain: '0G Mainnet', contractAddress: process.env.OG_CONTRACT_ADDRESS, chainRootHash: rootHash, explorerUrl: `https://chainscan-newton.0g.ai/tx/${ar.txHash}`, usefulnessScore: ar.usefulnessScore };
+              send('anchor_tx', { txHash: ar.txHash, explorer: `https://chainscan-newton.0g.ai/tx/${ar.txHash}` });
             } catch {}
           }
         } catch {}

@@ -1,6 +1,6 @@
 {
   "name": "agenticproof",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Cryptographic proof layer for AI agent work — signed, hash-linked receipts with TEE-attested quality scoring and on-chain anchoring.",
   "main": "dist/index.js",
@@ -85,8 +85,14 @@
     "ethers": "^6.13.0"
   },
   "peerDependenciesMeta": {
-    "@0gfoundation/0g-ts-sdk": { "optional": true },
-    "@0glabs/0g-serving-broker": { "optional": true },
-    "ethers": { "optional": true }
+    "@0gfoundation/0g-ts-sdk": {
+      "optional": true
+    },
+    "@0glabs/0g-serving-broker": {
+      "optional": true
+    },
+    "ethers": {
+      "optional": true
+    }
   }
 }

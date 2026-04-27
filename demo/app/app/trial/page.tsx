@@ -9,10 +9,14 @@ interface Receipt {
   attestation: { provider: string; type: string } | null;
 }
 interface TrialReceipt { receipt: Receipt; agent: 'A'|'B'|'human'; durationMs: number; tokensUsed: number|null; startMs: number; }
+interface NftData { tokenId: string|null; txHash: string|null; contract: string; explorer: string|null; }
+interface AnchorTxData { txHash: string; explorer: string; }
+interface ReviewBreakdown { alignment: number; substance: number; quality: number; composite: number; reasoning: string; }
 interface RunData {
   receipts: TrialReceipt[]; totalMs: number; tokens: number; quality: number|null; rootHash: string;
   reviewerSelection: {model:string;reason:string;attested:boolean}|null;
   teeVerified: boolean; agenticId: boolean; fineTuning: boolean; reviewScores: any;
+  nftData: NftData|null; anchorTx: AnchorTxData|null; reviewBreakdown: ReviewBreakdown|null;
   researcherChain?: any[]; researcherKey?: string;
 }
 
@@ -53,11 +57,13 @@ async function readSSEStream(
           if (ev === 'receipt') {
             const tr: TrialReceipt = { receipt: p.receipt, agent: p.agent || 'A', durationMs: p.durationMs || 500, tokensUsed: p.tokensUsed || null, startMs: receipts.reduce((s, r) => s + r.durationMs, 0) };
             receipts.push(tr); d.receipts = [...receipts]; d.tokens += tr.tokensUsed || 0; onReceipt?.(tr);
-          } else if (ev === 'review_scores') { d.quality = p.composite; d.reviewScores = p; onMeta?.('reviewScores', p); }
+          } else if (ev === 'review_scores') { d.quality = p.composite; d.reviewScores = p; d.reviewBreakdown = { alignment: p.alignment, substance: p.substance, quality: p.quality, composite: p.composite, reasoning: p.reasoning }; onMeta?.('reviewScores', p); onMeta?.('reviewBreakdown', d.reviewBreakdown); }
           else if (ev === 'reviewer_selection') { d.reviewerSelection = p; onMeta?.('reviewerSelection', p); }
           else if (ev === 'pipeline_timing') { d.totalMs += p.totalMs || 0; onMeta?.('totalMs', d.totalMs); }
           else if (ev === 'tee_verified') { d.teeVerified = true; onMeta?.('teeVerified', true); }
           else if (ev === 'agentic_id') { d.agenticId = true; onMeta?.('agenticId', true); }
+          else if (ev === 'nft_minted') { d.nftData = { tokenId: p.tokenId, txHash: p.txHash, contract: p.contract, explorer: p.explorer }; onMeta?.('nftData', d.nftData); }
+          else if (ev === 'anchor_tx') { d.anchorTx = { txHash: p.txHash, explorer: p.explorer }; onMeta?.('anchorTx', d.anchorTx); }
           else if (ev === 'fine_tuning') { d.fineTuning = true; onMeta?.('fineTuning', true); }
           else if (ev === 'done') { d.rootHash = p.rootHash || ''; onMeta?.('rootHash', d.rootHash); }
           else if (ev === 'researcher_done') { d.researcherChain = p.receipts; d.researcherKey = p.publicKey; }
@@ -77,7 +83,7 @@ async function runPipeline(
   onMeta?: (key: string, value: any) => void,
 ): Promise<RunData> {
   const receipts: TrialReceipt[] = [];
-  const d: RunData = { receipts: [], totalMs: 0, tokens: 0, quality: null, rootHash: '', reviewerSelection: null, teeVerified: false, agenticId: false, fineTuning: false, reviewScores: null };
+  const d: RunData = { receipts: [], totalMs: 0, tokens: 0, quality: null, rootHash: '', reviewerSelection: null, teeVerified: false, agenticId: false, fineTuning: false, reviewScores: null, nftData: null, anchorTx: null, reviewBreakdown: null };
 
   // Phase 1: Researcher
   const r1 = await fetch('/api/researcher', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adversarial: false }) });
@@ -198,6 +204,9 @@ async function fetchLiveChain(): Promise<RunData | null> {
     agenticId: false,
     fineTuning: false,
     reviewScores: null,
+    nftData: null,
+    anchorTx: null,
+    reviewBreakdown: null,
   };
 }
 
@@ -222,6 +231,9 @@ export default function TrialPage() {
   const [agenticIdMinted, setAgenticIdMinted] = useState(false);
   const [fineTuningStarted, setFineTuningStarted] = useState(false);
   const [reviewerSelection, setReviewerSelection] = useState<{model:string;reason:string;attested:boolean}|null>(null);
+  const [nftData, setNftData] = useState<NftData|null>(null);
+  const [anchorTx, setAnchorTx] = useState<AnchorTxData|null>(null);
+  const [reviewBreakdown, setReviewBreakdown] = useState<ReviewBreakdown|null>(null);
   const [humanRating, setHumanRating] = useState<number|null>(null);
   const [humanSubmitted, setHumanSubmitted] = useState(false);
   const [humanHash, setHumanHash] = useState('');
@@ -243,6 +255,7 @@ export default function TrialPage() {
   const resetState = useCallback(() => {
     setTrialReceipts([]); setTotalTimeMs(0); setTotalTokens(0); setQualityScore(null); setRootHash('');
     setTeeVerified(false); setAgenticIdMinted(false); setFineTuningStarted(false); setReviewerSelection(null);
+    setNftData(null); setAnchorTx(null); setReviewBreakdown(null);
     setHumanRating(null); setHumanSubmitted(false); setHumanHash(''); setHonestData(null); setLowData(null);
   }, []);
 
@@ -252,6 +265,9 @@ export default function TrialPage() {
     if (k === 'totalMs') setTotalTimeMs(v);
     if (k === 'teeVerified') setTeeVerified(true);
     if (k === 'agenticId') setAgenticIdMinted(true);
+    if (k === 'nftData') setNftData(v);
+    if (k === 'anchorTx') setAnchorTx(v);
+    if (k === 'reviewBreakdown') setReviewBreakdown(v);
     if (k === 'fineTuning') setFineTuningStarted(true);
     if (k === 'rootHash') setRootHash(v);
   }, []);
@@ -402,6 +418,73 @@ export default function TrialPage() {
               </div>
             ))}
           </div>
+
+          {/* Agent Identity (ERC-7857) */}
+          {(nftData || agenticIdMinted) && (
+            <div style={card}>
+              <div style={sectionLabel}>Agent Identity (ERC-7857)</div>
+              {nftData?.tokenId ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <span style={{ ...mono, fontSize: '0.8rem', fontWeight: 600 }}>Token #{nftData.tokenId}</span>
+                    <span style={{ ...mono, fontSize: '0.5rem', padding: '0.15rem 0.4rem', background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', borderRadius: '4px', fontWeight: 700, letterSpacing: '0.05em' }}>SOULBOUND</span>
+                  </div>
+                  <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                    Contract: <a href={`https://chainscan-newton.0g.ai/address/${nftData.contract}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>{nftData.contract.slice(0, 10)}...{nftData.contract.slice(-6)}</a>
+                  </div>
+                  {nftData.txHash && (
+                    <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-dim)' }}>
+                      Tx: <a href={nftData.explorer || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>0x{nftData.txHash.slice(2, 10)}...{nftData.txHash.slice(-6)}</a>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ ...mono, fontSize: '0.8rem', color: 'var(--text-dim)' }}>Pending</span>
+                  <span style={{ ...mono, fontSize: '0.5rem', padding: '0.15rem 0.4rem', background: 'rgba(100,100,100,0.1)', color: 'var(--text-dim)', borderRadius: '4px', fontWeight: 600, letterSpacing: '0.05em' }}>SIMULATED</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* On-Chain Anchor */}
+          {anchorTx && (
+            <div style={card}>
+              <div style={sectionLabel}>On-Chain Anchor</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ ...mono, fontSize: '0.5rem', padding: '0.15rem 0.4rem', background: 'rgba(22,163,74,0.1)', color: 'var(--green)', borderRadius: '4px', fontWeight: 700, letterSpacing: '0.05em' }}>ANCHORED</span>
+                <a href={anchorTx.explorer} target="_blank" rel="noopener noreferrer" style={{ ...mono, fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline' }}>
+                  0x{anchorTx.txHash.slice(2, 10)}...{anchorTx.txHash.slice(-6)}
+                </a>
+              </div>
+              <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>Receipt chain hash anchored on 0G Mainnet (Chain ID 16661)</div>
+            </div>
+          )}
+
+          {/* Review Score Breakdown */}
+          {reviewBreakdown && (
+            <div style={card}>
+              <div style={sectionLabel}>Quality Score Breakdown</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.6rem', marginBottom: '0.6rem' }}>
+                {([
+                  ['Alignment', reviewBreakdown.alignment],
+                  ['Substance', reviewBreakdown.substance],
+                  ['Quality', reviewBreakdown.quality],
+                  ['Composite', reviewBreakdown.composite],
+                ] as [string, number][]).map(([label, score]) => (
+                  <div key={label} style={{ textAlign: 'center', padding: '0.6rem 0.3rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                    <div style={{ ...mono, fontSize: '1.2rem', fontWeight: 700, color: score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--amber)' : 'var(--red)' }}>{score}</div>
+                    <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              {reviewBreakdown.reasoning && (
+                <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.5, padding: '0.5rem', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                  &quot;{reviewBreakdown.reasoning}&quot;
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Reviewer Selection */}
           {reviewerSelection && (
