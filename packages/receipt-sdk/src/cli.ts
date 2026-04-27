@@ -2,7 +2,8 @@
 import { ReceiptAgent } from './agent';
 import { verifyChain } from './verify';
 import { ReceiptChain } from './chain';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
+import { join, dirname } from 'path';
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -11,19 +12,184 @@ const HELP = `
 receipt-sdk — Cryptographic proof layer for AI agent work
 
 Commands:
-  init              Generate a receipt.config.json template
-  verify <file>     Verify a receipt chain from JSON file
-  inspect <file>    Show chain stats and receipt summary
-  wrap              Print wrapper code for your agent
+  init                    Generate a receipt.config.json template
+  init --claude-code      Set up RECEIPT hooks for Claude Code
+  init --cursor           Set up RECEIPT for Cursor agent mode
+  init --openclaw         Show OpenClaw plugin install instructions
+  verify <file>           Verify a receipt chain from JSON file
+  inspect <file>          Show chain stats and receipt summary
+  wrap                    Print wrapper code for your agent
 
 Usage:
-  npx receipt-sdk init
-  npx receipt-sdk verify chain.json
-  npx receipt-sdk inspect chain.json
-  npx receipt-sdk wrap
+  npx receipt init
+  npx receipt init --claude-code
+  npx receipt verify chain.json
+  npx receipt inspect chain.json
 `;
 
+function initClaudeCode() {
+  mkdirSync('.receipt', { recursive: true });
+
+  const hookScript = `#!/usr/bin/env node
+${readFileSync(join(dirname(new URL(import.meta.url).pathname), '..', 'examples', 'claude-code-hooks', 'receipt-hook.mjs'), 'utf-8').toString()}`;
+
+  // Write the hook script
+  writeFileSync('.receipt/receipt-hook.mjs', hookScript);
+
+  // Create/update .claude/settings.json
+  mkdirSync('.claude', { recursive: true });
+  const settingsPath = '.claude/settings.json';
+  let settings: any = {};
+  if (existsSync(settingsPath)) {
+    try { settings = JSON.parse(readFileSync(settingsPath, 'utf-8')); } catch {}
+  }
+
+  settings.hooks = {
+    ...settings.hooks,
+    SessionStart: [{ hooks: [{ type: 'command', command: 'node .receipt/receipt-hook.mjs', timeout: 5 }] }],
+    PostToolUse: [{ hooks: [{ type: 'command', command: 'node .receipt/receipt-hook.mjs', async: true, timeout: 10 }] }],
+    Stop: [{ hooks: [{ type: 'command', command: 'node .receipt/receipt-hook.mjs', timeout: 10 }] }],
+  };
+
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+
+  console.log('RECEIPT hooks installed for Claude Code.');
+  console.log('');
+  console.log('Files created:');
+  console.log('  .receipt/receipt-hook.mjs  — hook script (receipts every tool call)');
+  console.log('  .claude/settings.json     — hooks config (SessionStart, PostToolUse, Stop)');
+  console.log('');
+  console.log('Chains are written to .receipt/chains/ when a session ends.');
+  console.log('Verify with: npx receipt verify .receipt/chains/<file>.json');
+}
+
+function initCursor() {
+  mkdirSync('.receipt', { recursive: true });
+
+  // Cursor uses VS Code extension API — we create a lightweight watcher
+  const watcherScript = `#!/usr/bin/env node
+/**
+ * RECEIPT watcher for Cursor
+ *
+ * Monitors git diff and file changes to create receipts for Cursor agent actions.
+ * Run alongside Cursor: node .receipt/cursor-watcher.mjs
+ */
+
+import { watch } from 'fs';
+import { execSync } from 'child_process';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { createHash } from 'crypto';
+import { join } from 'path';
+
+const CHAIN_DIR = '.receipt/chains';
+const STATE_FILE = '.receipt/cursor-session.json';
+mkdirSync(CHAIN_DIR, { recursive: true });
+
+function sha256(d) { return createHash('sha256').update(d).digest('hex'); }
+
+const state = {
+  sessionId: 'cursor-' + Date.now(),
+  agentId: 'cursor',
+  startedAt: Date.now(),
+  receipts: [],
+  lastDiff: '',
+};
+
+function addReceipt(type, description, input, output) {
+  const prevId = state.receipts.length > 0 ? state.receipts[state.receipts.length - 1].id : null;
+  const ts = Date.now();
+  const inputHash = sha256(JSON.stringify(input));
+  const outputHash = sha256(JSON.stringify(output));
+  const id = sha256(prevId + ':cursor:' + ts + ':' + type + ':' + inputHash + ':' + outputHash);
+  state.receipts.push({
+    id, prevId, agentId: 'cursor', timestamp: ts,
+    action: { type, description }, inputHash, outputHash, attestation: null, signature: sha256(id + ':unsigned'),
+  });
+  console.log('  [receipt] ' + type + ': ' + description);
+}
+
+// Watch for file changes in src/
+console.log('RECEIPT watcher running for Cursor. Watching for file changes...');
+console.log('Press Ctrl+C to finalize chain.\\n');
+
+let debounce = null;
+watch('.', { recursive: true }, (event, filename) => {
+  if (!filename || filename.startsWith('.receipt') || filename.startsWith('.git') || filename.startsWith('node_modules')) return;
+  if (debounce) clearTimeout(debounce);
+  debounce = setTimeout(() => {
+    try {
+      const diff = execSync('git diff --stat 2>/dev/null || echo "no git"').toString().trim();
+      if (diff !== state.lastDiff && diff !== 'no git') {
+        state.lastDiff = diff;
+        const lines = diff.split('\\n');
+        for (const line of lines) {
+          if (line.includes('|')) {
+            const file = line.split('|')[0].trim();
+            addReceipt('output', 'Edit ' + file, { file, event }, { diff: line });
+          }
+        }
+      }
+    } catch {}
+  }, 1000);
+});
+
+process.on('SIGINT', () => {
+  if (state.receipts.length === 0) { console.log('\\nNo receipts captured.'); process.exit(0); }
+  const last = state.receipts[state.receipts.length - 1];
+  const rootHash = sha256(last.id + ':' + last.inputHash + ':' + last.outputHash);
+  const chain = {
+    runId: state.sessionId, sessionId: state.sessionId, agentId: 'cursor',
+    receipts: state.receipts, rootHash, valid: true, publicKey: '',
+    completedAt: Date.now(), durationMs: Date.now() - state.startedAt,
+    stats: { total: state.receipts.length, byType: state.receipts.reduce((a, r) => { a[r.action.type] = (a[r.action.type] || 0) + 1; return a; }, {}) },
+  };
+  const filename = state.sessionId + '.json';
+  writeFileSync(join(CHAIN_DIR, filename), JSON.stringify(chain, null, 2));
+  console.log('\\nChain finalized: ' + chain.stats.total + ' receipts → .receipt/chains/' + filename);
+  process.exit(0);
+});
+`;
+
+  writeFileSync('.receipt/cursor-watcher.mjs', watcherScript);
+
+  console.log('RECEIPT watcher installed for Cursor.');
+  console.log('');
+  console.log('Files created:');
+  console.log('  .receipt/cursor-watcher.mjs — file watcher (receipts every edit Cursor makes)');
+  console.log('');
+  console.log('Usage:');
+  console.log('  1. Start the watcher: node .receipt/cursor-watcher.mjs');
+  console.log('  2. Use Cursor normally — every file change becomes a receipt');
+  console.log('  3. Press Ctrl+C to finalize the chain');
+  console.log('');
+  console.log('Chains are written to .receipt/chains/');
+}
+
+function initOpenClaw() {
+  console.log('OpenClaw RECEIPT Plugin');
+  console.log('');
+  console.log('Install the native OpenClaw plugin:');
+  console.log('');
+  console.log('  openclaw plugins install openclaw-plugin-receipt');
+  console.log('');
+  console.log('Or from source:');
+  console.log('');
+  console.log('  git clone https://github.com/MorkeethHQ/receipt.git');
+  console.log('  cd receipt/packages/openclaw-plugin-receipt');
+  console.log('  npm run build');
+  console.log('  openclaw plugins install .');
+  console.log('');
+  console.log('The plugin hooks into the agent lifecycle automatically.');
+  console.log('Every tool call, context read, and message becomes a signed receipt.');
+  console.log('');
+  console.log('Query chains: curl http://localhost:18789/plugins/receipt/latest');
+}
+
 function init() {
+  if (args.includes('--claude-code')) return initClaudeCode();
+  if (args.includes('--cursor')) return initCursor();
+  if (args.includes('--openclaw')) return initOpenClaw();
+
   const config = {
     agent: {
       name: 'my-agent',

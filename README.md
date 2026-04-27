@@ -165,6 +165,40 @@ curl http://localhost:18789/plugins/receipt/verify/ID  # verify integrity
 
 See [`packages/openclaw-plugin-receipt/`](packages/openclaw-plugin-receipt/) for full docs.
 
+## Claude Code — Hook-Based Receipting
+
+Every file read, edit, bash command, and agent spawn becomes a signed receipt:
+
+```bash
+npx receipt init --claude-code
+```
+
+This installs hooks into `.claude/settings.json`. Chains are written to `.receipt/chains/` when a session ends. No code changes, no manual wrapping — just install and every Claude Code action gets receipted.
+
+See [`examples/claude-code-hooks/`](packages/receipt-sdk/examples/claude-code-hooks/) for details.
+
+## Cursor — File Watcher Receipting
+
+For Cursor's agent mode, a lightweight watcher monitors file changes:
+
+```bash
+npx receipt init --cursor
+node .receipt/cursor-watcher.mjs
+```
+
+Every file Cursor's agent edits becomes a receipt. Press Ctrl+C to finalize the chain.
+
+## Works With Any Agent
+
+| Agent | Integration | Setup |
+|-------|------------|-------|
+| **OpenClaw** | Native plugin (lifecycle hooks) | `openclaw plugins install openclaw-plugin-receipt` |
+| **Claude Code** | Hooks (PostToolUse, SessionStart, Stop) | `npx receipt init --claude-code` |
+| **Cursor** | File watcher | `npx receipt init --cursor` |
+| **Custom agents** | SDK wrapper (10 lines) | `npm install receipt-sdk` |
+
+A team of 3 people running 2-3 agents each = 9 agents, all producing receipt chains. RECEIPT tells you which ones earned their keep and which ones burned tokens for nothing. Cost-per-useful-output across your entire agent fleet.
+
 ## SDK: Lower-Level Usage
 
 ```typescript
