@@ -168,6 +168,46 @@ function RunColumn({ label, data, hov, setHov }: { label: string; data: RunData;
   );
 }
 
+/* Live Agent mode — fetch real chains from OpenClaw plugin */
+async function fetchLiveChain(): Promise<RunData | null> {
+  const res = await fetch('/api/live-chain?mode=latest');
+  if (!res.ok) return null;
+  const chain = await res.json();
+  if (chain.error || !chain.receipts?.length) return null;
+
+  let elapsed = 0;
+  const trialReceipts: TrialReceipt[] = chain.receipts.map((r: Receipt, i: number) => {
+    const dur = i === 0 ? 200 : (chain.durationMs || 5000) / chain.receipts.length;
+    const agent: 'A'|'B' = r.action.type === 'usefulness_review' ? 'B' : (i < chain.receipts.length / 2 ? 'A' : 'B');
+    const tr: TrialReceipt = { receipt: r, agent, durationMs: dur, tokensUsed: null, startMs: elapsed };
+    elapsed += dur;
+    return tr;
+  });
+
+  const byType: Record<string, number> = {};
+  for (const r of chain.receipts) byType[r.action.type] = (byType[r.action.type] ?? 0) + 1;
+
+  return {
+    receipts: trialReceipts,
+    totalMs: chain.durationMs || elapsed,
+    tokens: (byType['tool_call'] || 0) * 150 + (byType['context_read'] || 0) * 80,
+    quality: null,
+    rootHash: chain.rootHash || '',
+    reviewerSelection: null,
+    teeVerified: false,
+    agenticId: false,
+    fineTuning: false,
+    reviewScores: null,
+  };
+}
+
+async function fetchLiveChainsList(): Promise<any[]> {
+  const res = await fetch('/api/live-chain?mode=chains');
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
 /* Main */
 export default function TrialPage() {
   const [phase, setPhase] = useState<'idle'|'running'|'done'|'error'>('idle');
@@ -191,6 +231,8 @@ export default function TrialPage() {
   const [compMode, setCompMode] = useState(false);
   const [honestData, setHonestData] = useState<RunData|null>(null);
   const [lowData, setLowData] = useState<RunData|null>(null);
+  const [liveMode, setLiveMode] = useState(false);
+  const [liveChains, setLiveChains] = useState<any[]>([]);
 
   const status = useCallback((msg: string) => {
     setStatusMsg(msg);
@@ -215,7 +257,7 @@ export default function TrialPage() {
   }, []);
 
   const runSingle = useCallback(async (lq: boolean) => {
-    setPhase('running'); setCompMode(false); resetState();
+    setPhase('running'); setCompMode(false); setLiveMode(false); resetState();
     try {
       const r = await runPipeline(lq,
         (tr) => { setTrialReceipts(p => [...p, tr]); if (tr.tokensUsed) setTotalTokens(p => p + tr.tokensUsed!); },
@@ -227,11 +269,28 @@ export default function TrialPage() {
   }, [status, resetState, metaHandler]);
 
   const runComparison = useCallback(async () => {
-    setPhase('running'); setCompMode(true); resetState();
+    setPhase('running'); setCompMode(true); setLiveMode(false); resetState();
     try {
       const [h, l] = await Promise.all([runPipeline(false, undefined, status), runPipeline(true, undefined, status)]);
       setHonestData(h); setLowData(l); setRootHash(h.rootHash); setQualityScore(h.quality); setPhase('done');
     } catch { setPhase('error'); status('Comparison failed'); }
+  }, [status, resetState]);
+
+  const runLiveAgent = useCallback(async () => {
+    setPhase('running'); setCompMode(false); setLiveMode(true); resetState();
+    status('Fetching live chain from OpenClaw...');
+    try {
+      const [chain, chains] = await Promise.all([fetchLiveChain(), fetchLiveChainsList()]);
+      setLiveChains(chains);
+      if (!chain) { setPhase('error'); status('No chain available — send Bagel a task via Telegram first'); return; }
+      setTrialReceipts(chain.receipts);
+      setTotalTimeMs(chain.totalMs);
+      setTotalTokens(chain.tokens);
+      setQualityScore(chain.quality);
+      setRootHash(chain.rootHash);
+      setPhase('done');
+      status(`Loaded ${chain.receipts.length} receipts from live agent`);
+    } catch { setPhase('error'); status('Failed to reach OpenClaw — is the VPS running?'); }
   }, [status, resetState]);
 
   const submitHuman = useCallback(async () => {
@@ -279,7 +338,10 @@ export default function TrialPage() {
       </nav>
 
       <section style={{ padding: '2rem 2rem 1rem', maxWidth: '820px', margin: '0 auto', width: '100%' }}>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 700, fontFamily: 'Inter, sans-serif', marginBottom: '0.4rem' }}>Execution Replay</h1>
+        <h1 style={{ fontSize: '1.6rem', fontWeight: 700, fontFamily: 'Inter, sans-serif', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          Execution Replay
+          {liveMode && <span style={{ ...mono, fontSize: '0.55rem', padding: '0.2rem 0.5rem', background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', borderRadius: '4px', fontWeight: 700, letterSpacing: '0.05em' }}>LIVE AGENT</span>}
+        </h1>
         <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, marginBottom: '1.2rem' }}>See what your agents did, what it cost, and whether it mattered.</p>
         <div className="trial-buttons" style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.8rem' }}>
           <button onClick={() => runSingle(false)} disabled={running} style={{ ...btnBase, border: 'none', background: running ? 'var(--border)' : 'var(--text)', color: '#fff' }}>
@@ -287,6 +349,7 @@ export default function TrialPage() {
           </button>
           <button onClick={() => runSingle(true)} disabled={running} style={{ ...btnBase, border: '1px solid var(--amber)', background: running ? 'var(--border)' : 'rgba(217,119,6,0.06)', color: running ? '#fff' : 'var(--amber)' }}>Run Low-Quality</button>
           <button onClick={runComparison} disabled={running} style={{ ...btnBase, border: '1px solid var(--border)', background: running ? 'var(--border)' : 'var(--surface)', color: running ? '#fff' : 'var(--text)', fontWeight: 500 }}>Compare Both</button>
+          <button onClick={runLiveAgent} disabled={running} style={{ ...btnBase, border: '1px solid #8b5cf6', background: running ? 'var(--border)' : 'rgba(139,92,246,0.06)', color: running ? '#fff' : '#8b5cf6' }}>Live Agent</button>
         </div>
         {statusMsg && <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '0.5rem' }}>{statusMsg}</div>}
       </section>
@@ -413,6 +476,41 @@ export default function TrialPage() {
             </div>
           )}
         </>)}
+
+        {/* Live Agent chain history */}
+        {liveMode && liveChains.length > 0 && phase === 'done' && (
+          <div style={card}>
+            <div style={sectionLabel}>Live Chain History</div>
+            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {liveChains.slice(0, 10).map((c: any) => (
+                <div key={c.id} onClick={async () => {
+                  const res = await fetch(`/api/live-chain?mode=chain&id=${encodeURIComponent(c.id)}`);
+                  if (!res.ok) return;
+                  const full = await res.json();
+                  if (!full.receipts?.length) return;
+                  let elapsed = 0;
+                  const trs: TrialReceipt[] = full.receipts.map((r: Receipt, i: number) => {
+                    const dur = (full.durationMs || 5000) / full.receipts.length;
+                    const tr: TrialReceipt = { receipt: r, agent: i < full.receipts.length / 2 ? 'A' : 'B', durationMs: dur, tokensUsed: null, startMs: elapsed };
+                    elapsed += dur;
+                    return tr;
+                  });
+                  setTrialReceipts(trs);
+                  setTotalTimeMs(full.durationMs || elapsed);
+                  setRootHash(full.rootHash || '');
+                }} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '0.4rem 0.6rem', borderBottom: '1px solid var(--border)',
+                  cursor: 'pointer', fontSize: '0.7rem', ...mono,
+                }}>
+                  <span>{c.receipts} receipts — {c.toolCalls?.join(', ') || 'no tools'}</span>
+                  <span style={{ color: c.valid ? 'var(--green)' : 'var(--red)', fontSize: '0.6rem' }}>{c.valid ? 'VALID' : 'INVALID'}</span>
+                  <span style={{ color: 'var(--text-dim)', fontSize: '0.55rem' }}>{new Date(c.completedAt).toLocaleTimeString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {phase === 'idle' && (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-dim)' }}>

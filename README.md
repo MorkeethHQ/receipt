@@ -92,34 +92,84 @@ Standalone demos:
 ## Demo Pages
 
 - **[Demo](https://receipt-demo.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Three modes: honest, adversarial (tamper detection), low-quality (quality gate rejection). Guided walkthrough explains each stage.
-- **[Replay](https://receipt-demo.vercel.app/trial)** — Execution timeline with cost-per-useful-output. Human review becomes receipt #11, signed and hash-linked. Side-by-side honest vs. low-quality comparison.
+- **[Replay](https://receipt-demo.vercel.app/trial)** — Execution timeline with cost-per-useful-output. Human review becomes receipt #11, signed and hash-linked. Side-by-side honest vs. low-quality comparison. Live Agent mode fetches real chains from OpenClaw.
 - **[Verify](https://receipt-demo.vercel.app/verify)** — Independent chain verifier. Load valid or tampered chains, see exactly where tampering breaks.
 - **[Dashboard](https://receipt-demo.vercel.app/dashboard)** — Operator view: quality scores, on-chain anchoring, agent identity (ERC-7857), full receipt chain.
+- **[Eval](https://receipt-demo.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop. Research report format.
 
 ## Project Structure
 
 ```
 packages/
-  receipt-sdk/          Core SDK — types, crypto, chain, agent, verify, integrations
-  receipt-cli/          CLI tool — run, verify, inspect, export, anchor commands
+  receipt-sdk/                  npm: receipt-sdk — types, crypto, chain, agent, verify, integrations
+  receipt-cli/                  CLI tool — run, verify, inspect, export, anchor
+  openclaw-plugin-receipt/      OpenClaw plugin — native agent lifecycle hooks
 
 contracts/
-  ReceiptAnchorV2.sol   On-chain anchor — stores usefulness scores (deployed on 0G Mainnet)
-  AgentNFT.sol          ERC-7857 Agentic Identity NFT contract
-  ValidationRegistry.sol ERC-8004 agent proof attestations (deployed on 0G Mainnet)
+  ReceiptAnchorV2.sol           On-chain anchor — stores usefulness scores (deployed on 0G Mainnet)
+  AgentNFT.sol                  ERC-7857 Agentic Identity NFT contract
+  ValidationRegistry.sol        ERC-8004 agent proof attestations (deployed on 0G Mainnet)
 
 demo/
-  app/                  Next.js demo — 5 pages (home, demo, replay, verify, dashboard)
-  agents/               Standalone agent scripts (researcher → builder handoff)
-  axl/                  Gensyn AXL P2P demo (sender + receiver)
+  app/                          Next.js demo — 6 pages (home, demo, replay, verify, dashboard, eval)
+  agents/                       Standalone agent scripts (researcher → builder handoff)
+  axl/                          Gensyn AXL P2P demo (sender + receiver)
 ```
 
-## SDK Usage
+## Wrap Any Agent in 10 Lines
+
+```bash
+npm install receipt-sdk
+```
 
 ```typescript
-import { ReceiptAgent, verifyChain } from '@receipt/sdk';
+import { createAgentRun, wrapTool } from 'receipt-sdk';
 
-// Researcher produces a receipt chain
+const run = createAgentRun({ agentId: 'my-agent' });
+
+run.contextRead('task', 'Audit vault-protocol for reentrancy');
+const search = wrapTool(run, 'search_code', mySearchFunction);
+const results = await search({ query: 'withdraw', repo: 'vault-protocol' });
+run.decision('No critical vulnerabilities found', 'Recommend gas optimization');
+run.messageSend('user', 'Audit complete. No issues.');
+
+const chain = run.finalize();
+console.log(chain.valid); // true — every action signed and hash-linked
+```
+
+## OpenClaw Plugin — Zero-Code Agent Receipting
+
+For OpenClaw-based agents, install the plugin and every agent run gets receipted automatically:
+
+```bash
+openclaw plugins install openclaw-plugin-receipt
+```
+
+No code changes needed. The plugin hooks into the agent lifecycle:
+
+| Agent Action | Receipt Type | Hook |
+|-------------|-------------|------|
+| Loading context/memory | `context_read` | `before_prompt_build` |
+| Calling a tool | `tool_call` | `before_tool_call` |
+| Tool returns result | `tool_result` | `after_tool_call` |
+| Sending a message | `message_send` | `message_sending` |
+| Final answer | `decision` | `agent_end` |
+
+Chains are queryable via HTTP on the gateway:
+
+```bash
+curl http://localhost:18789/plugins/receipt/latest    # most recent chain
+curl http://localhost:18789/plugins/receipt/chains     # all chains
+curl http://localhost:18789/plugins/receipt/verify/ID  # verify integrity
+```
+
+See [`packages/openclaw-plugin-receipt/`](packages/openclaw-plugin-receipt/) for full docs.
+
+## SDK: Lower-Level Usage
+
+```typescript
+import { ReceiptAgent, verifyChain } from 'receipt-sdk';
+
 const researcher = ReceiptAgent.create('researcher');
 researcher.readFile('config.json', fileContents);
 researcher.callApi('https://api.example.com', apiResponse);
@@ -127,56 +177,39 @@ researcher.callLlm('analyze this codebase', llmOutput);
 researcher.decide('analysis reasoning', 'proceed with deployment');
 researcher.produceOutput('research report', reportJson);
 
-// Builder receives and verifies the chain
 const builder = ReceiptAgent.continueFrom(researcher.getReceipts());
 const results = verifyChain(researcher.getReceipts(), researcher.getPublicKey());
 const allValid = results.every(r => r.valid); // true
-
-// Builder does its own work
-builder.readFile('handoff.json', handoffData);
-builder.callApi('https://evmrpc.0g.ai', chainData);
-builder.decide('deployment reasoning', 'deploy to 0G');
-builder.produceOutput('deployment manifest', manifest);
-
-// Layer 2: TEE-attested usefulness review
-const scores = { alignment: 88, substance: 82, quality: 85 };
-builder.reviewUsefulness(chainSummary, JSON.stringify(scores), teeAttestation);
-
-// Full chain is now 10 receipts, all signed and hash-linked
-console.log(builder.verifyOwnChain()); // true
 ```
 
 ## Quick Start
 
 ```bash
-# Build SDK
-cd packages/receipt-sdk && npm install && npm run build
+# Install SDK
+npm install receipt-sdk
 
 # Run tests (47 passing)
-npm test
+cd packages/receipt-sdk && npm test
 
 # Run demo app
 cd demo/app && npm install && npm run dev
 
 # CLI
-cd packages/receipt-cli && npm install && npm run build
-npx receipt-agent run --task "Analyze codebase" --output chain.json
-npx receipt-agent verify chain.json
-npx receipt-agent inspect chain.json
+npx receipt verify chain.json
+npx receipt inspect chain.json
 ```
 
-## Standalone Agents
+## Examples
 
 ```bash
-# Researcher creates chain, writes handoff to /tmp
-npx tsx demo/agents/researcher.ts
+# Wrap OpenClaw with receipts
+npx tsx packages/receipt-sdk/examples/wrap-openclaw.ts
 
-# Builder reads handoff, verifies, extends chain
-npx tsx demo/agents/builder.ts
+# Two-machine handoff via Gensyn AXL
+npx tsx packages/receipt-sdk/examples/two-machine-handoff.ts
 
-# Adversarial mode — tampers receipt, builder refuses
-npx tsx demo/agents/researcher.ts --adversarial
-npx tsx demo/agents/builder.ts
+# Basic agent wrapping
+npx tsx packages/receipt-sdk/examples/wrap-agent.ts
 ```
 
 ## Environment Variables
