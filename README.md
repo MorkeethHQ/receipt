@@ -101,7 +101,7 @@ Standalone demos:
 
 ```
 packages/
-  receipt-sdk/                  npm: receipt-sdk — types, crypto, chain, agent, verify, integrations
+  receipt-sdk/                  npm: agenticproof — types, crypto, chain, agent, verify, integrations
   receipt-cli/                  CLI tool — run, verify, inspect, export, anchor
   openclaw-plugin-receipt/      OpenClaw plugin — native agent lifecycle hooks
 
@@ -119,11 +119,11 @@ demo/
 ## Wrap Any Agent in 10 Lines
 
 ```bash
-npm install receipt-sdk
+npm install agenticproof
 ```
 
 ```typescript
-import { createAgentRun, wrapTool } from 'receipt-sdk';
+import { createAgentRun, wrapTool } from 'agenticproof';
 
 const run = createAgentRun({ agentId: 'my-agent' });
 
@@ -195,14 +195,14 @@ Every file Cursor's agent edits becomes a receipt. Press Ctrl+C to finalize the 
 | **OpenClaw** | Native plugin (lifecycle hooks) | `openclaw plugins install openclaw-plugin-receipt` |
 | **Claude Code** | Hooks (PostToolUse, SessionStart, Stop) | `npx receipt init --claude-code` |
 | **Cursor** | File watcher | `npx receipt init --cursor` |
-| **Custom agents** | SDK wrapper (10 lines) | `npm install receipt-sdk` |
+| **Custom agents** | SDK wrapper (10 lines) | `npm install agenticproof` |
 
 A team of 3 people running 2-3 agents each = 9 agents, all producing receipt chains. RECEIPT tells you which ones earned their keep and which ones burned tokens for nothing. Cost-per-useful-output across your entire agent fleet.
 
 ## SDK: Lower-Level Usage
 
 ```typescript
-import { ReceiptAgent, verifyChain } from 'receipt-sdk';
+import { ReceiptAgent, verifyChain } from 'agenticproof';
 
 const researcher = ReceiptAgent.create('researcher');
 researcher.readFile('config.json', fileContents);
@@ -220,7 +220,7 @@ const allValid = results.every(r => r.valid); // true
 
 ```bash
 # Install SDK
-npm install receipt-sdk
+npm install agenticproof
 
 # Run tests (47 passing)
 cd packages/receipt-sdk && npm test

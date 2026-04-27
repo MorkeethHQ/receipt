@@ -16,7 +16,7 @@ cp receipt-hook.mjs .receipt/
 Or use the CLI:
 
 ```bash
-npm install -g receipt-sdk
+npm install -g agenticproof
 receipt init --claude-code
 ```
 

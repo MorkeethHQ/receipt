@@ -17,7 +17,7 @@
  *   }
  *
  * Or install globally:
- *   npm install -g receipt-sdk
+ *   npm install -g agenticproof
  *   receipt init --claude-code
  */
 

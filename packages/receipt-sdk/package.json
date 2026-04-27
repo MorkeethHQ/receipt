@@ -1,5 +1,5 @@
 {
-  "name": "receipt-sdk",
+  "name": "agenticproof",
   "version": "0.1.0",
   "type": "module",
   "description": "Cryptographic proof layer for AI agent work — signed, hash-linked receipts with TEE-attested quality scoring and on-chain anchoring.",

@@ -1,21 +1,24 @@
 {
-  "name": "openclaw-plugin-receipt",
+  "name": "@openclaw/receipt",
   "version": "0.1.0",
-  "description": "OpenClaw plugin: cryptographic receipt chain for every agent run",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+  "private": true,
+  "description": "Cryptographic receipt chain for every OpenClaw agent action",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
   },
   "dependencies": {
-    "receipt-sdk": "file:../receipt-sdk"
+    "agenticproof": "file:../receipt-sdk"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.4.0"
+    "openclaw": ">=2026.3.7"
   },
-  "license": "MIT",
-  "devDependencies": {
-    "typescript": "^6.0.3"
-  }
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
 }

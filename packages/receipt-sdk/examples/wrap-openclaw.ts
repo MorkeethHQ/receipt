@@ -7,7 +7,7 @@
  * Run: npx tsx examples/wrap-openclaw.ts
  */
 
-import { createAgentRun, wrapTool } from 'receipt-sdk';
+import { createAgentRun, wrapTool } from 'agenticproof';
 
 // --- Your existing tools (replace with real implementations) ---
 

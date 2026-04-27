@@ -7,7 +7,7 @@
  * Run: npx tsx examples/wrap-agent.ts
  */
 
-import { ReceiptAgent } from 'receipt-sdk';
+import { ReceiptAgent } from 'agenticproof';
 
 const agent = ReceiptAgent.create('my-agent');
 

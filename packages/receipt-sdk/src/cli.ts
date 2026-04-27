@@ -9,7 +9,7 @@ const args = process.argv.slice(2);
 const cmd = args[0];
 
 const HELP = `
-receipt-sdk — Cryptographic proof layer for AI agent work
+agenticproof — Cryptographic proof layer for AI agent work
 
 Commands:
   init                    Generate a receipt.config.json template
@@ -232,7 +232,7 @@ function init() {
   console.log('  3. Enable axl for multi-machine agent handoff');
   console.log('  4. Import and wrap your agent:');
   console.log('');
-  console.log('     import { ReceiptAgent } from "receipt-sdk";');
+  console.log('     import { ReceiptAgent } from "agenticproof";');
   console.log('     const agent = ReceiptAgent.create("my-agent");');
   console.log('     agent.callLlm(prompt, response);');
 }
@@ -327,8 +327,8 @@ function wrap() {
   console.log(`
 // Wrap any agent with RECEIPT in ~10 lines:
 
-import { ReceiptAgent } from 'receipt-sdk';
-import { AxlTransport } from 'receipt-sdk/integrations/axl';
+import { ReceiptAgent } from 'agenticproof';
+import { AxlTransport } from 'agenticproof/integrations/axl';
 
 const agent = ReceiptAgent.create('my-agent');
 

@@ -12,8 +12,8 @@
  *   - Both nodes discover each other via Yggdrasil mesh
  */
 
-import { ReceiptAgent } from 'receipt-sdk';
-import { AxlTransport } from 'receipt-sdk/integrations/axl';
+import { ReceiptAgent } from 'agenticproof';
+import { AxlTransport } from 'agenticproof/integrations/axl';
 
 const role = process.env.AXL_ROLE || 'researcher';
 const axlUrl = process.env.AXL_URL || 'http://127.0.0.1:9011';

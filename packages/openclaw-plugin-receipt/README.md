@@ -76,16 +76,16 @@ To forward completed chains to another machine via Gensyn AXL:
 }
 ```
 
-The receiver can verify the chain independently using `receipt-sdk`:
+The receiver can verify the chain independently using `agenticproof`:
 
 ```typescript
-import { verifyChain } from 'receipt-sdk';
+import { verifyChain } from 'agenticproof';
 const result = verifyChain(chain.receipts);
 console.log(result.valid); // true
 ```
 
 ## Built on
 
-- [receipt-sdk](https://www.npmjs.com/package/receipt-sdk) — cryptographic proof layer
+- [agenticproof](https://www.npmjs.com/package/agenticproof) — cryptographic proof layer
 - [0G Compute](https://0g.ai) — TEE-attested inference
 - [Gensyn AXL](https://gensyn.ai) — P2P agent transport
