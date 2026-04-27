@@ -3,6 +3,7 @@ import { publicKeyToHex } from '../crypto';
 
 export interface AxlConfig {
   baseUrl?: string;
+  authToken?: string;
 }
 
 export interface AxlPeerInfo {
@@ -93,10 +94,12 @@ export function createAxlClient(config?: AxlConfig) {
  */
 export class AxlTransport {
   private readonly baseUrl: string;
+  private readonly authToken?: string;
   private connected = false;
 
   constructor(config?: AxlConfig) {
     this.baseUrl = config?.baseUrl ?? 'http://127.0.0.1:9002';
+    this.authToken = config?.authToken;
   }
 
   /** Check whether the AXL node is reachable. */
@@ -168,7 +171,7 @@ export class AxlTransport {
     bundle: HandoffBundle;
     senderPublicKey: string;
   } | null> {
-    const res = await fetch(`${this.baseUrl}/recv`);
+    const res = await this.fetchSafe(`${this.baseUrl}/recv`);
     if (res.status === 204 || res.status === 404) return null;
     if (!res.ok) throw new Error(`AXL recv error: ${res.status}`);
 
@@ -177,7 +180,6 @@ export class AxlTransport {
     const decoder = new TextDecoder();
     const parsed = JSON.parse(decoder.decode(raw));
 
-    // Support both AxlHandoffPayload (with senderPublicKey) and legacy HandoffBundle
     if (parsed.senderPublicKey && parsed.bundle) {
       const payload = parsed as AxlHandoffPayload;
       return {
@@ -187,7 +189,6 @@ export class AxlTransport {
       };
     }
 
-    // Legacy format — no sender key
     return {
       fromPeerId,
       bundle: parsed as HandoffBundle,
@@ -275,7 +276,7 @@ export class AxlTransport {
     bundle: HandoffBundle;
     senderPublicKey: string;
   } | null> {
-    const res = await fetch(`${this.baseUrl}/recv`);
+    const res = await this.fetchSafe(`${this.baseUrl}/recv`);
     if (res.status === 204 || res.status === 404) return null;
     if (!res.ok) throw new Error(`AXL A2A recv error: ${res.status}`);
 
@@ -383,7 +384,9 @@ export class AxlTransport {
   /** Fetch with graceful connection error handling. */
   private async fetchSafe(url: string, init?: RequestInit): Promise<Response> {
     try {
-      const res = await fetch(url, init);
+      const headers = new Headers(init?.headers);
+      if (this.authToken) headers.set('Authorization', `Bearer ${this.authToken}`);
+      const res = await fetch(url, { ...init, headers });
       return res;
     } catch (err: any) {
       if (err.cause?.code === 'ECONNREFUSED') {

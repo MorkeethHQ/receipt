@@ -273,7 +273,7 @@ export async function POST(request: Request) {
 
         try {
           const baseUrl = process.env.AXL_BASE_URL || 'http://127.0.0.1:9002';
-          axlTransport = new AxlTransport({ baseUrl });
+          axlTransport = new AxlTransport({ baseUrl, authToken: process.env.AXL_AUTH_TOKEN });
           axlNodeInfo = await axlTransport.connect();
           axlPeers = await axlTransport.discoverPeers();
           axlMode = 'live';
