@@ -100,7 +100,9 @@ export async function POST(request: Request) {
   const directChain = body.receipts as any[] | undefined;
   const directPublicKey = body.publicKey as string | undefined;
 
-  const axlBuilderUrl = process.env.AXL_BUILDER_URL || 'http://127.0.0.1:9012';
+  const axlBaseUrl = process.env.AXL_BASE_URL?.replace(/\/researcher\/?$/, '/builder') || process.env.AXL_BUILDER_URL || 'http://127.0.0.1:9012';
+  const axlAuthToken = process.env.AXL_AUTH_TOKEN || '';
+  const axlHeaders: Record<string, string> = axlAuthToken ? { Authorization: `Bearer ${axlAuthToken}` } : {};
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -129,7 +131,7 @@ export async function POST(request: Request) {
           const deadline = Date.now() + 30000;
           while (Date.now() < deadline) {
             try {
-              const res = await fetch(`${axlBuilderUrl}/recv`, { signal: AbortSignal.timeout(2000) });
+              const res = await fetch(`${axlBaseUrl}/recv`, { headers: axlHeaders, signal: AbortSignal.timeout(2000) });
               if (res.status === 200) {
                 const fromPeer = res.headers.get('X-From-Peer-Id') || 'unknown';
                 const payload = await res.json() as any;
@@ -345,9 +347,9 @@ export async function POST(request: Request) {
         if (axlReceived && researcherKey) {
           try {
             send('status', { message: 'Builder: Sending completed chain back to Researcher via AXL...' });
-            const res = await fetch(`${axlBuilderUrl}/send`, {
+            const res = await fetch(`${axlBaseUrl}/send`, {
               method: 'POST',
-              headers: { 'X-Destination-Peer-Id': researcherKey },
+              headers: { 'X-Destination-Peer-Id': researcherKey, ...axlHeaders },
               body: JSON.stringify({
                 type: 'completed_chain',
                 receipts: allReceipts,

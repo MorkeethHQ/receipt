@@ -109,8 +109,10 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 export async function POST(request: Request) {
   const { adversarial } = await request.json().catch(() => ({}));
-  const axlResearcherUrl = process.env.AXL_RESEARCHER_URL || 'http://127.0.0.1:9002';
+  const axlResearcherUrl = process.env.AXL_BASE_URL || process.env.AXL_RESEARCHER_URL || 'http://127.0.0.1:9002';
+  const axlAuthToken = process.env.AXL_AUTH_TOKEN || '';
   const builderPeerKey = process.env.AXL_BUILDER_KEY || '';
+  const axlHeaders: Record<string, string> = axlAuthToken ? { Authorization: `Bearer ${axlAuthToken}` } : {};
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
         let axlConnected = false;
         let researcherKey = '';
         try {
-          const topo = await fetch(`${axlResearcherUrl}/topology`, { signal: AbortSignal.timeout(2000) });
+          const topo = await fetch(`${axlResearcherUrl}/topology`, { headers: axlHeaders, signal: AbortSignal.timeout(2000) });
           if (topo.ok) {
             const info = await topo.json() as any;
             researcherKey = info.our_public_key || '';
@@ -246,7 +248,7 @@ export async function POST(request: Request) {
             send('status', { message: `Researcher: Sending chain to Builder via AXL (${builderPeerKey.slice(0, 12)}...)` });
             const res = await fetch(`${axlResearcherUrl}/send`, {
               method: 'POST',
-              headers: { 'X-Destination-Peer-Id': builderPeerKey },
+              headers: { 'X-Destination-Peer-Id': builderPeerKey, ...axlHeaders },
               body: JSON.stringify(handoffPayload),
             });
             if (res.ok) {
