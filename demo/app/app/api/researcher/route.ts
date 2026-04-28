@@ -88,21 +88,15 @@ async function tryInfer(prompt: string): Promise<InferResult> {
     allErrors.push(`pass ${pass + 1}: ${passErrors.join('; ')}`);
   }
 
-  console.warn(`Researcher: 0G Compute fallback. ${allErrors.join(' | ')}`);
-  return {
-    response: 'Analysis: This SDK implements a cryptographic receipt chain using ed25519 signatures and SHA-256 hash linking. Key security properties: (1) Each receipt is signed, preventing forgery. (2) Hash links create tamper-evident ordering. (3) The chain can be independently verified by any party. Recommendation: suitable for multi-agent handoff verification.',
-    source: 'simulated', attested: false, provider: 'simulated', providerAddress: '',
-    teeType: 'none', chatId: '', teeSigEndpoint: '',
-    usage: { prompt_tokens: 45, completion_tokens: 120, total_tokens: 165 },
-  };
+  throw new Error(`0G Compute unavailable — all providers failed. ${allErrors.join(' | ')}`);
 }
 
-async function fetchReal(url: string, fallback: string): Promise<string> {
+async function fetchReal(url: string): Promise<string | null> {
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (r.ok) return await r.text();
   } catch {}
-  return fallback;
+  return null;
 }
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
@@ -162,10 +156,9 @@ export async function POST(request: Request) {
         send('status', { message: 'Researcher: Reading SDK source code...' });
         const pkgData = await fetchReal(
           'https://raw.githubusercontent.com/MorkeethHQ/receipt/main/packages/receipt-sdk/package.json',
-          '{"name":"@receipt/sdk","version":"0.1.0","description":"Proof layer for agent work","dependencies":{"@noble/ed25519":"^2.1.0","@noble/hashes":"^1.5.0"}}',
         );
-        const r1 = agent.readFile('packages/receipt-sdk/package.json', pkgData);
-        send('receipt', { index: 0, receipt: r1, agent: 'A', rawInput: 'packages/receipt-sdk/package.json', rawOutput: pkgData.slice(0, 500), durationMs: Math.round(performance.now() - s0), tokensUsed: null });
+        const r1 = agent.readFile('packages/receipt-sdk/package.json', pkgData ?? 'FETCH_FAILED');
+        send('receipt', { index: 0, receipt: r1, agent: 'A', rawInput: 'packages/receipt-sdk/package.json', rawOutput: pkgData?.slice(0, 500) ?? 'GitHub fetch failed', durationMs: Math.round(performance.now() - s0), tokensUsed: null });
 
         // 2. Check contract on 0G
         const s1 = performance.now();
@@ -174,17 +167,16 @@ export async function POST(request: Request) {
         const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x53D96861a37e82FF174324872Fc4d037a61520e3';
         const contractCheck = await fetchReal(
           `https://chainscan-newton.0g.ai/api?module=contract&action=getabi&address=${contractAddr}`,
-          `{"status":"1","result":"contract verified","address":"${contractAddr}","chain":"0G Mainnet (16661)"}`,
         );
-        const r2 = agent.callApi(`0G Mainnet: ReceiptAnchor (${contractAddr.slice(0, 10)}...)`, contractCheck.slice(0, 300));
-        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan-newton.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck.slice(0, 500), durationMs: Math.round(performance.now() - s1), tokensUsed: null });
+        const r2 = agent.callApi(`0G Mainnet: ReceiptAnchor (${contractAddr.slice(0, 10)}...)`, contractCheck?.slice(0, 300) ?? 'FETCH_FAILED');
+        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan-newton.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck?.slice(0, 500) ?? 'Chain scan fetch failed', durationMs: Math.round(performance.now() - s1), tokensUsed: null });
 
         // 3. TEE inference via 0G Compute
         const s2 = performance.now();
         await sleep(200);
         send('status', { message: 'Researcher: Analyzing via 0G Compute (TEE) — DeepSeek V3 primary...' });
-        const pkgParsed = (() => { try { return JSON.parse(pkgData); } catch { return { name: '@receipt/sdk' }; } })();
-        const inferPrompt = `Code review: ${pkgParsed.name} v${pkgParsed.version ?? '0.1.0'} uses ed25519 signing and SHA-256 hashing. The ReceiptAnchor contract is deployed on 0G Mainnet. Review the security of: (1) receipt chain hash linking, (2) signature verification, (3) on-chain anchoring. Are there risks for a multi-agent handoff protocol?`;
+        const pkgParsed = (() => { try { const p = JSON.parse(pkgData!); return p && typeof p === 'object' ? p : {}; } catch { return {}; } })();
+        const inferPrompt = `Code review: ${pkgParsed.name ?? '@receipt/sdk'} v${pkgParsed.version ?? '0.1.0'} uses ed25519 signing and SHA-256 hashing. The ReceiptAnchor contract is deployed on 0G Mainnet. Review the security of: (1) receipt chain hash linking, (2) signature verification, (3) on-chain anchoring. Are there risks for a multi-agent handoff protocol?`;
         const inferResult = await tryInfer(inferPrompt);
         if (inferResult.teeVerifiedPayload) send('tee_verified', inferResult.teeVerifiedPayload);
         const r3 = agent.callLlm(inferPrompt, inferResult.response);
@@ -271,10 +263,10 @@ export async function POST(request: Request) {
         if (!axlSent) {
           send('axl_handoff', {
             from: agent.agentId, to: 'builder',
-            mode: 'simulated', protocol: 'AXL P2P (simulated)',
+            mode: 'direct', protocol: 'HTTP (AXL unavailable)',
             receiptCount: receiptsToSend.length, chainRoot,
           });
-          send('status', { message: 'AXL not available — handoff simulated.' });
+          send('status', { message: 'AXL not available — handoff via direct HTTP.' });
         }
 
         send('pipeline_timing', { totalMs: Math.round(performance.now() - pipelineStart) });

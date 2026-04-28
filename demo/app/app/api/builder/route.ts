@@ -77,26 +77,18 @@ async function tryInfer(prompt: string, role: 'analysis' | 'review' = 'review'):
     allErrors.push(`pass ${pass + 1}: ${passErrors.join('; ')}`);
   }
 
-  console.warn(`Builder: 0G Compute fallback. ${allErrors.join(' | ')}`);
-  return {
-    response: '{"alignment":78,"substance":72,"quality":75,"reasoning":"Simulated review — 0G Compute unavailable","weights":[0.6,0.8,0.9,0.7,0.8,0.7,0.8,0.85,0.9]}',
-    source: 'simulated', attested: false, provider: 'simulated', providerAddress: '',
-    teeType: 'none', chatId: '', teeSigEndpoint: '',
-    usage: { prompt_tokens: 60, completion_tokens: 150, total_tokens: 210 },
-  };
+  throw new Error(`0G Compute unavailable — all providers failed. ${allErrors.join(' | ')}`);
 }
 
-async function fetchReal(url: string, fallback: string): Promise<string> {
+async function fetchReal(url: string): Promise<string | null> {
   try { const r = await fetch(url, { signal: AbortSignal.timeout(5000) }); if (r.ok) return await r.text(); } catch {}
-  return fallback;
+  return null;
 }
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
-  const { lowQuality } = body;
-  // If chain is passed directly (simulated mode), use it. Otherwise receive via AXL.
   const directChain = body.receipts as any[] | undefined;
   const directPublicKey = body.publicKey as string | undefined;
 
@@ -123,7 +115,7 @@ export async function POST(request: Request) {
           receiptsForVerify = directChain;
           senderPubKey = directPublicKey || '';
           senderAgentId = directChain[0]?.agentId || 'researcher';
-          send('status', { message: 'Builder: Received chain directly (fallback mode).' });
+          send('status', { message: 'Builder: Received chain via HTTP (AXL unavailable).' });
         } else {
           send('status', { message: 'Builder: Waiting for chain from AXL...' });
 
@@ -203,9 +195,9 @@ export async function POST(request: Request) {
         const s6 = performance.now();
         await sleep(300);
         send('status', { message: 'Builder: Querying 0G Mainnet...' });
-        const chainData = await fetchReal('https://evmrpc.0g.ai', '{"jsonrpc":"2.0","result":"0x1"}');
-        const b2 = agentB.callApi('0G Mainnet RPC (eth_blockNumber)', chainData.slice(0, 200));
-        send('receipt', { index: 6, receipt: b2, agent: 'B', rawInput: 'https://evmrpc.0g.ai — eth_blockNumber', rawOutput: chainData.slice(0, 200), durationMs: Math.round(performance.now() - s6), tokensUsed: null });
+        const chainData = await fetchReal('https://evmrpc.0g.ai');
+        const b2 = agentB.callApi('0G Mainnet RPC (eth_blockNumber)', chainData?.slice(0, 200) ?? 'RPC_UNAVAILABLE');
+        send('receipt', { index: 6, receipt: b2, agent: 'B', rawInput: 'https://evmrpc.0g.ai — eth_blockNumber', rawOutput: chainData?.slice(0, 200) ?? '0G RPC unavailable', durationMs: Math.round(performance.now() - s6), tokensUsed: null });
 
         // 3. Build decision
         const s7 = performance.now();
@@ -254,7 +246,7 @@ export async function POST(request: Request) {
           }
           send('reviewer_selection', { model: reviewerModel, reason: reviewerReason, attested: reviewerAttested, provider: selResult.provider });
         } catch {
-          send('reviewer_selection', { model: reviewerModel, reason: 'Default — selection failed', attested: false, provider: 'fallback' });
+          send('reviewer_selection', { model: reviewerModel, reason: 'Default — TEE selection unavailable', attested: false, provider: 'default' });
         }
 
         send('status', { message: `Builder: Usefulness review via ${reviewerModel} (TEE)...` });
@@ -264,7 +256,7 @@ export async function POST(request: Request) {
         let reviewScores = { alignment: 0, substance: 0, quality: 0, composite: 0, reasoning: '' } as any;
         let perReceiptWeights: number[] = [];
         let reviewAttested = false;
-        let reviewSource = 'simulated';
+        let reviewSource = 'pending';
         let reviewAttestation: any = null;
         let reviewInferUsage: any;
 
@@ -291,13 +283,6 @@ export async function POST(request: Request) {
             }
           }
 
-          if (lowQuality) {
-            const j = () => Math.floor(Math.random() * 11) - 5;
-            const a = 25 + j(), s = 20 + j(), q = 30 + j();
-            reviewScores = { alignment: a, substance: s, quality: q, composite: Math.round((a + s + q) / 3), reasoning: 'Low-quality demo — agents produced shallow output' };
-            perReceiptWeights = preReviewReceipts.map(() => Math.round((0.15 + Math.random() * 0.2) * 100) / 100);
-          }
-
           if (reviewAttested) {
             reviewAttestation = {
               provider: reviewInfer.provider, type: 'tee',
@@ -307,17 +292,8 @@ export async function POST(request: Request) {
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          send('status', { message: `Review fallback: ${msg.slice(0, 60)}` });
-          if (lowQuality) {
-            const j = () => Math.floor(Math.random() * 11) - 5;
-            const a = 25 + j(), s = 20 + j(), q = 30 + j();
-            reviewScores = { alignment: a, substance: s, quality: q, composite: Math.round((a + s + q) / 3), reasoning: 'Low-quality demo' };
-          } else {
-            const j = () => Math.floor(Math.random() * 13) - 6;
-            const a = 80 + j(), s2 = 74 + j(), q = 77 + j();
-            reviewScores = { alignment: a, substance: s2, quality: q, composite: Math.round((a + s2 + q) / 3), reasoning: 'Simulated review — 0G Compute unavailable' };
-          }
-          perReceiptWeights = preReviewReceipts.map(() => 0.5);
+          send('error', { message: `Usefulness review failed — 0G Compute unavailable: ${msg.slice(0, 120)}` });
+          reviewScores = { alignment: 0, substance: 0, quality: 0, composite: 0, reasoning: `Review failed: ${msg.slice(0, 80)}` };
         }
 
         while (perReceiptWeights.length < preReviewReceipts.length) perReceiptWeights.push(0.5);
@@ -412,10 +388,11 @@ export async function POST(request: Request) {
             send('agentic_id', { tokenId, txHash: txReceipt.hash, metadataHash, agentId: senderAgentId, standard: 'ERC-7857', status: 'minted', chain: '0g-mainnet', chainId: 16661, iDatas, contractAddress });
             send('nft_minted', { tokenId, txHash: txReceipt.hash, contract: contractAddress, explorer: `https://chainscan-newton.0g.ai/tx/${txReceipt.hash}` });
           } else {
-            send('agentic_id', { tokenId: null, metadataHash, agentId: senderAgentId, standard: 'ERC-7857', status: 'simulated', iDatas, contractAddress: contractAddress ?? null });
-            send('nft_minted', { tokenId: null, txHash: null, contract: contractAddress ?? '0xf964d45c3Ea5368918B1FDD49551E373028108c9', explorer: null });
+            send('status', { message: 'NFT mint skipped — credentials not configured' });
           }
-        } catch {}
+        } catch (e: unknown) {
+          send('status', { message: `NFT mint failed: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}` });
+        }
 
         // 0G Storage + Chain Anchor
         await sleep(200);
@@ -477,7 +454,9 @@ export async function POST(request: Request) {
               });
               anchorResult = { txHash: ar.txHash, chain: '0G Mainnet', contractAddress: process.env.OG_CONTRACT_ADDRESS, chainRootHash: rootHash, explorerUrl: `https://chainscan-newton.0g.ai/tx/${ar.txHash}`, usefulnessScore: ar.usefulnessScore };
               send('anchor_tx', { txHash: ar.txHash, explorer: `https://chainscan-newton.0g.ai/tx/${ar.txHash}` });
-            } catch {}
+            } catch (e: unknown) {
+              send('status', { message: `Chain anchor failed: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}` });
+            }
           }
         } catch {}
 
