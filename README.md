@@ -2,7 +2,7 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-**[Live Demo](https://receipt-murex.vercel.app)** · [Demo](https://receipt-murex.vercel.app/demo) · [Verify](https://receipt-murex.vercel.app/verify) · [Dashboard](https://receipt-murex.vercel.app/dashboard) · [Replay](https://receipt-murex.vercel.app/trial)
+**[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval)
 
 **Two-layer proof for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs — with TEE-attested quality scoring.
 
@@ -15,9 +15,9 @@
 **The feedback loop.** Usefulness scores anchor on-chain alongside the receipt hash — creating on-chain agent reputation. Only chains scoring above a quality threshold become fine-tuning data. The system self-improves: good agent work trains better agents, bad work is excluded.
 
 **Deployed Contracts (0G Mainnet):**
-- ReceiptAnchorV2: [`0x73B9A7768679B154D7E1eC5F2570a622A3b49651`](https://chainscan-newton.0g.ai/address/0x73B9A7768679B154D7E1eC5F2570a622A3b49651) — stores usefulness scores on-chain
-- AgentNFT: [`0xf964d45c3Ea5368918B1FDD49551E373028108c9`](https://chainscan-newton.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9) — ERC-7857 agent identity
-- ValidationRegistry: [`0x2E32E845928A92DB193B59676C16D52923Fa01dd`](https://chainscan-newton.0g.ai/address/0x2E32E845928A92DB193B59676C16D52923Fa01dd) — ERC-8004 agent proof attestations
+- ReceiptAnchorV2: [`0x73B9A7768679B154D7E1eC5F2570a622A3b49651`](https://chainscan.0g.ai/address/0x73B9A7768679B154D7E1eC5F2570a622A3b49651) — stores usefulness scores on-chain
+- AgentNFT: [`0xf964d45c3Ea5368918B1FDD49551E373028108c9`](https://chainscan.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9) — ERC-7857 agent identity
+- ValidationRegistry: [`0x2E32E845928A92DB193B59676C16D52923Fa01dd`](https://chainscan.0g.ai/address/0x2E32E845928A92DB193B59676C16D52923Fa01dd) — ERC-8004 agent proof attestations
 
 ## Architecture
 

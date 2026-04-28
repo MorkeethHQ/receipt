@@ -116,10 +116,8 @@ function Nav() {
       </a>
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-        <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
+        <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Live</a>
         <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
-        <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Dashboard</a>
-        <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Replay</a>
         <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
         <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
       </div>
@@ -1070,7 +1068,7 @@ export default function Dashboard() {
                     <div>
                       tx{' '}
                       <a
-                        href={anchor0g.explorerUrl || `https://chainscan-newton.0g.ai/tx/${anchor0g.txHash}`}
+                        href={anchor0g.explorerUrl || `https://chainscan.0g.ai/tx/${anchor0g.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: 'var(--green)', textDecoration: 'none' }}
@@ -1122,7 +1120,7 @@ export default function Dashboard() {
               <div>
                 tx{' '}
                 <a
-                  href={`https://chainscan-newton.0g.ai/tx/${erc8004.txHash}`}
+                  href={`https://chainscan.0g.ai/tx/${erc8004.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: '#60a5fa', textDecoration: 'none' }}
@@ -1212,7 +1210,7 @@ export default function Dashboard() {
                 {agenticId.chainRootHash && <div>Chain root: {agenticId.chainRootHash.slice(0, 16)}...</div>}
                 {trustScore != null && <div>Trust score: {trustScore}/100</div>}
                 <a
-                  href={`https://chainscan-newton.0g.ai/address/${agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9'}`}
+                  href={`https://chainscan.0g.ai/address/${agenticId.contractAddress || '0xf964d45c3Ea5368918B1FDD49551E373028108c9'}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: '#60a5fa', textDecoration: 'none', fontSize: '0.55rem' }}

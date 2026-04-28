@@ -43,11 +43,9 @@ export default function LandingPage() {
           R.E.C.E.I.P.T.
         </a>
         <div className="nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
+          <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Home</a>
+          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Live</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
-          <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
-          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Replay</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
@@ -150,6 +148,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section style={{ padding: '2rem 1.5rem 3rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ fontSize: '0.65rem', fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1.5rem', textAlign: 'center' }}>How it works</h2>
         <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
           {[
             { n: '1', title: 'Wrap your agent', desc: 'Add one import. Every file read, API call, and LLM response gets a cryptographic receipt automatically.' },
@@ -234,7 +233,7 @@ export default function LandingPage() {
               { label: 'Identity', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
               { label: 'Validation', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
             ].map(c => (
-              <a key={c.addr} href={`https://chainscan-newton.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+              <a key={c.addr} href={`https://chainscan.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
                 style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', padding: '0.2rem 0.5rem', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)' }}>
                 {c.label}: {c.addr.slice(0, 8)}...
               </a>
@@ -284,10 +283,9 @@ export default function LandingPage() {
         fontFamily: 'Inter, sans-serif',
       }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Demo</a>
+          <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Live</a>
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
-          <a href="/dashboard" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</a>
-          <a href="/trial" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Replay</a>
+          <a href="/eval" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
         <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem' }}>

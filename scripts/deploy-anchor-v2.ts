@@ -56,7 +56,7 @@ async function main() {
 
   const address = await deployed.getAddress();
   console.log(`\n✓ ReceiptAnchorV2 deployed: ${address}`);
-  console.log(`  Explorer: https://chainscan-newton.0g.ai/address/${address}`);
+  console.log(`  Explorer: https://chainscan.0g.ai/address/${address}`);
   console.log('\nUpdate OG_CONTRACT_ADDRESS in .env to use V2');
 }
 

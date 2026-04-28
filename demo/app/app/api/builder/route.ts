@@ -386,7 +386,7 @@ export async function POST(request: Request) {
             const transferLog = txReceipt.logs?.find((l: any) => l.topics?.[0] === ethers.id('Transfer(address,address,uint256)'));
             const tokenId = transferLog ? ethers.toBigInt(transferLog.topics[3]).toString() : null;
             send('agentic_id', { tokenId, txHash: txReceipt.hash, metadataHash, agentId: senderAgentId, standard: 'ERC-7857', status: 'minted', chain: '0g-mainnet', chainId: 16661, iDatas, contractAddress });
-            send('nft_minted', { tokenId, txHash: txReceipt.hash, contract: contractAddress, explorer: `https://chainscan-newton.0g.ai/tx/${txReceipt.hash}` });
+            send('nft_minted', { tokenId, txHash: txReceipt.hash, contract: contractAddress, explorer: `https://chainscan.0g.ai/tx/${txReceipt.hash}` });
           } else {
             send('status', { message: 'NFT mint skipped — credentials not configured' });
           }
@@ -452,8 +452,8 @@ export async function POST(request: Request) {
                 rpc: 'https://evmrpc.0g.ai', contractAddress: process.env.OG_CONTRACT_ADDRESS ?? '',
                 privateKey: pk, chainId: 16661, usefulnessScore: reviewScores.composite,
               });
-              anchorResult = { txHash: ar.txHash, chain: '0G Mainnet', contractAddress: process.env.OG_CONTRACT_ADDRESS, chainRootHash: rootHash, explorerUrl: `https://chainscan-newton.0g.ai/tx/${ar.txHash}`, usefulnessScore: ar.usefulnessScore };
-              send('anchor_tx', { txHash: ar.txHash, explorer: `https://chainscan-newton.0g.ai/tx/${ar.txHash}` });
+              anchorResult = { txHash: ar.txHash, chain: '0G Mainnet', contractAddress: process.env.OG_CONTRACT_ADDRESS, chainRootHash: rootHash, explorerUrl: `https://chainscan.0g.ai/tx/${ar.txHash}`, usefulnessScore: ar.usefulnessScore };
+              send('anchor_tx', { txHash: ar.txHash, explorer: `https://chainscan.0g.ai/tx/${ar.txHash}` });
             } catch (e: unknown) {
               send('status', { message: `Chain anchor failed: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}` });
             }

@@ -346,10 +346,9 @@ export default function TrialPage() {
       <nav style={{ padding: '0.6rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}>R.E.C.E.I.P.T.</a>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          {[['/', 'Home'], ['/demo', 'Demo'], ['/verify', 'Verify'], ['/dashboard', 'Dashboard']].map(([href, label]) => (
+          {[['/', 'Home'], ['/demo', 'Live'], ['/verify', 'Verify']].map(([href, label]) => (
             <a key={href} href={href} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>{label}</a>
           ))}
-          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Replay</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
@@ -365,8 +364,6 @@ export default function TrialPage() {
           <button onClick={() => runSingle(false)} disabled={running} style={{ ...btnBase, border: 'none', background: running ? 'var(--border)' : 'var(--text)', color: '#fff' }}>
             {running && !compMode ? 'Running...' : 'Run Demo'}
           </button>
-          <button onClick={() => runSingle(true)} disabled={running} style={{ ...btnBase, border: '1px solid var(--amber)', background: running ? 'var(--border)' : 'rgba(217,119,6,0.06)', color: running ? '#fff' : 'var(--amber)' }}>Run Low-Quality</button>
-          <button onClick={runComparison} disabled={running} style={{ ...btnBase, border: '1px solid var(--border)', background: running ? 'var(--border)' : 'var(--surface)', color: running ? '#fff' : 'var(--text)', fontWeight: 500 }}>Compare Both</button>
           <button onClick={runLiveAgent} disabled={running} style={{ ...btnBase, border: '1px solid #8b5cf6', background: running ? 'var(--border)' : 'rgba(139,92,246,0.06)', color: running ? '#fff' : '#8b5cf6' }}>Live Agent</button>
         </div>
         {statusMsg && <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '0.5rem' }}>{statusMsg}</div>}
@@ -430,7 +427,7 @@ export default function TrialPage() {
                     <span style={{ ...mono, fontSize: '0.5rem', padding: '0.15rem 0.4rem', background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', borderRadius: '4px', fontWeight: 700, letterSpacing: '0.05em' }}>SOULBOUND</span>
                   </div>
                   <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
-                    Contract: <a href={`https://chainscan-newton.0g.ai/address/${nftData.contract}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>{nftData.contract.slice(0, 10)}...{nftData.contract.slice(-6)}</a>
+                    Contract: <a href={`https://chainscan.0g.ai/address/${nftData.contract}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>{nftData.contract.slice(0, 10)}...{nftData.contract.slice(-6)}</a>
                   </div>
                   {nftData.txHash && (
                     <div style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-dim)' }}>
@@ -547,7 +544,7 @@ export default function TrialPage() {
                   { label: 'Identity', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
                   { label: 'Validation', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
                 ].map(c => (
-                  <a key={c.addr} href={`https://chainscan-newton.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+                  <a key={c.addr} href={`https://chainscan.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
                     style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textDecoration: 'none', padding: '0.2rem 0.5rem', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)' }}>
                     {c.label}: {c.addr.slice(0, 8)}...
                   </a>
@@ -609,7 +606,7 @@ export default function TrialPage() {
 
       <footer style={{ marginTop: 'auto', padding: '0.8rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          {[['Demo', '/demo'], ['Verify', '/verify'], ['Dashboard', '/dashboard']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
+          {[['Live', '/demo'], ['Verify', '/verify'], ['Eval', '/eval']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
         </div>
         <span style={{ ...mono, fontSize: '0.6rem' }}>Execution Replay</span>
       </footer>

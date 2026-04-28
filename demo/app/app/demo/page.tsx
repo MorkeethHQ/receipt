@@ -125,7 +125,7 @@ function getNarrative(event: string, data: any): string {
     if (data.message?.includes('Verifying') || data.message?.includes('verifying'))
       return 'The Builder doesn\'t take the Researcher\'s word for it. Every receipt is checked independently — signature, hash link, timestamp order. One tampered receipt and the entire chain is rejected.';
     if (data.message?.includes('Fabricating'))
-      return 'The Researcher is about to lie. It will change the contract verification data after signing. The signature was computed on the real data — the tampered version won\'t match.';
+      return 'The Researcher is about to lie. It says it verified the contract on-chain — but it never actually called the chain scanner. It assumed the data. The signature was computed on real data — the fabricated version won\'t match.';
     if (data.message?.includes('Broadcasting') || data.message?.includes('Handing off'))
       return 'The Researcher bundles its chain — 5 receipts, root hash, and public key — for handoff to the Builder.';
     if (data.message?.includes('0G Storage'))
@@ -138,7 +138,7 @@ function getNarrative(event: string, data: any): string {
       : 'FAILED. The data doesn\'t match the signature. This receipt was modified after signing — the agent is lying about what happened.';
   }
   if (event === 'fabrication_detected') {
-    return 'CAUGHT. The contract verification receipt was tampered — the hash doesn\'t match what was signed. The Builder rejects the entire chain. The Researcher\'s work is worthless, not because it was wrong, but because it can\'t be trusted.';
+    return 'CAUGHT. The Researcher said "I verified the contract" — but it didn\'t. It assumed the data. The hash doesn\'t match what was signed. The Builder rejects the entire chain. This is how RECEIPT catches agents that skip steps and guess.';
   }
   if (event === 'axl_handoff') {
     return data.mode === 'live'
@@ -165,7 +165,7 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'done') {
     return data.fabricated
-      ? 'Fabrication caught. No tampered data reaches the next agent. This is the trust guarantee — if an agent lies, the proof breaks before anyone relies on it.'
+      ? 'Fabrication caught. The agent said it did the work, but it didn\'t. No tampered data reaches the next agent. This is the trust guarantee — skip a step, and the proof breaks before anyone relies on it.'
       : 'Complete. Every action proven, every handoff verified, quality scored and recorded on-chain. This chain is a permanent, verifiable record of useful agent work.';
   }
   if (event === 'review_start') {
@@ -236,7 +236,6 @@ function AnimatedCounter({ target, duration = 1200, color }: { target: number; d
 export default function Demo() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [adversarial, setAdversarial] = useState(false);
-  const [lowQuality, setLowQuality] = useState(false);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [receiptMeta, setReceiptMeta] = useState<Record<string, ReceiptMeta>>({});
   const [verifications, setVerifications] = useState<VerificationResult[]>([]);
@@ -625,11 +624,11 @@ export default function Demo() {
               await showChapter(3, 'Verification complete',
                 'Every signature checked. Every hash link validated. The Builder independently confirmed that the Researcher\'s work is authentic — not because it trusts the Researcher, but because the math checks out.');
             } else if (item.event === 'fabrication_detected') {
-              await showChapter(3, 'Fabrication caught',
-                'The Builder found the lie. Receipt #2 was tampered — the hash doesn\'t match the signature. The entire chain is rejected. This is why you don\'t need to trust the other agent.');
+              await showChapter(3, 'The lie didn\'t survive',
+                'The Builder checked the hashes. Receipt #2 — "verified contract on 0G Mainnet" — was fabricated. The agent never actually called the chain scanner. It guessed. The signature doesn\'t match the claimed output. Chain rejected.');
             } else if (item.event === 'review_start') {
-              await showChapter(4, 'Independent review',
-                'A different model, selected inside a hardware enclave, is about to score whether this work was actually useful — not just "did it run" but "was it worth paying for." The agent can\'t pick its own grader. The operator can\'t modify the score.');
+              await showChapter(4, 'Was the work worth paying for?',
+                'A different model — selected inside a TEE hardware enclave, not by the agent — scores the entire chain. Not "did it run" but "was the output actually useful." The agent can\'t pick its own grader. The operator can\'t modify the score.');
             } else if (item.event === 'review_scores' || item.event === 'quality_gate') {
               const isGood = item.event === 'review_scores' && item.data.composite >= 60;
               const isRejected = item.event === 'quality_gate' && !item.data.passed;
@@ -662,13 +661,12 @@ export default function Demo() {
     // Chapter 1: Researcher done
     await showChapter(1, 'The Researcher is done',
       adversarial
-        ? '5 actions, 5 signed receipts — but one of them is a lie. The Researcher fabricated the contract verification. Now it\'s about to hand the chain to the Builder. Will the forgery survive?'
-        : '5 actions, 5 signed receipts. Every step cryptographically proven. But right now, only the Researcher knows this chain is real. Time to hand it off — and see if it survives independent verification.');
+        ? '5 actions, 5 signed receipts — but one of them is a lie. The Researcher said it verified the contract on-chain, but it never actually checked. It assumed the data. Now it\'s handing this chain to the Builder.'
+        : '5 actions, 5 signed receipts. Every file read, every API call, every inference — cryptographically proven. Now the chain passes to the Builder. Will it survive independent verification?');
 
     // Phase 2: Builder receives via AXL, verifies, extends (streams live)
     if (researcherChain) {
       await streamSSE('/api/builder', {
-        lowQuality,
         receipts: researcherChain,
         publicKey: researcherPubKey,
       });
@@ -676,7 +674,7 @@ export default function Demo() {
 
     setChapterPause(null);
     setPhase('done');
-  }, [adversarial, lowQuality, handleEvent, guidedMode]);
+  }, [adversarial, handleEvent, guidedMode]);
 
   /* ---------------------------------------------------------------- */
   /*  Render: Receipt Card                                             */
@@ -869,33 +867,28 @@ export default function Demo() {
           R.E.C.E.I.P.T.
         </div>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: '1.5rem', ...mono }}>
-          Cryptographic proof that agent work actually mattered
+          Proof that AI work actually mattered
         </p>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-          Two agents. Every action signed and hash-linked. The Builder independently verifies the Researcher&apos;s chain, then a TEE-attested reviewer scores whether the output was worth paying for.
+          Did the agent actually read the file, or just assume the data? Did it really search the web, or guess the answer? Watch two agents work — every action signed, every output hashed, every lie caught.
         </p>
 
-        {/* Mode selector — three radio-style pills */}
+        {/* Mode selector — two modes */}
         <div style={{
-          background: adversarial ? '#fef2f2' : lowQuality ? '#fffbeb' : 'var(--surface)',
-          border: `2px solid ${adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--border)'}`,
+          background: adversarial ? '#fef2f2' : 'var(--surface)',
+          border: `2px solid ${adversarial ? 'var(--red)' : 'var(--border)'}`,
           borderRadius: '12px', padding: '1.5rem 2rem',
           marginBottom: '2rem',
           transition: 'all 0.3s ease',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.8rem' }}>
             {([
-              { key: 'honest', label: 'Honest', active: !adversarial && !lowQuality, color: 'var(--green)', bg: '#f0fdf4', borderColor: '#bbf7d0' },
-              { key: 'adversarial', label: 'Adversarial', active: adversarial, color: 'var(--red)', bg: '#fef2f2', borderColor: '#fecaca' },
-              { key: 'lowQuality', label: 'Low Quality', active: lowQuality, color: 'var(--amber)', bg: '#fffbeb', borderColor: '#fde68a' },
+              { key: 'honest', label: 'Honest Agent', active: !adversarial, color: 'var(--green)', bg: '#f0fdf4' },
+              { key: 'adversarial', label: 'Catch the Lie', active: adversarial, color: 'var(--red)', bg: '#fef2f2' },
             ] as const).map(mode => (
               <button
                 key={mode.key}
-                onClick={() => {
-                  if (mode.key === 'honest') { setAdversarial(false); setLowQuality(false); }
-                  else if (mode.key === 'adversarial') { setAdversarial(true); setLowQuality(false); }
-                  else { setAdversarial(false); setLowQuality(true); }
-                }}
+                onClick={() => setAdversarial(mode.key === 'adversarial')}
                 style={{
                   padding: '0.5rem 1.2rem', borderRadius: '8px',
                   border: `2px solid ${mode.active ? mode.color : 'var(--border)'}`,
@@ -911,12 +904,10 @@ export default function Demo() {
               </button>
             ))}
           </div>
-          <p style={{ fontSize: '0.82rem', color: adversarial ? '#991b1b' : lowQuality ? '#92400e' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+          <p style={{ fontSize: '0.82rem', color: adversarial ? '#991b1b' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
             {adversarial
-              ? 'The Researcher will lie. Watch the Builder catch it.'
-              : lowQuality
-              ? 'Both agents work truthfully, but output quality is low. Watch the quality gate reject the chain.'
-              : 'Both agents work truthfully. Every receipt verifies cleanly.'}
+              ? 'The Researcher claims it verified a contract — but it never actually checked. It assumed the data. Watch the Builder catch a fabricated receipt.'
+              : 'Both agents work honestly. Every file read, every API call, every inference — signed and hash-linked. The full chain verifies.'}
           </p>
         </div>
 
@@ -969,7 +960,7 @@ export default function Demo() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '2rem',
         }}>
-          {['Researcher', 'Handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder', 'Review', adversarial ? null : lowQuality ? 'Quality Check' : 'Record'].filter(Boolean).map((step, i, arr) => (
+          {['Researcher', 'Handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder', 'Review', adversarial ? null : 'Record'].filter(Boolean).map((step, i, arr) => (
             <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <div style={{
                 ...mono, fontSize: '0.62rem', padding: '0.3rem 0.6rem',
@@ -986,11 +977,11 @@ export default function Demo() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
           <button onClick={run} style={{
             padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
-            background: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--text)',
+            background: adversarial ? 'var(--red)' : 'var(--text)',
             color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
             fontSize: '1rem', fontWeight: 600, transition: 'all 0.2s ease',
           }}>
-            {adversarial ? 'Start Adversarial Demo' : lowQuality ? 'Start Low Quality Demo' : 'Start Demo'}
+            {adversarial ? 'Start — Catch the Lie' : 'Start Demo'}
           </button>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -1476,11 +1467,10 @@ export default function Demo() {
         }}>
           <div style={{ display: 'flex', gap: '1.2rem' }}>
             <a href="/verify" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Verify</a>
-            <a href="/dashboard" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Dashboard</a>
-            <a href="/trial" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Replay</a>
+            <a href="/eval" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Eval</a>
           </div>
           <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
-            {adversarial ? 'adversarial mode' : lowQuality ? 'low quality mode' : 'honest mode'}
+            {adversarial ? 'catch the lie' : 'honest mode'}
           </span>
         </div>
       );
@@ -1652,10 +1642,8 @@ export default function Demo() {
         </a>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
+          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Live</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
-          <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
-          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Replay</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
@@ -1664,7 +1652,7 @@ export default function Demo() {
       {/* Demo Sub-Header */}
       <header style={{
         padding: '0.5rem 1.5rem', borderBottom: '1px solid var(--border)',
-        background: adversarial && phase === 'running' ? '#fef8f8' : lowQuality && phase === 'running' ? '#fffdf5' : 'var(--surface)',
+        background: adversarial && phase === 'running' ? '#fef8f8' : 'var(--surface)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, transition: 'background 0.3s ease',
       }}>
@@ -1672,11 +1660,11 @@ export default function Demo() {
           <div>
             <h1 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>Live Demo</h1>
             <p style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
-              {phase === 'idle' ? 'Choose a mode and start the demo' :
-                phase === 'running' ? `Running ${adversarial ? '(adversarial)' : lowQuality ? '(low quality)' : '(honest)'} -- watching agents generate receipts` :
-                  fabricationDetected ? 'Complete -- fabrication detected and rejected' :
-                    qualityRejected ? 'Complete -- quality gate rejected the chain' :
-                    'Complete -- all receipts verified'}
+              {phase === 'idle' ? 'Choose a mode and start' :
+                phase === 'running' ? `Running ${adversarial ? '— catching the lie' : '— watching agents generate receipts'}` :
+                  fabricationDetected ? 'Complete — fabrication detected and rejected' :
+                    qualityRejected ? 'Complete — quality gate rejected the chain' :
+                    'Complete — all receipts verified'}
             </p>
           </div>
         </div>
@@ -1704,18 +1692,18 @@ export default function Demo() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.4rem',
               padding: '0.3rem 0.6rem', borderRadius: '6px',
-              background: adversarial ? '#fef2f2' : lowQuality ? '#fffbeb' : '#f0fdf4',
-              border: `1px solid ${adversarial ? '#fecaca' : lowQuality ? '#fde68a' : '#bbf7d0'}`,
+              background: adversarial ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${adversarial ? '#fecaca' : '#bbf7d0'}`,
             }}>
               <div style={{
                 width: '8px', height: '8px', borderRadius: '50%',
-                background: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--green)',
+                background: adversarial ? 'var(--red)' : 'var(--green)',
               }} />
               <span style={{
                 ...mono, fontSize: '0.6rem', fontWeight: 600,
-                color: adversarial ? 'var(--red)' : lowQuality ? 'var(--amber)' : 'var(--green)',
+                color: adversarial ? 'var(--red)' : 'var(--green)',
               }}>
-                {adversarial ? 'ADVERSARIAL' : lowQuality ? 'LOW QUALITY' : 'HONEST'}
+                {adversarial ? 'CATCHING LIE' : 'HONEST'}
               </span>
             </div>
           )}
@@ -1740,7 +1728,8 @@ export default function Demo() {
           background: chapterPause ? '#f0f4ff' : fabricationDetected ? '#fef2f2' : 'var(--surface)',
           transition: 'all 0.3s',
           flexShrink: 0,
-          minHeight: '90px',
+          height: '90px',
+          overflow: 'hidden',
         }}>
           {chapterPause ? (
             <div style={{ maxWidth: '700px' }}>

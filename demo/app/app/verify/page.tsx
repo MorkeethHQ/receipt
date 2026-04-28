@@ -151,7 +151,7 @@ async function generateValidExample(): Promise<ValidChainResult> {
   const r1 = await makeReceipt('researcher', null, 'file_read', 'Read SDK source code', 'packages/receipt-sdk/package.json', '{"name":"@receipt/sdk","version":"0.1.0","dependencies":{"@noble/ed25519":"^2.1.0"}}', null, now, 0);
   receipts.push(r1);
 
-  const r2 = await makeReceipt('researcher', r1.id, 'api_call', 'Verify ReceiptAnchor on 0G Mainnet', 'https://chainscan-newton.0g.ai/api?module=contract&action=getabi&address=0x73B9A7768679B154D7E1eC5F2570a622A3b49651', '{"status":"1","result":"contract verified","chain":"0G Mainnet (16661)"}', null, now, 500);
+  const r2 = await makeReceipt('researcher', r1.id, 'api_call', 'Verify ReceiptAnchor on 0G Mainnet', 'https://chainscan.0g.ai/api?module=contract&action=getabi&address=0x73B9A7768679B154D7E1eC5F2570a622A3b49651', '{"status":"1","result":"contract verified","chain":"0G Mainnet (16661)"}', null, now, 500);
   receipts.push(r2);
 
   const r3 = await makeReceipt('researcher', r2.id, 'llm_call', 'TEE-attested code review via 0G Compute', 'Code review: @receipt/sdk uses ed25519 signing and SHA-256 hashing. Review security of receipt chain.', 'Analysis: The receipt chain implements sound cryptographic primitives. Ed25519 provides 128-bit security. SHA-256 hash linking creates tamper-evident ordering.', { provider: '0G Compute', type: 'tee' }, now, 2000);
@@ -542,10 +542,8 @@ export default function VerifyPage() {
         </a>
         <div className="verify-nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
+          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Live</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Verify</a>
-          <a href="/dashboard" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
-          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Replay</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
@@ -557,81 +555,67 @@ export default function VerifyPage() {
           Verify agent work
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, maxWidth: '680px' }}>
-          Paste a chain of agent receipts below. Each receipt is cryptographically signed — we check
-          that signatures are valid, that receipts link together in order, and that nothing was modified
-          after the fact. If any receipt was tampered with, you&apos;ll see exactly which one and why.
+          Check whether an agent&apos;s receipt chain is authentic. Paste the JSON output from any RECEIPT-enabled agent below — or try the examples to see verification in action. We check every signature, every hash link, and every timestamp.
         </p>
         <p style={{ color: 'var(--text-dim)', fontSize: '0.65rem', marginTop: '0.4rem', fontFamily: 'Inter, sans-serif' }}>
-          All checks run client-side — no data leaves your browser.
+          All checks run client-side using WebCrypto (Ed25519 + SHA-256) — no data leaves your browser.
         </p>
       </header>
 
       <div className="verify-container" style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem 2rem 4rem' }}>
         {/* Quick load buttons */}
-        <div className="verify-buttons" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <div className="verify-buttons" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <button
+            onClick={loadValidExample}
+            disabled={generatingValid}
+            style={{
+              padding: '0.4rem 0.8rem',
+              borderRadius: '4px',
+              border: '1px solid var(--green)',
+              background: 'rgba(22, 163, 74, 0.06)',
+              color: 'var(--green)',
+              cursor: generatingValid ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              opacity: generatingValid ? 0.6 : 1,
+            }}
+          >
+            {generatingValid ? 'Generating...' : 'Honest chain'}
+          </button>
+          <button
+            onClick={loadTamperedExample}
+            style={{
+              padding: '0.4rem 0.8rem',
+              borderRadius: '4px',
+              border: '1px solid var(--red)',
+              background: 'rgba(220, 38, 38, 0.06)',
+              color: 'var(--red)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+            }}
+          >
+            Tampered chain
+          </button>
+          {hasLastRun && (
             <button
-              onClick={loadValidExample}
-              disabled={generatingValid}
+              onClick={loadLastRun}
               style={{
                 padding: '0.4rem 0.8rem',
                 borderRadius: '4px',
-                border: '1px solid var(--green)',
-                background: 'rgba(22, 163, 74, 0.06)',
-                color: 'var(--green)',
-                cursor: generatingValid ? 'wait' : 'pointer',
-                fontFamily: 'inherit',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                opacity: generatingValid ? 0.6 : 1,
-              }}
-            >
-              {generatingValid ? 'Generating...' : 'Try a clean chain'}
-            </button>
-            <span style={{ fontSize: '0.58rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
-              (all receipts verify)
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <button
-              onClick={loadTamperedExample}
-              style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '4px',
-                border: '1px solid var(--red)',
-                background: 'rgba(220, 38, 38, 0.06)',
-                color: 'var(--red)',
+                border: '1px solid var(--researcher)',
+                background: 'rgba(37, 99, 235, 0.06)',
+                color: 'var(--researcher)',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: '0.7rem',
                 fontWeight: 600,
               }}
             >
-              Try a tampered chain
+              Your last run
             </button>
-            <span style={{ fontSize: '0.58rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
-              (shows where it breaks)
-            </span>
-          </div>
-          {hasLastRun && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <button
-                onClick={loadLastRun}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '4px',
-                  border: '1px solid var(--researcher)',
-                  background: 'rgba(37, 99, 235, 0.06)',
-                  color: 'var(--researcher)',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                }}
-              >
-                Load last pipeline run
-              </button>
-            </div>
           )}
         </div>
 
@@ -808,7 +792,7 @@ export default function VerifyPage() {
                   { label: 'AgentNFT (ERC-7857)', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
                   { label: 'Validation (ERC-8004)', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
                 ].map(c => (
-                  <a key={c.addr} href={`https://chainscan-newton.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+                  <a key={c.addr} href={`https://chainscan.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
                     style={{
                       fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.55rem',
                       color: 'var(--text-dim)', textDecoration: 'none',
@@ -1103,83 +1087,91 @@ export default function VerifyPage() {
         {phase === 'idle' && cards.length === 0 && !input.trim() && (
           <div style={{
             marginTop: '2rem',
-            padding: '1.5rem',
+            padding: '2rem 1.5rem',
             background: 'var(--paper)',
             border: '1px solid var(--border)',
             borderRadius: '4px',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '460px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
-              Paste a receipt chain above, or try one of the examples to see verification in action.
+            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem', fontFamily: 'Inter, sans-serif' }}>
+              Don&apos;t have a receipt chain yet?
+            </p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '460px', margin: '0 auto 1rem', fontFamily: 'Inter, sans-serif' }}>
+              Try one of these examples — a clean chain where everything verifies, or a tampered chain where the agent lied about what it did.
             </p>
             <div style={{
-              marginTop: '1rem',
               display: 'flex',
               gap: '0.75rem',
               justifyContent: 'center',
               flexWrap: 'wrap',
+              alignItems: 'flex-start',
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <button
                   onClick={loadValidExample}
                   disabled={generatingValid}
                   style={{
-                    padding: '0.4rem 0.8rem',
+                    padding: '0.5rem 1rem',
                     borderRadius: '4px',
                     border: '1px solid var(--green)',
                     background: 'rgba(22, 163, 74, 0.06)',
                     color: 'var(--green)',
                     cursor: generatingValid ? 'wait' : 'pointer',
                     fontFamily: 'inherit',
-                    fontSize: '0.68rem',
+                    fontSize: '0.72rem',
                     fontWeight: 600,
                     opacity: generatingValid ? 0.6 : 1,
                   }}
                 >
-                  {generatingValid ? 'Generating...' : 'Try a clean chain'}
+                  {generatingValid ? 'Generating...' : 'Honest chain'}
                 </button>
-                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
-                  (all receipts verify)
+                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
+                  10 receipts, all valid
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <button
                   onClick={loadTamperedExample}
                   style={{
-                    padding: '0.4rem 0.8rem',
+                    padding: '0.5rem 1rem',
                     borderRadius: '4px',
                     border: '1px solid var(--red)',
                     background: 'rgba(220, 38, 38, 0.06)',
                     color: 'var(--red)',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    fontSize: '0.68rem',
+                    fontSize: '0.72rem',
                     fontWeight: 600,
                   }}
                 >
-                  Try a tampered chain
+                  Tampered chain
                 </button>
-                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>
-                  (shows where it breaks)
+                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
+                  agent lied, chain breaks
                 </span>
               </div>
               {hasLastRun && (
-                <button
-                  onClick={loadLastRun}
-                  style={{
-                    padding: '0.4rem 0.8rem',
-                    borderRadius: '4px',
-                    border: '1px solid var(--researcher)',
-                    background: 'rgba(37, 99, 235, 0.06)',
-                    color: 'var(--researcher)',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: '0.68rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  Load last pipeline run
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <button
+                    onClick={loadLastRun}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--researcher)',
+                      background: 'rgba(37, 99, 235, 0.06)',
+                      color: 'var(--researcher)',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Your last run
+                  </button>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
+                    from the Live demo
+                  </span>
+                </div>
               )}
             </div>
           </div>

@@ -166,10 +166,10 @@ export async function POST(request: Request) {
         send('status', { message: 'Researcher: Verifying contract deployment on 0G Mainnet...' });
         const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x53D96861a37e82FF174324872Fc4d037a61520e3';
         const contractCheck = await fetchReal(
-          `https://chainscan-newton.0g.ai/api?module=contract&action=getabi&address=${contractAddr}`,
+          `https://chainscan.0g.ai/api?module=contract&action=getabi&address=${contractAddr}`,
         );
         const r2 = agent.callApi(`0G Mainnet: ReceiptAnchor (${contractAddr.slice(0, 10)}...)`, contractCheck?.slice(0, 300) ?? 'FETCH_FAILED');
-        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan-newton.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck?.slice(0, 500) ?? 'Chain scan fetch failed', durationMs: Math.round(performance.now() - s1), tokensUsed: null });
+        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck?.slice(0, 500) ?? 'Chain scan fetch failed', durationMs: Math.round(performance.now() - s1), tokensUsed: null });
 
         // 3. TEE inference via 0G Compute
         const s2 = performance.now();
