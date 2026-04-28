@@ -2,7 +2,7 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-**[Live Demo](https://receipt-demo.vercel.app)** · [Demo](https://receipt-demo.vercel.app/demo) · [Verify](https://receipt-demo.vercel.app/verify) · [Dashboard](https://receipt-demo.vercel.app/dashboard) · [Replay](https://receipt-demo.vercel.app/trial)
+**[Live Demo](https://receipt-murex.vercel.app)** · [Demo](https://receipt-murex.vercel.app/demo) · [Verify](https://receipt-murex.vercel.app/verify) · [Dashboard](https://receipt-murex.vercel.app/dashboard) · [Replay](https://receipt-murex.vercel.app/trial)
 
 **Two-layer proof for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs — with TEE-attested quality scoring.
 
@@ -91,11 +91,11 @@ Standalone demos:
 
 ## Demo Pages
 
-- **[Demo](https://receipt-demo.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Three modes: honest, adversarial (tamper detection), low-quality (quality gate rejection). Guided walkthrough explains each stage.
-- **[Replay](https://receipt-demo.vercel.app/trial)** — Execution timeline with cost-per-useful-output. Human review becomes receipt #11, signed and hash-linked. Side-by-side honest vs. low-quality comparison. Live Agent mode fetches real chains from OpenClaw.
-- **[Verify](https://receipt-demo.vercel.app/verify)** — Independent chain verifier. Load valid or tampered chains, see exactly where tampering breaks.
-- **[Dashboard](https://receipt-demo.vercel.app/dashboard)** — Operator view: quality scores, on-chain anchoring, agent identity (ERC-7857), full receipt chain.
-- **[Eval](https://receipt-demo.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop. Research report format.
+- **[Demo](https://receipt-murex.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Three modes: honest, adversarial (tamper detection), low-quality (quality gate rejection). Guided walkthrough explains each stage.
+- **[Replay](https://receipt-murex.vercel.app/trial)** — Execution timeline with cost-per-useful-output. Human review becomes receipt #11, signed and hash-linked. Side-by-side honest vs. low-quality comparison. Live Agent mode fetches real chains from OpenClaw.
+- **[Verify](https://receipt-murex.vercel.app/verify)** — Independent chain verifier. Load valid or tampered chains, see exactly where tampering breaks.
+- **[Dashboard](https://receipt-murex.vercel.app/dashboard)** — Operator view: quality scores, on-chain anchoring, agent identity (ERC-7857), full receipt chain.
+- **[Eval](https://receipt-murex.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop. Research report format.
 
 ## Project Structure
 

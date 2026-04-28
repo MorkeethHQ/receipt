@@ -440,8 +440,7 @@ export default function TrialPage() {
                 </>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ ...mono, fontSize: '0.8rem', color: 'var(--text-dim)' }}>Pending</span>
-                  <span style={{ ...mono, fontSize: '0.5rem', padding: '0.15rem 0.4rem', background: 'rgba(100,100,100,0.1)', color: 'var(--text-dim)', borderRadius: '4px', fontWeight: 600, letterSpacing: '0.05em' }}>SIMULATED</span>
+                  <span style={{ ...mono, fontSize: '0.8rem', color: 'var(--text-dim)' }}>Awaiting mint...</span>
                 </div>
               )}
             </div>

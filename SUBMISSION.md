@@ -2,73 +2,77 @@
 
 ## One-liner
 
-Cryptographic proof layer that makes every AI agent action verifiable — signed receipts, hash-linked chains, and on-chain anchoring.
+Two-layer proof for AI agent work: cryptographic receipt chains (Layer 1) with TEE-attested quality scoring (Layer 2) — every action verifiable, every output scored, anchored on-chain.
 
 ## Problem
 
-AI agents are black boxes. When Agent A hands work to Agent B, there's no way to verify what Agent A actually did. Did it read the right file? Call the right API? Did the LLM response come from a trusted environment? Multi-agent workflows have a trust gap — and existing solutions (logging, audit trails) are trivially forgeable.
+AI agents are black boxes. When Agent A hands work to Agent B, there's no way to verify what A actually did. Did it read the right file? Call the right API? Did the LLM response come from a trusted environment? And even if it did — was the output actually useful?
+
+Multi-agent workflows have two trust gaps:
+1. **Proof of Action** — did the agent do what it claims?
+2. **Proof of Usefulness** — was the work worth the cost?
+
+Existing tools (LangSmith, AgentOps, OpenTelemetry) answer the first poorly and the second not at all. Academic papers on agent verification (zkAgent, PunkGo) explicitly punt quality scoring as "future work."
 
 ## Solution
 
-R.E.C.E.I.P.T. is a proof layer for agent work. Every action produces a cryptographically signed receipt:
+R.E.C.E.I.P.T. is a two-layer proof system:
 
-- **ed25519 signatures** — each agent has a keypair; every receipt is signed
-- **SHA-256 hash chains** — each receipt includes the previous receipt's hash, creating a tamper-evident chain
-- **Input/output hashing** — what went in and what came out are independently hashable
-- **Multi-agent handoffs** — Agent B verifies Agent A's entire chain before accepting
+**Layer 1 — Proof of Action.** Every agent action produces a cryptographically signed receipt (ed25519 + SHA-256). Receipts hash-link into a tamper-evident chain. If any receipt is modified, the chain breaks. When The Builder receives work from The Researcher, it independently verifies every receipt before continuing.
 
-If any receipt is tampered with, the chain breaks. The demo's adversarial mode shows this live: toggle it on, watch Agent A fabricate an API response, and watch Agent B catch the lie instantly.
+**Layer 2 — Proof of Usefulness.** A TEE-attested model (selected inside the enclave, not by the agent) scores the entire chain on alignment, substance, and quality. The agent can't pick its own grader. Chains below the quality threshold aren't anchored — you don't get on-chain credit for bad work.
 
 ## What We Built
 
-### Core SDK (`@receipt/sdk`)
-- `ReceiptAgent` — create agents, record actions, produce receipts
+### Core SDK (`agenticproof` on npm)
+- `ReceiptAgent` — create agents, record actions, produce signed receipts
 - `ReceiptChain` — hash-linked chain with root hash computation
 - `verifyChain()` — independent verification of any receipt chain
 - `continueFrom()` — Agent B extends Agent A's verified chain
-- 47 tests covering all action types, tamper detection, crypto primitives
+- 47 tests, published as agenticproof@0.1.1
 
-### 0G Integration (5 Pillars)
-1. **Compute** — TEE-attested LLM inference via Intel TDX. 4 provider fallback chain.
-2. **Storage** — Merkle tree persistence via `@0gfoundation/0g-ts-sdk`
-3. **Chain** — `ReceiptAnchor.sol` on 0G Mainnet (16661). Root hash + storage ref anchored permanently.
-4. **Fine-Tuning** — Receipt chains → JSONL → 0G Fine-Tuning. Train models on verified agent behavior.
-5. **Agentic ID (ERC-7857)** — `AgentNFT.sol` mints identity tokens carrying the agent's ed25519 key hash and chain root.
+### 0G Integration (Full Stack)
+1. **Compute** — TEE-attested LLM inference via Intel TDX (DeepSeek V3, GLM-5)
+2. **Storage** — Merkle tree persistence via 0G Storage SDK
+3. **Chain** — `ReceiptAnchorV2.sol` on 0G Mainnet (16661) — root hash + usefulness score anchored permanently
+4. **Agentic ID (ERC-7857)** — `AgentNFT.sol` mints soulbound identity tokens carrying the agent's ed25519 key hash and chain root
+5. **Validation (ERC-8004)** — `ValidationRegistry.sol` posts usefulness attestations on-chain
+6. **Fine-Tuning** — Receipt chains → JSONL → 0G Fine-Tuning pipeline. Train models on verified, quality-scored agent behavior.
 
-### Gensyn AXL
-- `AxlTransport` SDK class wrapping AXL's P2P HTTP API
-- Peer discovery, handoff send/receive over the mesh network
-- Full sender/receiver demos with chain verification
+### Gensyn AXL (P2P Agent Handoff)
+- `AxlTransport` SDK class wrapping AXL's P2P API
+- Two AXL nodes deployed on VPS as systemd services with nginx proxy
+- Researcher → Builder handoff over encrypted P2P mesh
+- Full provenance preserved through transport
 
-### KeeperHub
-- Webhook-triggered anchor pipeline: verify → store → anchor on both chains
-- Auto-anchor CLI with poll mode
-- Workflow setup script with visual node positions
-- 1,681-word FEEDBACK.md (7/10 rating, 5 friction points, 5 improvement suggestions)
+### Demo App (6 Pages)
+- **Demo** — Watch 2 agents generate receipts in real-time. Honest mode + adversarial tamper detection
+- **Replay** — Execution timeline with cost-per-useful-output metric, quality score breakdown, human review
+- **Verify** — Independent chain verifier using WebCrypto (client-side, real ed25519)
+- **Dashboard** — Operator view: quality scores, on-chain anchoring, agent identity
+- **Eval** — Constitutional AI evaluation harness (60 test cases, 3 model evaluators)
 
-### Demo App
-- **Demo Mode** — Watch 2 agents generate 9 receipts in real-time
-- **Explorer Mode** — Full block-explorer: every hash, signature, raw I/O, chain linkage
-- **Adversarial Mode** — Agent A fabricates data, Agent B catches it
-- **Trust Score** — Chain integrity (70%) + data provenance (15%) + TEE attestation (15%)
-- **Public Verifier** — `/verify` page for independent chain verification
-- Training data export (JSONL download)
+### Contracts (All on 0G Mainnet)
+- ReceiptAnchorV2: `0x73B9A7768679B154D7E1eC5F2570a622A3b49651`
+- AgentNFT: `0xf964d45c3Ea5368918B1FDD49551E373028108c9`
+- ValidationRegistry: `0x2E32E845928A92DB193B59676C16D52923Fa01dd`
 
 ## How It's Different
 
-| Approach | Tamper-proof | Multi-agent | On-chain | Training pipeline |
-|----------|-------------|-------------|----------|-------------------|
-| Logging | No | No | No | No |
-| OpenTelemetry | No | Partial | No | No |
-| **R.E.C.E.I.P.T.** | **Yes (ed25519 + SHA-256)** | **Yes (verified handoffs)** | **Yes (0G + Base)** | **Yes (0G Fine-Tuning)** |
+| Approach | Tamper-proof | Multi-agent | Quality Score | On-chain | Training |
+|----------|-------------|-------------|---------------|----------|----------|
+| Logging | No | No | No | No | No |
+| LangSmith / AgentOps | No | Partial | No | No | No |
+| **R.E.C.E.I.P.T.** | **Yes (ed25519 + SHA-256)** | **Yes (verified handoffs)** | **Yes (TEE-attested)** | **Yes (0G Mainnet)** | **Yes (0G Fine-Tuning)** |
 
 ## Team
 
 - **Oscar** — Architecture, product, integration strategy, deployment
-- **Claude Code** (Anthropic) — Implementation
+- **Claude Code** (Anthropic) — Implementation partner
 
 ## Links
 
-- **Demo:** [receipt-demo.vercel.app](https://receipt-demo.vercel.app)
+- **Live Demo:** [receipt-murex.vercel.app](https://receipt-murex.vercel.app)
 - **Repo:** [github.com/MorkeethHQ/receipt](https://github.com/MorkeethHQ/receipt)
-- **Verifier:** [receipt-demo.vercel.app/verify](https://receipt-demo.vercel.app/verify)
+- **SDK:** [npmjs.com/package/agenticproof](https://www.npmjs.com/package/agenticproof)
+- **Verifier:** [receipt-murex.vercel.app/verify](https://receipt-murex.vercel.app/verify)

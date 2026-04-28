@@ -708,7 +708,7 @@ export default function Demo() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-dim)' }}>SOURCE</span>
                 <span style={{ fontWeight: 600, color: meta?.teeAttested ? 'var(--green)' : meta?.llmSource === '0g-compute' ? 'var(--amber)' : 'var(--text-muted)' }}>
-                  {meta?.teeAttested ? 'Verified' : meta?.llmSource === '0g-compute' ? 'Verified' : 'Simulated'}
+                  {meta?.teeAttested ? 'TEE Verified' : meta?.llmSource === '0g-compute' ? '0G Compute' : 'Unverified'}
                 </span>
               </div>
             )}
@@ -790,8 +790,8 @@ export default function Demo() {
               const p = meta.teeProvider.toLowerCase();
               const modelName = p.includes('deepseek') ? 'DeepSeek V3' : p.includes('glm') ? 'GLM-5' : meta.teeProvider;
               parts.push(<span key="model">{modelName}</span>);
-            } else if (meta?.llmSource && meta.llmSource !== 'simulated') {
-              parts.push(<span key="src" style={{ textTransform: 'capitalize' }}>{meta.llmSource === '0g-compute' ? 'Verified' : meta.llmSource}</span>);
+            } else if (meta?.llmSource && meta.llmSource !== 'pending') {
+              parts.push(<span key="src" style={{ textTransform: 'capitalize' }}>{meta.llmSource === '0g-compute' ? '0G Compute' : meta.llmSource}</span>);
             }
             if (meta?.teeAttested) {
               parts.push(<span key="tee" style={{ color: 'var(--green)' }}>TEE &#10003;</span>);

@@ -1,6 +1,15 @@
 {
   "name": "receipt-monorepo",
+  "version": "0.1.0",
+  "description": "Cryptographic proof layer for AI agent work — signed receipts, hash-linked chains, TEE-attested quality scoring, and on-chain anchoring",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MorkeethHQ/receipt.git"
+  },
+  "author": "Oscar Morkeeth",
+  "license": "MIT",
+  "keywords": ["ai-agents", "cryptographic-proof", "receipt-chain", "0g", "gensyn-axl", "ethglobal"],
   "scripts": {
     "build:sdk": "cd packages/receipt-sdk && npm run build",
     "build:cli": "cd packages/receipt-cli && npm run build",
