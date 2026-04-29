@@ -45,6 +45,7 @@ export default function LandingPage() {
         <div className="nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Live</a>
+          <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Team</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
@@ -284,6 +285,7 @@ export default function LandingPage() {
       }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
           <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Live</a>
+          <a href="/team" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Team</a>
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
           <a href="/eval" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
