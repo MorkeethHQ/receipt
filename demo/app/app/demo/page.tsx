@@ -1745,6 +1745,19 @@ export default function Demo() {
               >
                 Verify
               </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(receipts, null, 2));
+                }}
+                style={{
+                  padding: '0.35rem 0.8rem', borderRadius: '6px',
+                  border: '1px solid var(--border)', background: 'transparent',
+                  color: 'var(--text-dim)', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: '0.72rem', fontWeight: 500,
+                }}
+              >
+                Copy JSON
+              </button>
               <a
                 href="/team"
                 style={{
