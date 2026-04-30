@@ -60,9 +60,20 @@ R.E.C.E.I.P.T. is a two-layer proof system:
 
 | Approach | Tamper-proof | Multi-agent | Quality Score | On-chain | Training |
 |----------|-------------|-------------|---------------|----------|----------|
-| Logging | No | No | No | No | No |
-| LangSmith / AgentOps | No | Partial | No | No | No |
+| LangSmith | No | Partial | No | No | No |
+| AgentOps | No | Partial | No | No | No |
+| Patronus / Galileo | No | No | Partial | No | No |
+| Arize Phoenix | No | No | Partial | No | No |
 | **R.E.C.E.I.P.T.** | **Yes (ed25519 + SHA-256)** | **Yes (verified handoffs)** | **Yes (TEE-attested)** | **Yes (0G Mainnet)** | **Yes (0G Fine-Tuning)** |
+
+Every existing tool operates on a trust-me model: vendor-hosted logs, no cryptographic guarantees, no external verifiability. They answer "what happened?" but not "can you prove it?" RECEIPT bridges the gap between Web2 agent monitoring and Web3 trust infrastructure.
+
+### Real-World Integration
+
+RECEIPT is already running on:
+- **Claude Code** — hooks capture every Read, Write, Bash, WebSearch as signed receipts
+- **OpenClaw** — native plugin captures every agent run lifecycle
+- **Team feed** — aggregates chains from all sources into a single verifiable dashboard
 
 ## Team
 
@@ -72,6 +83,7 @@ R.E.C.E.I.P.T. is a two-layer proof system:
 ## Links
 
 - **Live Demo:** [receipt-murex.vercel.app](https://receipt-murex.vercel.app)
+- **Team Feed:** [receipt-murex.vercel.app/team](https://receipt-murex.vercel.app/team)
+- **Verifier:** [receipt-murex.vercel.app/verify](https://receipt-murex.vercel.app/verify)
 - **Repo:** [github.com/MorkeethHQ/receipt](https://github.com/MorkeethHQ/receipt)
 - **SDK:** [npmjs.com/package/agenticproof](https://www.npmjs.com/package/agenticproof)
-- **Verifier:** [receipt-murex.vercel.app/verify](https://receipt-murex.vercel.app/verify)

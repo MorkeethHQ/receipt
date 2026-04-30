@@ -329,6 +329,37 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Stack depth */}
+      <section style={{ padding: '0 1.5rem 3rem', maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ fontSize: '0.65rem', fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1.2rem', textAlign: 'center' }}>Under the hood</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
+          {[
+            'Ed25519 signatures',
+            'SHA-256 hash chains',
+            'TEE enclaves (Intel TDX)',
+            '0G Mainnet (16661)',
+            'ERC-7857 Agentic ID',
+            'ERC-8004 Validation',
+            'WebCrypto client-side verify',
+            'agenticproof@0.1.1 on npm',
+            '3 smart contracts deployed',
+            '47 SDK tests passing',
+          ].map(tag => (
+            <span key={tag} style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.6rem',
+              padding: '0.3rem 0.6rem',
+              borderRadius: '4px',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)',
+            }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      </section>
+
       {/* Footer */}
       <footer style={{
         marginTop: 'auto',
