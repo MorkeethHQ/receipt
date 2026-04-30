@@ -1056,7 +1056,7 @@ export default function Demo() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
-          <button onClick={run} style={{
+          <button onClick={run} className="pulse-btn" style={{
             padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
             background: adversarial ? 'var(--red)' : 'var(--text)',
             color: '#fff', cursor: 'pointer', fontFamily: 'inherit',

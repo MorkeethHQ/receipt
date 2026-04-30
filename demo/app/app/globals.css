@@ -93,6 +93,14 @@ body {
   100% { opacity: 0; }
 }
 
+@keyframes gentle-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26, 26, 26, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(26, 26, 26, 0.08); }
+}
+
+.pulse-btn { animation: gentle-pulse 2.5s ease-in-out infinite; }
+.pulse-btn:hover { animation: none; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+
 .flash-amber-overlay { animation: flash-amber-overlay 2s ease-out forwards; }
 
 .slide-up { animation: slide-up 0.3s ease-out; }

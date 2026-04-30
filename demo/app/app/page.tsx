@@ -133,7 +133,7 @@ export default function LandingPage() {
 
         {/* CTAs */}
         <div className="cta-row" style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="/demo" style={{
+          <a href="/demo" className="pulse-btn" style={{
             padding: '0.7rem 1.8rem',
             borderRadius: '8px',
             background: 'var(--text)',
