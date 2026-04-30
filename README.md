@@ -2,7 +2,7 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-**[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval)
+**[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Team](https://receipt-murex.vercel.app/team) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval)
 
 **Two-layer proof for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs — with TEE-attested quality scoring.
 
@@ -83,7 +83,7 @@ The SDK integration (`packages/receipt-sdk/src/integrations/axl.ts`) provides:
 - MCP tool calls via `callMcpTool()` (verify_chain, get_capabilities, get_chain_stats)
 - Broadcast to all peers via `broadcastHandoff()`
 
-When AXL is unavailable: graceful fallback with simulated events, clearly marked.
+When AXL is unavailable: direct HTTP handoff (clearly marked), no simulated data.
 
 Standalone demos:
 - `demo/axl/sender.ts` — Creates receipt chain, sends handoff bundle to peer
