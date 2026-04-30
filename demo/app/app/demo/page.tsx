@@ -269,6 +269,7 @@ export default function Demo() {
   const [chapterPause, setChapterPause] = useState<{ chapter: number; title: string; body: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [pipelineMs, setPipelineMs] = useState<number | null>(null);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
   const chaptersShownRef = useRef<Set<number>>(new Set());
 
   const guidedRef = useRef(true);
@@ -524,6 +525,10 @@ export default function Demo() {
         addCenterLog(`ERC-8004: Validation posted (${data.score}/100)`, 'anchor');
         addTiming('ERC-8004', Math.round(elapsed));
         break;
+      case 'error':
+        setPipelineError(data.message || 'Pipeline error');
+        addCenterLog(`ERROR: ${(data.message || 'Unknown error').slice(0, 80)}`, 'fail');
+        break;
     }
   }, [addCenterLog, addTiming, qualityRejected]);
 
@@ -557,6 +562,7 @@ export default function Demo() {
     setNftMint(null);
     setCopied(false);
     setPipelineMs(null);
+    setPipelineError(null);
     eventIndexRef.current = 0;
     lastEventTimeRef.current = 0;
     setChapterPause(null);
@@ -702,6 +708,8 @@ export default function Demo() {
         receipts: researcherChain,
         publicKey: researcherPubKey,
       });
+    } else if (researcherEvents.length === 0) {
+      setPipelineError('Failed to connect to pipeline — check your network connection');
     }
 
     setChapterPause(null);
@@ -723,7 +731,7 @@ export default function Demo() {
         <div className={`receipt-card ${isTampered ? 'tampered' : ''}`} style={{ fontSize: '0.75rem' }}>
           <div style={{ padding: '0.4rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ ...mono, fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.04em' }}>R.E.C.E.I.P.T.</span>
-            <span style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)' }}>#{index}</span>
+            <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }} title={receipt.id}>#{index} · {receipt.id.slice(0, 8)}</span>
           </div>
           <div className="dashed" />
           {/* Chain link indicator */}
@@ -1260,6 +1268,32 @@ export default function Demo() {
           </div>
         )}
 
+        {/* Pipeline error */}
+        {pipelineError && (
+          <div className="slide-up" style={{
+            padding: '0.5rem', borderRadius: '6px',
+            background: '#fef2f2', border: '2px solid var(--red)',
+            marginBottom: '0.4rem',
+          }}>
+            <div style={{ ...mono, fontSize: '0.62rem', color: 'var(--red)', fontWeight: 700, marginBottom: '0.15rem' }}>
+              PIPELINE ERROR
+            </div>
+            <div style={{ fontSize: '0.52rem', color: '#991b1b', lineHeight: 1.5, wordBreak: 'break-word' }}>
+              {pipelineError.slice(0, 200)}
+            </div>
+            <button
+              onClick={run}
+              style={{
+                marginTop: '0.3rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: 'none',
+                background: 'var(--text)', color: '#fff', cursor: 'pointer', ...mono,
+                fontSize: '0.55rem', fontWeight: 600,
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Quality rejected */}
         {qualityRejected && !fabricationDetected && (
           <div className="slide-up" style={{
@@ -1281,11 +1315,25 @@ export default function Demo() {
           </div>
         )}
 
-        {/* Chain verified */}
+        {/* Chain verified + provenance summary */}
         {phase === 'done' && !fabricationDetected && !qualityRejected && (
           <div className="slide-up" style={{ textAlign: 'center', marginBottom: '0.4rem' }}>
-            <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--green)', fontWeight: 700 }}>
+            <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--green)', fontWeight: 700, marginBottom: '0.3rem' }}>
               CHAIN VERIFIED
+            </div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.55rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {(() => {
+                const agents = new Set(receipts.map(r => receiptMeta[r.id]?.agent || 'A'));
+                const teeCount = receipts.filter(r => receiptMeta[r.id]?.teeAttested).length;
+                const parts: string[] = [];
+                parts.push(`${agents.size} agent${agents.size > 1 ? 's' : ''}`);
+                parts.push(`${receipts.length} receipts`);
+                parts.push(`${verificationsPassedCount}/${verifications.length} verified`);
+                if (teeCount > 0) parts.push(`${teeCount} TEE-attested`);
+                if (reviewScores) parts.push(`quality ${reviewScores.composite}/100`);
+                if (anchorTx) parts.push('anchored on 0G');
+                return parts.join(' · ');
+              })()}
             </div>
           </div>
         )}
