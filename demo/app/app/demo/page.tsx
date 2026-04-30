@@ -905,6 +905,18 @@ export default function Demo() {
         </div>
         <div className={`chat-bubble ${isAgent === 'A' ? 'left' : 'right'}`} style={{ fontSize: '0.72rem' }}>
           <span style={{ fontWeight: 500 }}>{receipt.action.description}</span>
+          {meta?.rawOutput && (
+            <div style={{
+              marginTop: '0.3rem', padding: '0.25rem 0.4rem',
+              background: 'rgba(0,0,0,0.04)', borderRadius: '4px',
+              fontSize: '0.6rem', color: 'var(--text-dim)',
+              fontFamily: "'IBM Plex Mono', monospace",
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              maxWidth: '240px',
+            }}>
+              {meta.rawOutput.slice(0, 80)}{meta.rawOutput.length > 80 ? '...' : ''}
+            </div>
+          )}
         </div>
         {renderReceipt(receipt, index)}
       </div>
