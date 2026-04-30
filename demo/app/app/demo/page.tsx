@@ -291,8 +291,18 @@ export default function Demo() {
   useEffect(() => {
     if (phase === 'done' && receipts.length > 0) {
       try { localStorage.setItem('receipt_last_chain', JSON.stringify(receipts)); } catch {}
+      fetch('/api/chains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receipts,
+          agentId: adversarial ? 'demo-adversarial' : 'demo-honest',
+          rootHash: chainRootHash,
+          quality: reviewScores?.composite ?? null,
+        }),
+      }).catch(() => {});
     }
-  }, [phase, receipts]);
+  }, [phase, receipts, adversarial, chainRootHash, reviewScores]);
 
   useEffect(() => {
     const probe = async (node: string): Promise<{ connected: boolean; key: string; peers: number }> => {
@@ -1550,26 +1560,39 @@ export default function Demo() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           {!fabricationDetected && receipts.length > 0 && (
-            <button
-              onClick={() => {
-                const chainJson = JSON.stringify(receipts);
-                const encoded = encodeURIComponent(chainJson);
-                if (encoded.length < 8000) {
-                  window.open(`/verify?chain=${encoded}&auto=1`, '_blank');
-                } else {
-                  sessionStorage.setItem('receipt-verify-chain', chainJson);
-                  window.open('/verify?from=session&auto=1', '_blank');
-                }
-              }}
-              style={{
-                padding: '0.35rem 0.8rem', borderRadius: '6px',
-                border: '1px solid var(--green)', background: 'rgba(22, 163, 74, 0.06)',
-                color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: '0.72rem', fontWeight: 600,
-              }}
-            >
-              Verify This Chain
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  const chainJson = JSON.stringify(receipts);
+                  const encoded = encodeURIComponent(chainJson);
+                  if (encoded.length < 8000) {
+                    window.open(`/verify?chain=${encoded}&auto=1`, '_blank');
+                  } else {
+                    sessionStorage.setItem('receipt-verify-chain', chainJson);
+                    window.open('/verify?from=session&auto=1', '_blank');
+                  }
+                }}
+                style={{
+                  padding: '0.35rem 0.8rem', borderRadius: '6px',
+                  border: '1px solid var(--green)', background: 'rgba(22, 163, 74, 0.06)',
+                  color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: '0.72rem', fontWeight: 600,
+                }}
+              >
+                Verify
+              </button>
+              <a
+                href="/team"
+                style={{
+                  padding: '0.35rem 0.8rem', borderRadius: '6px',
+                  border: '1px solid var(--researcher)', background: 'rgba(37, 99, 235, 0.06)',
+                  color: 'var(--researcher)', textDecoration: 'none', fontFamily: 'inherit',
+                  fontSize: '0.72rem', fontWeight: 600,
+                }}
+              >
+                Team Feed
+              </a>
+            </>
           )}
           <button onClick={run} style={{
             padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',

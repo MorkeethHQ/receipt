@@ -1,9 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export default function LandingPage() {
   const [copied, setCopied] = useState(false);
+  const [liveStats, setLiveStats] = useState<{ chains: number; receipts: number; sources: number } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/chains').then(r => r.json()).then(data => {
+      const chains = data.chains ?? [];
+      setLiveStats({
+        chains: chains.length,
+        receipts: chains.reduce((s: number, c: any) => s + (c.receiptCount ?? 0), 0),
+        sources: new Set(chains.map((c: any) => c.source)).size,
+      });
+    }).catch(() => {});
+  }, []);
 
   const copyInstall = useCallback(() => {
     navigator.clipboard.writeText('npm install agenticproof').then(() => {
@@ -24,6 +36,8 @@ export default function LandingPage() {
           .og-grid { grid-template-columns: 1fr 1fr !important; }
           .cta-row { flex-direction: column !important; align-items: stretch !important; }
           .cta-row a { text-align: center !important; }
+          .compare-table { font-size: 0.68rem !important; }
+          .compare-table th, .compare-table td { padding: 0.4rem 0.35rem !important; }
           .code-block { padding: 1rem !important; }
           .code-block pre { font-size: 0.65rem !important; }
           .nav-links { gap: 1rem !important; }
@@ -145,6 +159,19 @@ export default function LandingPage() {
             Check Agent Work
           </a>
         </div>
+
+        {/* Live stats */}
+        {liveStats && liveStats.receipts > 0 && (
+          <div style={{
+            marginTop: '1.5rem',
+            display: 'flex', gap: '2rem', justifyContent: 'center',
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.65rem', color: 'var(--text-dim)',
+          }}>
+            <span><strong style={{ color: 'var(--text)', fontSize: '0.85rem' }}>{liveStats.chains}</strong> chains</span>
+            <span><strong style={{ color: 'var(--text)', fontSize: '0.85rem' }}>{liveStats.receipts}</strong> receipts</span>
+            <span><strong style={{ color: 'var(--text)', fontSize: '0.85rem' }}>{liveStats.sources}</strong> sources</span>
+          </div>
+        )}
       </section>
 
       {/* How it works */}
@@ -265,6 +292,38 @@ export default function LandingPage() {
               {item}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Comparison */}
+      <section style={{ padding: '0 1.5rem 3rem', maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ fontSize: '0.65rem', fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1.2rem', textAlign: 'center' }}>How it compares</h2>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="compare-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Inter, sans-serif', fontSize: '0.78rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                {['', 'Tamper-proof', 'Multi-agent', 'Quality score', 'On-chain', 'Training'].map(h => (
+                  <th key={h} style={{ padding: '0.5rem 0.6rem', textAlign: h ? 'center' : 'left', color: 'var(--text-dim)', fontWeight: 600, fontSize: '0.7rem', fontFamily: "'IBM Plex Mono', monospace" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: 'Logging', vals: [false, false, false, false, false] },
+                { name: 'LangSmith / AgentOps', vals: [false, 'partial', false, false, false] },
+                { name: 'R.E.C.E.I.P.T.', vals: [true, true, true, true, true] },
+              ].map((row, i) => (
+                <tr key={row.name} style={{ borderBottom: '1px solid var(--border)', background: i === 2 ? 'var(--surface)' : 'transparent' }}>
+                  <td style={{ padding: '0.55rem 0.6rem', fontWeight: i === 2 ? 700 : 400, color: 'var(--text)' }}>{row.name}</td>
+                  {row.vals.map((v, j) => (
+                    <td key={j} style={{ padding: '0.55rem 0.6rem', textAlign: 'center', color: v === true ? '#4ade80' : v === 'partial' ? '#facc15' : '#666', fontSize: '0.82rem' }}>
+                      {v === true ? '✓' : v === 'partial' ? '~' : '✗'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 

@@ -157,7 +157,7 @@ export default function TeamPage() {
           >
             All
           </button>
-          {Object.entries(SOURCE_LABELS).filter(([k]) => k !== 'demo').map(([key, info]) => (
+          {Object.entries(SOURCE_LABELS).map(([key, info]) => (
             <button
               key={key}
               onClick={() => setFilter(filter === key ? null : key)}
@@ -170,7 +170,7 @@ export default function TeamPage() {
               }}
             >
               {info.label}
-              {sources[key === 'claude-code' ? 'claudeCode' : key] && (
+              {sources[key === 'claude-code' ? 'claudeCode' : key] && (sources[key === 'claude-code' ? 'claudeCode' : key] as SourceStatus)?.count > 0 && (
                 <span style={{ marginLeft: '0.3rem', opacity: 0.6 }}>
                   ({(sources[key === 'claude-code' ? 'claudeCode' : key] as SourceStatus)?.count ?? 0})
                 </span>
