@@ -263,6 +263,8 @@ export default function Demo() {
   const [reviewScores, setReviewScores] = useState<{ alignment: number; substance: number; quality: number; composite: number; reasoning: string } | null>(null);
   const [receiptWeights, setReceiptWeights] = useState<number[]>([]);
   const [scoreDelta, setScoreDelta] = useState<number | null>(null);
+  const [anchorTx, setAnchorTx] = useState<{ txHash: string; explorer: string } | null>(null);
+  const [nftMint, setNftMint] = useState<{ tokenId: string | null; txHash: string; explorer: string } | null>(null);
   const [guidedMode, setGuidedMode] = useState(true);
   const [chapterPause, setChapterPause] = useState<{ chapter: number; title: string; body: string } | null>(null);
   const chaptersShownRef = useRef<Set<number>>(new Set());
@@ -503,6 +505,16 @@ export default function Demo() {
         addCenterLog(qualityRejected ? 'Stored (quality too low to record)' : 'Stored and recorded on-chain', 'anchor');
         addTiming('Stored', Math.round(elapsed));
         break;
+      case 'anchor_tx':
+        setAnchorTx({ txHash: data.txHash, explorer: data.explorer });
+        addCenterLog(`Anchored on 0G Mainnet: ${data.txHash.slice(0, 12)}...`, 'anchor');
+        addTiming('On-chain anchor', Math.round(elapsed));
+        break;
+      case 'nft_minted':
+        setNftMint({ tokenId: data.tokenId, txHash: data.txHash, explorer: `https://chainscan.0g.ai/tx/${data.txHash}` });
+        addCenterLog(`ERC-7857 Identity minted${data.tokenId ? ` (#${data.tokenId})` : ''}`, 'anchor');
+        addTiming('Agent NFT', Math.round(elapsed));
+        break;
       case 'erc8004_validation':
         addCenterLog(`ERC-8004: Validation posted (${data.score}/100)`, 'anchor');
         addTiming('ERC-8004', Math.round(elapsed));
@@ -536,6 +548,8 @@ export default function Demo() {
     setReviewScores(null);
     setReceiptWeights([]);
     setScoreDelta(null);
+    setAnchorTx(null);
+    setNftMint(null);
     eventIndexRef.current = 0;
     lastEventTimeRef.current = 0;
     setChapterPause(null);
@@ -1212,6 +1226,37 @@ export default function Demo() {
             <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--green)', fontWeight: 700 }}>
               CHAIN VERIFIED
             </div>
+          </div>
+        )}
+
+        {/* On-chain TX links */}
+        {(anchorTx || nftMint) && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: '0.2rem',
+            marginBottom: '0.4rem',
+          }}>
+            {anchorTx && (
+              <a href={anchorTx.explorer} target="_blank" rel="noopener noreferrer" style={{
+                ...mono, fontSize: '0.5rem', color: 'var(--green)', textDecoration: 'none',
+                padding: '0.25rem 0.4rem', background: 'rgba(22,163,74,0.06)',
+                borderRadius: '4px', border: '1px solid rgba(22,163,74,0.2)',
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
+              }}>
+                <span style={{ fontWeight: 700 }}>ANCHOR TX</span>
+                <span style={{ color: 'var(--text-dim)' }}>{anchorTx.txHash.slice(0, 14)}...</span>
+              </a>
+            )}
+            {nftMint && (
+              <a href={nftMint.explorer} target="_blank" rel="noopener noreferrer" style={{
+                ...mono, fontSize: '0.5rem', color: '#c084fc', textDecoration: 'none',
+                padding: '0.25rem 0.4rem', background: 'rgba(192,132,252,0.06)',
+                borderRadius: '4px', border: '1px solid rgba(192,132,252,0.2)',
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
+              }}>
+                <span style={{ fontWeight: 700 }}>ERC-7857{nftMint.tokenId ? ` #${nftMint.tokenId}` : ''}</span>
+                <span style={{ color: 'var(--text-dim)' }}>{nftMint.txHash.slice(0, 14)}...</span>
+              </a>
+            )}
           </div>
         )}
 

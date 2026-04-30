@@ -309,12 +309,14 @@ export default function LandingPage() {
             </thead>
             <tbody>
               {[
-                { name: 'Logging', vals: [false, false, false, false, false] },
-                { name: 'LangSmith / AgentOps', vals: [false, 'partial', false, false, false] },
+                { name: 'LangSmith', vals: [false, 'partial', false, false, false] },
+                { name: 'AgentOps', vals: [false, 'partial', false, false, false] },
+                { name: 'Patronus / Galileo', vals: [false, false, 'partial', false, false] },
+                { name: 'Arize Phoenix', vals: [false, false, 'partial', false, false] },
                 { name: 'R.E.C.E.I.P.T.', vals: [true, true, true, true, true] },
-              ].map((row, i) => (
-                <tr key={row.name} style={{ borderBottom: '1px solid var(--border)', background: i === 2 ? 'var(--surface)' : 'transparent' }}>
-                  <td style={{ padding: '0.55rem 0.6rem', fontWeight: i === 2 ? 700 : 400, color: 'var(--text)' }}>{row.name}</td>
+              ].map((row, i, arr) => (
+                <tr key={row.name} style={{ borderBottom: '1px solid var(--border)', background: i === arr.length - 1 ? 'var(--surface)' : 'transparent' }}>
+                  <td style={{ padding: '0.55rem 0.6rem', fontWeight: i === arr.length - 1 ? 700 : 400, color: 'var(--text)', whiteSpace: 'nowrap' }}>{row.name}</td>
                   {row.vals.map((v, j) => (
                     <td key={j} style={{ padding: '0.55rem 0.6rem', textAlign: 'center', color: v === true ? '#4ade80' : v === 'partial' ? '#facc15' : '#666', fontSize: '0.82rem' }}>
                       {v === true ? '✓' : v === 'partial' ? '~' : '✗'}
