@@ -1343,12 +1343,39 @@ export default function Demo() {
                 <span style={{ ...mono, fontSize: '0.58rem', fontWeight: 700, width: '20px', textAlign: 'right', color: 'var(--text)' }}>{reviewScores[axis]}</span>
               </div>
             ))}
-            <div style={{ textAlign: 'center', marginTop: '0.2rem' }}>
+            {/* Composite with threshold line */}
+            <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
+              <div style={{ position: 'relative', height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'visible', marginBottom: '0.2rem' }}>
+                <div style={{
+                  height: '100%', borderRadius: '4px',
+                  width: `${reviewScores.composite}%`,
+                  background: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
+                  transition: 'width 1.5s ease-out',
+                }} />
+                {/* Threshold marker at 60% */}
+                <div style={{
+                  position: 'absolute', left: '60%', top: '-2px', bottom: '-2px',
+                  width: '2px', background: 'var(--text)', borderRadius: '1px',
+                }} />
+                <div style={{
+                  position: 'absolute', left: '60%', top: '-12px', transform: 'translateX(-50%)',
+                  ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
+                }}>
+                  gate
+                </div>
+              </div>
               <AnimatedCounter
                 target={reviewScores.composite}
                 color={reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)'}
               />
               <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>COMPOSITE</div>
+              <div style={{
+                ...mono, fontSize: '0.5rem', marginTop: '0.15rem',
+                color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)',
+                fontWeight: 700,
+              }}>
+                {reviewScores.composite >= 60 ? 'GATE PASSED — anchored on-chain' : 'GATE FAILED — not anchored'}
+              </div>
               {scoreDelta !== null && (
                 <div style={{
                   ...mono, fontSize: '0.58rem', fontWeight: 700, marginTop: '0.15rem',

@@ -783,6 +783,33 @@ export default function VerifyPage() {
               </div>
             )}
 
+            {/* Chain summary */}
+            {phase === 'done' && cards.length > 0 && (
+              <div className="slide-up" style={{
+                display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.8rem',
+                padding: '0.5rem 0.8rem', background: 'var(--paper)', borderRadius: '4px',
+                border: '1px solid var(--border)',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', color: 'var(--text-dim)',
+              }}>
+                {(() => {
+                  const agents = new Set(cards.map(c => c.receipt.agentId));
+                  const types: Record<string, number> = {};
+                  cards.forEach(c => { types[c.receipt.action.type] = (types[c.receipt.action.type] ?? 0) + 1; });
+                  const teeCount = cards.filter(c => c.receipt.attestation).length;
+                  return (
+                    <>
+                      <span><strong style={{ color: 'var(--text)' }}>{agents.size}</strong> agent{agents.size > 1 ? 's' : ''}</span>
+                      <span><strong style={{ color: 'var(--text)' }}>{cards.length}</strong> receipts</span>
+                      {Object.entries(types).map(([type, count]) => (
+                        <span key={type}>{count} {ACTION_LABELS[type] || type}</span>
+                      ))}
+                      {teeCount > 0 && <span style={{ color: 'var(--green)' }}>{teeCount} TEE-attested</span>}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* 0G on-chain links — shown when chain is valid */}
             {phase === 'done' && chainValid && (
               <div className="slide-up" style={{

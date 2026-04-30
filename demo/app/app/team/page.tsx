@@ -274,8 +274,18 @@ export default function TeamPage() {
                         <div style={{ ...mono, fontSize: '0.72rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {chain.agentId}
                         </div>
-                        <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>
-                          {timeAgo(chain.timestamp)} &middot; {chain.receiptCount} receipt{chain.receiptCount !== 1 ? 's' : ''}
+                        <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+                          <span>{timeAgo(chain.timestamp)} &middot; {chain.receiptCount} receipt{chain.receiptCount !== 1 ? 's' : ''}</span>
+                          {chain.receipts && (() => {
+                            const types: Record<string, number> = {};
+                            chain.receipts.forEach((r: any) => { types[r.action?.type] = (types[r.action?.type] ?? 0) + 1; });
+                            const teeCount = chain.receipts.filter((r: any) => r.attestation).length;
+                            return (
+                              <>
+                                {teeCount > 0 && <span style={{ color: 'var(--green)' }}>&middot; {teeCount} TEE</span>}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
