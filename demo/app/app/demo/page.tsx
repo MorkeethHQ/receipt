@@ -489,6 +489,9 @@ export default function Demo() {
         if (Array.isArray(data.weights)) setReceiptWeights(data.weights);
         if (typeof data.delta === 'number') setScoreDelta(data.delta);
         addCenterLog(`Usefulness: ${data.composite}/100${typeof data.delta === 'number' ? ` (${data.delta >= 0 ? '+' : ''}${data.delta} vs avg)` : ''}`, 'tee');
+        if (data.reasoning) {
+          addCenterLog(`Review: ${data.reasoning.slice(0, 120)}${data.reasoning.length > 120 ? '...' : ''}`, 'tee');
+        }
         addTiming('Review scored', Math.round(elapsed));
         break;
       case 'quality_gate':
@@ -717,6 +720,20 @@ export default function Demo() {
             <span style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)' }}>#{index}</span>
           </div>
           <div className="dashed" />
+          {/* Chain link indicator */}
+          {receipt.prevId && (
+            <div style={{ padding: '0.15rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(37,99,235,0.04)' }}>
+              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--researcher)', fontWeight: 600 }}>PREV</span>
+              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>{receipt.prevId.slice(0, 16)}...</span>
+              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--green)', marginLeft: 'auto' }}>linked</span>
+            </div>
+          )}
+          {!receipt.prevId && index === 0 && (
+            <div style={{ padding: '0.15rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(37,99,235,0.04)' }}>
+              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--researcher)', fontWeight: 600 }}>CHAIN START</span>
+              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>genesis receipt</span>
+            </div>
+          )}
           <div style={{ padding: '0.35rem 0.6rem', ...mono, fontSize: '0.68rem', lineHeight: 1.8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-dim)' }}>ACTION</span>
@@ -760,6 +777,20 @@ export default function Demo() {
               OUT {receipt.outputHash.slice(0, 20)}...
             </div>
           </div>
+          {/* What actually happened */}
+          {meta?.rawInput && (
+            <div style={{ padding: '0.2rem 0.6rem 0.3rem', fontSize: '0.56rem', lineHeight: 1.5 }}>
+              <div style={{ color: 'var(--text-dim)', ...mono, fontSize: '0.48rem', marginBottom: '0.1rem' }}>WHAT HAPPENED</div>
+              <div style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {meta.rawInput.slice(0, 60)}{meta.rawInput.length > 60 ? '...' : ''}
+              </div>
+              {meta.rawOutput && (
+                <div style={{ color: isTampered ? 'var(--red)' : 'var(--text-dim)', fontFamily: 'Inter, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.1rem', fontStyle: isTampered ? 'italic' : 'normal' }}>
+                  {isTampered ? 'claimed: ' : ''}{meta.rawOutput.slice(0, 50)}{meta.rawOutput.length > 50 ? '...' : ''}
+                </div>
+              )}
+            </div>
+          )}
           {receiptWeights[index] !== undefined && receipt.action.type !== 'usefulness_review' && (
             <>
               <div className="dashed" />
@@ -1129,10 +1160,22 @@ export default function Demo() {
                 <span style={{ color: 'var(--text-muted)', ...mono, fontSize: '0.5rem' }}>
                   {v.receiptId.slice(0, 8)}...
                 </span>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.15rem' }}>
-                  <span title="Signature" style={{ fontSize: '0.5rem', color: v.checks.signatureValid ? 'var(--green)' : 'var(--red)' }}>sig</span>
-                  <span title="Chain link" style={{ fontSize: '0.5rem', color: v.checks.chainLinkValid ? 'var(--green)' : 'var(--red)' }}>lnk</span>
-                  <span title="Timestamp" style={{ fontSize: '0.5rem', color: v.checks.timestampValid ? 'var(--green)' : 'var(--red)' }}>ts</span>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.25rem' }}>
+                  {[
+                    { label: 'sig', ok: v.checks.signatureValid, title: 'Ed25519 signature' },
+                    { label: 'hash', ok: v.checks.chainLinkValid, title: 'Hash chain link' },
+                    { label: 'time', ok: v.checks.timestampValid, title: 'Timestamp order' },
+                  ].map(check => (
+                    <span key={check.label} title={check.title} style={{
+                      ...mono, fontSize: '0.48rem', fontWeight: 700,
+                      padding: '0.05rem 0.2rem', borderRadius: '2px',
+                      background: check.ok ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
+                      color: check.ok ? 'var(--green)' : 'var(--red)',
+                      border: `1px solid ${check.ok ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}`,
+                    }}>
+                      {check.ok ? '✓' : '✗'} {check.label}
+                    </span>
+                  ))}
                 </div>
               </div>
             ))}
@@ -1315,6 +1358,19 @@ export default function Demo() {
                 </div>
               )}
             </div>
+            {/* Reviewer reasoning */}
+            {reviewScores.reasoning && (
+              <div style={{
+                marginTop: '0.4rem', padding: '0.35rem',
+                background: 'var(--bg)', borderRadius: '4px',
+                border: '1px solid var(--border)',
+              }}>
+                <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)', marginBottom: '0.15rem', fontWeight: 600 }}>TEE REVIEWER SAYS</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.55rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  {reviewScores.reasoning.slice(0, 150)}{reviewScores.reasoning.length > 150 ? '...' : ''}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1601,6 +1657,30 @@ export default function Demo() {
               </div>
             </>
           )}
+
+          {/* Cost efficiency */}
+          {reviewScores && (() => {
+            const totalTokens = Object.values(receiptMeta).reduce((s, m) => s + (m.tokensUsed ?? 0), 0);
+            if (totalTokens === 0) return null;
+            const cost = totalTokens * 0.00015 / 1000;
+            const costPerUseful = cost / (reviewScores.composite / 100);
+            return (
+              <>
+                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    ...mono, fontSize: '0.85rem', fontWeight: 700,
+                    color: costPerUseful < 0.001 ? 'var(--green)' : costPerUseful < 0.005 ? 'var(--amber)' : 'var(--red)',
+                  }}>
+                    ${costPerUseful.toFixed(4)}
+                  </div>
+                  <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                    $/useful
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>

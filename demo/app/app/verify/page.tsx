@@ -960,6 +960,19 @@ export default function VerifyPage() {
                     )}
                   </div>
 
+                  {/* Chain link — always visible */}
+                  <div style={{
+                    marginTop: '0.2rem', paddingLeft: '1.9rem',
+                    fontSize: '0.55rem', color: 'var(--text-dim)',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}>
+                    {card.receipt.prevId ? (
+                      <span>linked to {card.receipt.prevId.slice(0, 12)}... {card.checks.chainLink === 'pass' ? <span style={{ color: 'var(--green)' }}>&#10003;</span> : card.checks.chainLink === 'fail' ? <span style={{ color: 'var(--red)' }}>&#10007;</span> : null}</span>
+                    ) : (
+                      <span style={{ color: 'var(--researcher)' }}>chain start (genesis)</span>
+                    )}
+                  </div>
+
                   {/* Failure reason — always visible in plain english */}
                   {card.checks.failReason && (
                     <div style={{
