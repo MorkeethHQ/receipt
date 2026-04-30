@@ -346,7 +346,7 @@ export default function TrialPage() {
       <nav style={{ padding: '0.6rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <a href="/" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}>R.E.C.E.I.P.T.</a>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          {[['/', 'Home'], ['/demo', 'Live'], ['/verify', 'Verify']].map(([href, label]) => (
+          {[['/', 'Home'], ['/demo', 'Live'], ['/team', 'Team'], ['/verify', 'Verify']].map(([href, label]) => (
             <a key={href} href={href} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>{label}</a>
           ))}
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
@@ -606,7 +606,7 @@ export default function TrialPage() {
 
       <footer style={{ marginTop: 'auto', padding: '0.8rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          {[['Live', '/demo'], ['Verify', '/verify'], ['Eval', '/eval']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
+          {[['Live', '/demo'], ['Team', '/team'], ['Verify', '/verify'], ['Eval', '/eval']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
         </div>
         <span style={{ ...mono, fontSize: '0.6rem' }}>Execution Replay</span>
       </footer>

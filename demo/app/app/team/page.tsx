@@ -398,6 +398,7 @@ export default function TeamPage() {
       }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
           <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Live</a>
+          <a href="/team" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Team</a>
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
           <a href="/eval" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
