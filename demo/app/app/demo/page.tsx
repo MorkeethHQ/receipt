@@ -1004,13 +1004,13 @@ export default function Demo() {
               <div key={node} style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                 padding: '0.4rem 0.8rem', borderRadius: '8px',
-                background: status === null ? 'var(--surface)' : status ? '#f0fdf4' : '#fef2f2',
-                border: `1px solid ${status === null ? 'var(--border)' : status ? '#bbf7d0' : '#fecaca'}`,
+                background: status === null ? 'var(--surface)' : status ? '#f0fdf4' : 'var(--surface)',
+                border: `1px solid ${status === null ? 'var(--border)' : status ? '#bbf7d0' : 'var(--border)'}`,
                 transition: 'all 0.3s ease',
               }}>
                 <div style={{
                   width: '8px', height: '8px', borderRadius: '50%',
-                  background: status === null ? 'var(--text-dim)' : status ? 'var(--green)' : 'var(--red)',
+                  background: status === null ? 'var(--text-dim)' : status ? 'var(--green)' : 'var(--text-dim)',
                   boxShadow: status ? '0 0 6px rgba(34,197,94,0.4)' : 'none',
                   transition: 'all 0.3s ease',
                 }} />
@@ -1019,7 +1019,7 @@ export default function Demo() {
                     {node} Node
                   </div>
                   <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>
-                    {status === null ? 'Checking...' : status ? (info.key ? `${info.key.slice(0, 12)}... · ${info.peers} peer${info.peers !== 1 ? 's' : ''}` : 'Connected') : 'Not running'}
+                    {status === null ? 'Checking...' : status ? (info.key ? `${info.key.slice(0, 12)}... · ${info.peers} peer${info.peers !== 1 ? 's' : ''}` : 'Connected') : 'Direct mode'}
                   </div>
                 </div>
               </div>
@@ -1031,8 +1031,8 @@ export default function Demo() {
             ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center',
             marginBottom: '1rem', lineHeight: 1.6,
           }}>
-            Gensyn AXL: Cloud deployment — handoff via direct pass.<br />
-            With local AXL nodes, this travels peer-to-peer over encrypted mesh.
+            Handoff via direct HTTP. With AXL nodes running, this travels<br />
+            peer-to-peer over encrypted Yggdrasil mesh — no central server.
           </div>
         )}
 
