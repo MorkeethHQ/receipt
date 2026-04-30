@@ -267,6 +267,8 @@ export default function Demo() {
   const [nftMint, setNftMint] = useState<{ tokenId: string | null; txHash: string; explorer: string } | null>(null);
   const [guidedMode, setGuidedMode] = useState(true);
   const [chapterPause, setChapterPause] = useState<{ chapter: number; title: string; body: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [pipelineMs, setPipelineMs] = useState<number | null>(null);
   const chaptersShownRef = useRef<Set<number>>(new Set());
 
   const guidedRef = useRef(true);
@@ -553,6 +555,8 @@ export default function Demo() {
     setScoreDelta(null);
     setAnchorTx(null);
     setNftMint(null);
+    setCopied(false);
+    setPipelineMs(null);
     eventIndexRef.current = 0;
     lastEventTimeRef.current = 0;
     setChapterPause(null);
@@ -561,6 +565,7 @@ export default function Demo() {
     setNarrative('Starting agent pipeline. Each action will produce a cryptographically signed receipt.');
     setNarrativeHighlight(true);
     setTimeout(() => setNarrativeHighlight(false), 600);
+    const pipelineStartTime = performance.now();
 
     const showChapter = (chapter: number, title: string, body: string): Promise<void> => {
       if (!guidedRef.current || chaptersShownRef.current.has(chapter)) return Promise.resolve();
@@ -700,6 +705,7 @@ export default function Demo() {
     }
 
     setChapterPause(null);
+    setPipelineMs(Math.round(performance.now() - pipelineStartTime));
     setPhase('done');
   }, [adversarial, handleEvent, guidedMode]);
 
@@ -1284,6 +1290,57 @@ export default function Demo() {
           </div>
         )}
 
+        {/* 0G Verification Layers */}
+        {phase === 'done' && !fabricationDetected && (
+          <div className="slide-up" style={{
+            padding: '0.5rem', borderRadius: '6px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            marginBottom: '0.4rem',
+          }}>
+            <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)', fontWeight: 700, marginBottom: '0.3rem', letterSpacing: '0.04em', textAlign: 'center' }}>
+              VERIFIED BY 0G
+            </div>
+            {[
+              {
+                label: 'Compute',
+                detail: 'TEE-attested inference',
+                ok: receipts.some(r => receiptMeta[r.id]?.teeAttested),
+              },
+              {
+                label: 'Identity',
+                detail: nftMint ? `ERC-7857 #${nftMint.tokenId ?? ''}` : 'ERC-7857 agent ID',
+                ok: !!nftMint,
+              },
+              {
+                label: 'Training',
+                detail: reviewScores ? `Quality ${reviewScores.composite}/100` : 'Quality-gated',
+                ok: reviewScores ? reviewScores.composite >= 60 : false,
+              },
+            ].map(layer => (
+              <div key={layer.label} style={{
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
+                padding: '0.2rem 0.3rem', borderRadius: '4px',
+                marginBottom: '0.1rem',
+                background: layer.ok ? 'rgba(22,163,74,0.04)' : 'rgba(217,119,6,0.04)',
+              }}>
+                <span style={{
+                  ...mono, fontSize: '0.55rem', fontWeight: 700,
+                  color: layer.ok ? 'var(--green)' : 'var(--amber)',
+                  width: '14px',
+                }}>
+                  {layer.ok ? '✓' : '—'}
+                </span>
+                <span style={{ ...mono, fontSize: '0.52rem', fontWeight: 600, color: 'var(--text)', width: '48px' }}>
+                  {layer.label}
+                </span>
+                <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>
+                  {layer.detail}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* On-chain TX links */}
         {(anchorTx || nftMint) && (
           <div style={{
@@ -1697,7 +1754,22 @@ export default function Demo() {
             </>
           )}
 
-          {/* Cost efficiency */}
+          {/* Pipeline time */}
+          {pipelineMs !== null && (
+            <>
+              <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ ...mono, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
+                  {(pipelineMs / 1000).toFixed(1)}s
+                </div>
+                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                  Time
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Token count + Cost efficiency */}
           {reviewScores && (() => {
             const totalTokens = Object.values(receiptMeta).reduce((s, m) => s + (m.tokensUsed ?? 0), 0);
             if (totalTokens === 0) return null;
@@ -1705,6 +1777,15 @@ export default function Demo() {
             const costPerUseful = cost / (reviewScores.composite / 100);
             return (
               <>
+                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ ...mono, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
+                    {totalTokens.toLocaleString()}
+                  </div>
+                  <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                    Tokens
+                  </div>
+                </div>
                 <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
@@ -1748,15 +1829,20 @@ export default function Demo() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(JSON.stringify(receipts, null, 2));
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
                 }}
                 style={{
                   padding: '0.35rem 0.8rem', borderRadius: '6px',
-                  border: '1px solid var(--border)', background: 'transparent',
-                  color: 'var(--text-dim)', cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: '0.72rem', fontWeight: 500,
+                  border: `1px solid ${copied ? 'var(--green)' : 'var(--border)'}`,
+                  background: copied ? 'rgba(22,163,74,0.06)' : 'transparent',
+                  color: copied ? 'var(--green)' : 'var(--text-dim)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: '0.72rem', fontWeight: copied ? 600 : 500,
+                  transition: 'all 0.2s ease',
                 }}
               >
-                Copy JSON
+                {copied ? '✓ Copied' : 'Copy JSON'}
               </button>
               <a
                 href="/team"
