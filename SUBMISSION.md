@@ -45,12 +45,11 @@ R.E.C.E.I.P.T. is a two-layer proof system:
 - Researcher → Builder handoff over encrypted P2P mesh
 - Full provenance preserved through transport
 
-### Demo App (6 Pages)
-- **Demo** — Watch 2 agents generate receipts in real-time. Honest mode + adversarial tamper detection
-- **Replay** — Execution timeline with cost-per-useful-output metric, quality score breakdown, human review
-- **Verify** — Independent chain verifier using WebCrypto (client-side, real ed25519)
-- **Dashboard** — Operator view: quality scores, on-chain anchoring, agent identity
-- **Eval** — Constitutional AI evaluation harness (60 test cases, 3 model evaluators)
+### Demo App (5 Pages)
+- **Live Demo** — Watch 2 agents generate receipts in real-time. Honest mode catches fabricated actions; adversarial mode shows RECEIPT detecting a lie ("I didn't actually open the file, I assumed the data")
+- **Team** — Multi-agent chain feed aggregating receipt chains from Claude Code hooks + OpenClaw plugin. Filter by source, inspect receipt timelines, verify any chain
+- **Verify** — Independent chain verifier using WebCrypto (client-side, real ed25519 + SHA-256). Paste any chain — authentic or tampered — and see exactly which receipts fail
+- **Eval** — Constitutional AI evaluation harness (60 test cases, 3 model evaluators, self-critique)
 
 ### Contracts (All on 0G Mainnet)
 - ReceiptAnchorV2: `0x73B9A7768679B154D7E1eC5F2570a622A3b49651`

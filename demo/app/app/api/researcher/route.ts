@@ -164,7 +164,7 @@ export async function POST(request: Request) {
         const s1 = performance.now();
         await sleep(300);
         send('status', { message: 'Researcher: Verifying contract deployment on 0G Mainnet...' });
-        const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x53D96861a37e82FF174324872Fc4d037a61520e3';
+        const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x73B9A7768679B154D7E1eC5F2570a622A3b49651';
         const contractCheck = await fetchReal(
           `https://chainscan.0g.ai/api?module=contract&action=getabi&address=${contractAddr}`,
         );

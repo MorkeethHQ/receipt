@@ -91,11 +91,10 @@ Standalone demos:
 
 ## Demo Pages
 
-- **[Demo](https://receipt-murex.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Three modes: honest, adversarial (tamper detection), low-quality (quality gate rejection). Guided walkthrough explains each stage.
-- **[Replay](https://receipt-murex.vercel.app/trial)** — Execution timeline with cost-per-useful-output. Human review becomes receipt #11, signed and hash-linked. Side-by-side honest vs. low-quality comparison. Live Agent mode fetches real chains from OpenClaw.
-- **[Verify](https://receipt-murex.vercel.app/verify)** — Independent chain verifier. Load valid or tampered chains, see exactly where tampering breaks.
-- **[Dashboard](https://receipt-murex.vercel.app/dashboard)** — Operator view: quality scores, on-chain anchoring, agent identity (ERC-7857), full receipt chain.
-- **[Eval](https://receipt-murex.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop. Research report format.
+- **[Live Demo](https://receipt-murex.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Honest mode + adversarial tamper detection ("I didn't actually open the file, I assumed the data").
+- **[Team](https://receipt-murex.vercel.app/team)** — Multi-agent chain feed. Aggregates receipt chains from Claude Code hooks and OpenClaw plugin. Filter by source, inspect receipt timelines, verify any chain.
+- **[Verify](https://receipt-murex.vercel.app/verify)** — Independent chain verifier using WebCrypto (ed25519 + SHA-256). Paste any chain — authentic or tampered — and see exactly where it breaks.
+- **[Eval](https://receipt-murex.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop.
 
 ## Project Structure
 
@@ -111,7 +110,7 @@ contracts/
   ValidationRegistry.sol        ERC-8004 agent proof attestations (deployed on 0G Mainnet)
 
 demo/
-  app/                          Next.js demo — 6 pages (home, demo, replay, verify, dashboard, eval)
+  app/                          Next.js demo — 5 pages (home, live demo, team, verify, eval)
   agents/                       Standalone agent scripts (researcher → builder handoff)
   axl/                          Gensyn AXL P2P demo (sender + receiver)
 ```

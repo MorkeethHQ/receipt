@@ -394,11 +394,12 @@ export default function EvalPage() {
 
       <footer style={{ marginTop: 'auto', padding: '0.8rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.68rem', color: 'var(--text-dim)', ...inter }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          {[['Demo', '/demo'], ['Verify', '/verify'], ['Dashboard', '/dashboard'], ['Replay', '/trial']].map(([label, href]) =>
+          {[['Live', '/demo'], ['Team', '/team'], ['Verify', '/verify']].map(([label, href]) =>
             <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>
           )}
+          <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
-        <span style={{ ...mono, fontSize: '0.6rem' }}>Constitutional AI evaluation</span>
+        <span style={{ ...mono, fontSize: '0.6rem' }}>Built for multi-agent systems.</span>
       </footer>
     </div>
   );

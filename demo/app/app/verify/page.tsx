@@ -157,7 +157,7 @@ async function generateValidExample(): Promise<ValidChainResult> {
   const r3 = await makeReceipt('researcher', r2.id, 'llm_call', 'TEE-attested code review via 0G Compute', 'Code review: @receipt/sdk uses ed25519 signing and SHA-256 hashing. Review security of receipt chain.', 'Analysis: The receipt chain implements sound cryptographic primitives. Ed25519 provides 128-bit security. SHA-256 hash linking creates tamper-evident ordering.', { provider: '0G Compute', type: 'tee' }, now, 2000);
   receipts.push(r3);
 
-  const r4 = await makeReceipt('researcher', r3.id, 'decision', 'Research verdict', 'SDK: @receipt/sdk, Contract: 0x53D96861... on 0G Mainnet (16661). Code review via 0g-compute (TEE: verified). No critical vulnerabilities.', 'Research complete. Safe to hand off to Builder for deployment and anchoring.', null, now, 3000);
+  const r4 = await makeReceipt('researcher', r3.id, 'decision', 'Research verdict', 'SDK: @receipt/sdk, Contract: 0x73B9A776... on 0G Mainnet (16661). Code review via 0g-compute (TEE: verified). No critical vulnerabilities.', 'Research complete. Safe to hand off to Builder for deployment and anchoring.', null, now, 3000);
   receipts.push(r4);
 
   const r5 = await makeReceipt('researcher', r4.id, 'output', 'Research report — SDK reviewed, contract verified', 'Research report — SDK reviewed, contract verified', JSON.stringify({ sdk: '@receipt/sdk', contractDeployed: true, contractAddress: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651', codeReviewSource: '0g-compute', teeAttested: true, verdict: 'No critical issues.' }), null, now, 3500);
