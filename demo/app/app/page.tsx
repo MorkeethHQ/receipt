@@ -382,9 +382,9 @@ export default function LandingPage() {
           <a href="/eval" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
-        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem' }}>
-          Built for multi-agent systems.
-        </span>
+        <a href="https://www.npmjs.com/package/agenticproof" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', color: 'var(--text-dim)', textDecoration: 'none' }}>
+          agenticproof@0.1.1
+        </a>
       </footer>
     </div>
   );
