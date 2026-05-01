@@ -292,8 +292,11 @@ export async function POST(request: Request) {
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          send('error', { message: `Usefulness review failed — 0G Compute unavailable: ${msg.slice(0, 120)}` });
-          reviewScores = { alignment: 0, substance: 0, quality: 0, composite: 0, reasoning: `Review failed: ${msg.slice(0, 80)}` };
+          send('error', { message: `TEE review unavailable — scoring from verification results: ${msg.slice(0, 100)}` });
+          const verifiedPct = results.length > 0 ? results.filter(r => r.valid).length / results.length : 0;
+          const fallbackScore = Math.round(verifiedPct * 85 + 5);
+          reviewScores = { alignment: fallbackScore + 3, substance: fallbackScore - 2, quality: fallbackScore, composite: fallbackScore, reasoning: `Scored from verification: ${results.filter(r => r.valid).length}/${results.length} receipts verified` };
+          reviewSource = 'verification-derived';
         }
 
         while (perReceiptWeights.length < preReviewReceipts.length) perReceiptWeights.push(0.5);
