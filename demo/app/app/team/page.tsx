@@ -5,6 +5,20 @@ import { useState, useEffect, useCallback } from 'react';
 const mono = { fontFamily: "'IBM Plex Mono', 'Courier New', monospace" } as const;
 const inter = { fontFamily: 'Inter, sans-serif' } as const;
 
+const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_RECEIPT_REGISTRY_ADDRESS ?? '0x717D062E47898441a51EAdcA40873190A339B328';
+const OG_RPC = 'https://evmrpc.0g.ai';
+const OG_CHAIN_ID = '0x410D'; // 16661
+
+interface OnChainEntry {
+  rootHash: string;
+  qualityScore: number;
+  agentId: string;
+  source: string;
+  receiptCount: number;
+  timestamp: number;
+  anchorRef: string;
+}
+
 interface ChainSummary {
   id: string;
   source: 'claude-code' | 'openclaw' | 'demo';
@@ -14,6 +28,7 @@ interface ChainSummary {
   quality: number | null;
   timestamp: number;
   receipts?: any[];
+  onChain?: boolean;
 }
 
 interface SourceStatus {
@@ -25,6 +40,7 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
   'claude-code': { label: 'Claude Code', color: '#c084fc', bg: 'rgba(192,132,252,0.08)' },
   'openclaw': { label: 'OpenClaw', color: '#60a5fa', bg: 'rgba(96,165,250,0.08)' },
   'demo': { label: 'Demo', color: 'var(--text-dim)', bg: 'var(--surface)' },
+  'sdk': { label: 'SDK', color: 'var(--green)', bg: 'rgba(34,197,94,0.08)' },
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -54,8 +70,62 @@ function timeAgo(ts: number): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+async function switchTo0GNetwork() {
+  const eth = (window as any).ethereum;
+  if (!eth) return;
+  try {
+    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: OG_CHAIN_ID }] });
+  } catch (err: any) {
+    if (err.code === 4902) {
+      await eth.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: OG_CHAIN_ID,
+          chainName: '0G Mainnet',
+          rpcUrls: [OG_RPC],
+          nativeCurrency: { name: 'A0GI', symbol: 'A0GI', decimals: 18 },
+          blockExplorerUrls: ['https://chainscan.0g.ai'],
+        }],
+      });
+    }
+  }
+}
+
+// Read chains from contract via JSON-RPC eth_call
+async function readChainsFromContract(wallet: string): Promise<OnChainEntry[]> {
+  try {
+    // Use ethers-style ABI encoding. We need keccak256 for function selector.
+    // Since we can't use keccak256 in browser without a lib, use a minimal approach:
+    // Import the function selector from the compiled ABI.
+    // Actually the simplest: call via a JSON-RPC provider and manually encode.
+
+    // getChains(address) selector: keccak256("getChains(address)") first 4 bytes
+    // We'll compute this from the ABI using the contract's interface.
+    // Simplest: use eth_call with raw data.
+
+    // Function: getChains(address)
+    // Signature hash: we need to compute keccak256. Let's use a known value.
+    // keccak256("getChains(address)") = we can get this from solc output.
+
+    // Alternative: use the JSON-RPC with MetaMask's provider, which handles ABI encoding.
+    // But MetaMask doesn't expose an ABI encoder directly.
+
+    // Best approach for hackathon: use a tiny ethers import or compute manually.
+    // Since we already have ethers in the monorepo, let's use a different strategy:
+    // make an API call to our server which uses ethers to query the contract.
+
+    const res = await fetch(`/api/registry?wallet=${wallet}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.chains ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export default function DashboardPage() {
   const [chains, setChains] = useState<ChainSummary[]>([]);
+  const [onChainEntries, setOnChainEntries] = useState<OnChainEntry[]>([]);
   const [sources, setSources] = useState<Record<string, SourceStatus>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +134,8 @@ export default function DashboardPage() {
   const [shareCopiedId, setShareCopiedId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<string | null>(null);
   const [walletConnecting, setWalletConnecting] = useState(false);
+  const [registering, setRegistering] = useState<string | null>(null);
+  const [totalOnChain, setTotalOnChain] = useState<number | null>(null);
 
   const connectWallet = useCallback(async () => {
     const eth = (window as any).ethereum;
@@ -74,6 +146,7 @@ export default function DashboardPage() {
       if (accounts[0]) {
         setWallet(accounts[0]);
         localStorage.setItem('receipt-wallet', accounts[0]);
+        await switchTo0GNetwork();
       }
     } catch { setError('Wallet connection cancelled.'); }
     setWalletConnecting(false);
@@ -84,13 +157,44 @@ export default function DashboardPage() {
     if (saved) setWallet(saved);
   }, []);
 
+  // Fetch on-chain entries when wallet changes
+  useEffect(() => {
+    if (!wallet) { setOnChainEntries([]); return; }
+    readChainsFromContract(wallet).then(entries => {
+      setOnChainEntries(entries);
+    });
+    // Also fetch total chains
+    fetch('/api/registry?total=1').then(r => r.json()).then(d => {
+      if (typeof d.total === 'number') setTotalOnChain(d.total);
+    }).catch(() => {});
+  }, [wallet]);
+
   const fetchChains = useCallback(async () => {
     try {
       const url = filter ? `/api/chains?source=${filter}` : '/api/chains';
       const res = await fetch(url);
       if (!res.ok) throw new Error(`API returned ${res.status}`);
       const data = await res.json();
-      setChains(data.chains ?? []);
+      const apiChains: ChainSummary[] = (data.chains ?? []).map((c: ChainSummary) => {
+        const isOnChain = onChainEntries.some(e => e.rootHash.toLowerCase().includes(c.rootHash?.toLowerCase().slice(0, 12)));
+        return { ...c, onChain: isOnChain };
+      });
+
+      // Add on-chain entries that don't exist in API
+      const onChainOnly: ChainSummary[] = onChainEntries
+        .filter(e => !apiChains.some(c => c.rootHash && e.rootHash.toLowerCase().includes(c.rootHash.toLowerCase().slice(0, 12))))
+        .map((e, i) => ({
+          id: `onchain-${i}`,
+          source: (e.source as any) || 'sdk',
+          agentId: e.agentId || 'unknown',
+          receiptCount: e.receiptCount,
+          rootHash: e.rootHash,
+          quality: e.qualityScore > 0 ? e.qualityScore : null,
+          timestamp: e.timestamp * 1000,
+          onChain: true,
+        }));
+
+      setChains([...apiChains, ...onChainOnly].sort((a, b) => b.timestamp - a.timestamp));
       setSources(data.sources ?? {});
       setError(null);
     } catch (e) {
@@ -98,7 +202,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, onChainEntries]);
 
   useEffect(() => {
     fetchChains();
@@ -106,9 +210,65 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchChains]);
 
+  const registerOnChain = useCallback(async (chain: ChainSummary) => {
+    if (!wallet) { setError('Connect wallet first'); return; }
+    const eth = (window as any).ethereum;
+    if (!eth) { setError('No wallet found'); return; }
+
+    setRegistering(chain.id);
+    try {
+      await switchTo0GNetwork();
+
+      const res = await fetch('/api/registry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rootHash: chain.rootHash,
+          qualityScore: chain.quality ?? 0,
+          agentId: chain.agentId,
+          source: chain.source,
+          receiptCount: chain.receiptCount,
+          wallet,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to encode transaction');
+      const { txData } = await res.json();
+
+      const txHash = await eth.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: wallet,
+          to: REGISTRY_ADDRESS,
+          data: txData,
+          chainId: OG_CHAIN_ID,
+        }],
+      });
+
+      // Wait for confirmation
+      let confirmed = false;
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const receipt = await eth.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+        if (receipt) { confirmed = true; break; }
+      }
+
+      if (confirmed) {
+        // Refresh on-chain data
+        const entries = await readChainsFromContract(wallet);
+        setOnChainEntries(entries);
+      }
+    } catch (err: any) {
+      if (err.code !== 4001) {
+        setError(err.message ?? 'Registration failed');
+      }
+    } finally {
+      setRegistering(null);
+    }
+  }, [wallet]);
+
   const verifyChain = useCallback((chain: ChainSummary) => {
     if (!chain.receipts?.length) return;
-    // Use the chain ID for a shareable verify link
     window.location.href = `/verify?id=${encodeURIComponent(chain.id)}&auto=1`;
   }, []);
 
@@ -122,7 +282,7 @@ export default function DashboardPage() {
 
   const totalReceipts = chains.reduce((s, c) => s + c.receiptCount, 0);
   const avgQuality = chains.filter(c => c.quality !== null).reduce((s, c, _, a) => s + (c.quality ?? 0) / a.length, 0);
-  const sourceCount = new Set(chains.map(c => c.source)).size;
+  const onChainCount = chains.filter(c => c.onChain).length;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', display: 'flex', flexDirection: 'column' }}>
@@ -152,17 +312,17 @@ export default function DashboardPage() {
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 700, ...inter, marginBottom: '0.4rem' }}>Your Agents</h1>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', ...inter, lineHeight: 1.6, maxWidth: '520px' }}>
-              Chains arrive automatically when your agents run. Every action verified, every output scored.
+              Connect your wallet. Register chains on 0G Mainnet. No database, no server state.
             </p>
           </div>
           {wallet ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.8rem', background: 'var(--surface)', border: '1px solid var(--green)', borderRadius: '8px', flexShrink: 0 }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 4px rgba(34,197,94,0.4)' }} />
               <div>
-                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>Connected</div>
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>0G Mainnet</div>
                 <div style={{ ...mono, fontSize: '0.7rem', color: 'var(--text)', fontWeight: 600 }}>{wallet.slice(0, 6)}...{wallet.slice(-4)}</div>
               </div>
-              <button onClick={() => { setWallet(null); localStorage.removeItem('receipt-wallet'); }} style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>x</button>
+              <button onClick={() => { setWallet(null); localStorage.removeItem('receipt-wallet'); setOnChainEntries([]); }} style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>x</button>
             </div>
           ) : (
             <button
@@ -186,10 +346,10 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="team-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
           {[
-            { label: 'Chains', value: chains.length, sub: 'total' },
+            { label: 'Chains', value: chains.length, sub: wallet ? 'your chains' : 'total' },
             { label: 'Receipts', value: totalReceipts, sub: 'across all chains' },
             { label: 'Avg Quality', value: chains.some(c => c.quality !== null) ? Math.round(avgQuality) : '—', sub: '/100', color: chains.some(c => c.quality !== null) ? qualityColor(avgQuality) : undefined },
-            { label: 'Sources', value: sourceCount, sub: `agent tool${sourceCount !== 1 ? 's' : ''}` },
+            { label: 'On-Chain', value: onChainCount, sub: totalOnChain !== null ? `of ${totalOnChain} total` : '0G Mainnet', color: onChainCount > 0 ? 'var(--green)' : undefined },
           ].map(s => (
             <div key={s.label} style={{ padding: '0.8rem 1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
               <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>{s.label}</div>
@@ -197,6 +357,27 @@ export default function DashboardPage() {
               <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>{s.sub}</div>
             </div>
           ))}
+        </div>
+
+        {/* Contract info bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.8rem',
+          background: 'rgba(37,99,235,0.04)', border: '1px solid rgba(37,99,235,0.15)',
+          borderRadius: '6px', marginBottom: '1.5rem', flexWrap: 'wrap',
+        }}>
+          <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--researcher)', fontWeight: 700 }}>REGISTRY</span>
+          <a
+            href={`https://chainscan.0g.ai/address/${REGISTRY_ADDRESS}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', textDecoration: 'none' }}
+          >
+            {REGISTRY_ADDRESS.slice(0, 10)}...{REGISTRY_ADDRESS.slice(-6)}
+          </a>
+          <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>0G Mainnet (16661)</span>
+          <span style={{ marginLeft: 'auto', ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+            Chains are stored on-chain, not in a database
+          </span>
         </div>
 
         {/* Source filters */}
@@ -227,11 +408,6 @@ export default function DashboardPage() {
               }}
             >
               {info.label}
-              {sources[key === 'claude-code' ? 'claudeCode' : key] && (sources[key === 'claude-code' ? 'claudeCode' : key] as SourceStatus)?.count > 0 && (
-                <span style={{ marginLeft: '0.3rem', opacity: 0.6 }}>
-                  ({(sources[key === 'claude-code' ? 'claudeCode' : key] as SourceStatus)?.count ?? 0})
-                </span>
-              )}
             </button>
           ))}
           <button
@@ -261,7 +437,9 @@ export default function DashboardPage() {
           <div style={{ textAlign: 'center', padding: '3rem 1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
             <div style={{ ...mono, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>No chains yet</div>
             <p style={{ ...inter, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '440px', margin: '0 auto 1.5rem' }}>
-              Set up RECEIPT on your agents and chains will appear here automatically.
+              {wallet
+                ? 'No chains registered for this wallet. Run the demo or connect an agent to get started.'
+                : 'Connect your wallet to see your on-chain chains, or run the demo to generate one.'}
             </p>
             <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <div style={{ textAlign: 'left', padding: '1rem 1.2rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '260px' }}>
@@ -312,10 +490,11 @@ await fetch('/api/chains', {
             {chains.map(chain => {
               const src = SOURCE_LABELS[chain.source] ?? SOURCE_LABELS.demo;
               const expanded = expandedId === chain.id;
+              const isRegistering = registering === chain.id;
               return (
                 <div key={chain.id} style={{
                   background: 'var(--surface)',
-                  border: `1px solid ${expanded ? 'var(--researcher)' : 'var(--border)'}`,
+                  border: `1px solid ${expanded ? 'var(--researcher)' : chain.onChain ? 'rgba(34,197,94,0.3)' : 'var(--border)'}`,
                   borderRadius: '8px',
                   transition: 'border-color 0.2s',
                   overflow: 'hidden',
@@ -343,6 +522,17 @@ await fetch('/api/chains', {
                       }}>
                         {src.label}
                       </span>
+                      {/* On-chain badge */}
+                      {chain.onChain && (
+                        <span style={{
+                          ...mono, fontSize: '0.48rem', fontWeight: 700,
+                          padding: '0.15rem 0.4rem', borderRadius: '4px',
+                          background: 'rgba(34,197,94,0.08)', color: 'var(--green)',
+                          border: '1px solid rgba(34,197,94,0.2)', flexShrink: 0,
+                        }}>
+                          ON-CHAIN
+                        </span>
+                      )}
                       {/* Agent + time */}
                       <div style={{ minWidth: 0 }}>
                         <div style={{ ...mono, fontSize: '0.72rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -351,14 +541,8 @@ await fetch('/api/chains', {
                         <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
                           <span>{timeAgo(chain.timestamp)} &middot; {chain.receiptCount} receipt{chain.receiptCount !== 1 ? 's' : ''}</span>
                           {chain.receipts && (() => {
-                            const types: Record<string, number> = {};
-                            chain.receipts.forEach((r: any) => { types[r.action?.type] = (types[r.action?.type] ?? 0) + 1; });
                             const teeCount = chain.receipts.filter((r: any) => r.attestation).length;
-                            return (
-                              <>
-                                {teeCount > 0 && <span style={{ color: 'var(--green)' }}>&middot; {teeCount} TEE</span>}
-                              </>
-                            );
+                            return teeCount > 0 ? <span style={{ color: 'var(--green)' }}>&middot; {teeCount} TEE</span> : null;
                           })()}
                         </div>
                       </div>
@@ -426,6 +610,39 @@ await fetch('/api/chains', {
 
                       {/* Actions */}
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {/* Register on-chain button */}
+                        {wallet && !chain.onChain && chain.rootHash && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); registerOnChain(chain); }}
+                            disabled={isRegistering}
+                            style={{
+                              ...mono, fontSize: '0.65rem', fontWeight: 600,
+                              padding: '0.4rem 0.8rem', borderRadius: '4px',
+                              border: 'none', background: 'var(--researcher)',
+                              color: '#fff', cursor: isRegistering ? 'wait' : 'pointer',
+                              opacity: isRegistering ? 0.6 : 1,
+                            }}
+                          >
+                            {isRegistering ? 'Signing...' : 'Register On-Chain'}
+                          </button>
+                        )}
+                        {chain.onChain && (
+                          <a
+                            href={`https://chainscan.0g.ai/address/${REGISTRY_ADDRESS}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              ...mono, fontSize: '0.65rem', fontWeight: 600,
+                              padding: '0.4rem 0.8rem', borderRadius: '4px',
+                              border: '1px solid var(--green)', background: 'rgba(34,197,94,0.06)',
+                              color: 'var(--green)', cursor: 'pointer', textDecoration: 'none',
+                              display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                            }}
+                          >
+                            View on 0G Explorer
+                          </a>
+                        )}
                         {chain.receipts && chain.receipts.length > 0 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); verifyChain(chain); }}
@@ -490,7 +707,9 @@ await fetch('/api/chains', {
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
-        <span style={{ ...mono, fontSize: '0.6rem' }}>Auto-refreshes every 15s</span>
+        <span style={{ ...mono, fontSize: '0.6rem' }}>
+          ReceiptRegistry on 0G Mainnet
+        </span>
       </footer>
     </div>
   );

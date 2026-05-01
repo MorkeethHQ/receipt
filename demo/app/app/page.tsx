@@ -130,6 +130,104 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── ARCHITECTURE DIAGRAM ── */}
+      <section style={{ padding: '0 1.5rem 1.5rem', maxWidth: '720px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.8rem', textAlign: 'center' }}>Architecture</h2>
+        <div style={{ padding: '1.2rem', border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--surface)', overflow: 'hidden' }}>
+          <svg viewBox="0 0 720 340" style={{ width: '100%', height: 'auto' }}>
+            {/* Background grid */}
+            <defs>
+              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="720" height="340" fill="url(#grid)" />
+
+            {/* Researcher box */}
+            <rect x="20" y="20" width="200" height="180" rx="8" fill="rgba(96,165,250,0.06)" stroke="rgba(96,165,250,0.3)" strokeWidth="1" />
+            <text x="120" y="44" textAnchor="middle" fill="rgba(96,165,250,0.9)" fontFamily="IBM Plex Mono, monospace" fontSize="10" fontWeight="700">RESEARCHER</text>
+            {[
+              { y: 64, label: 'file_read', icon: '1' },
+              { y: 88, label: 'api_call', icon: '2' },
+              { y: 112, label: 'llm_call (TEE)', icon: '3' },
+              { y: 136, label: 'decision', icon: '4' },
+              { y: 160, label: 'output', icon: '5' },
+            ].map(r => (
+              <g key={r.icon}>
+                <rect x="36" y={r.y - 8} width="168" height="18" rx="3" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.15)" strokeWidth="0.5" />
+                <circle cx="48" cy={r.y + 1} r="6" fill="rgba(96,165,250,0.15)" stroke="rgba(96,165,250,0.4)" strokeWidth="0.5" />
+                <text x="48" y={r.y + 4} textAnchor="middle" fill="rgba(96,165,250,0.8)" fontFamily="IBM Plex Mono, monospace" fontSize="7" fontWeight="700">{r.icon}</text>
+                <text x="62" y={r.y + 4} fill="rgba(255,255,255,0.5)" fontFamily="IBM Plex Mono, monospace" fontSize="8">{r.label}</text>
+                {r.icon !== '1' && <line x1="48" y1={r.y - 14} x2="48" y2={r.y - 8} stroke="rgba(96,165,250,0.3)" strokeWidth="1" strokeDasharray="2,2" />}
+              </g>
+            ))}
+
+            {/* Handoff arrow */}
+            <line x1="224" y1="110" x2="286" y2="110" stroke="rgba(192,132,252,0.6)" strokeWidth="2" markerEnd="url(#arrow)" />
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(192,132,252,0.6)" />
+              </marker>
+            </defs>
+            <text x="255" y="100" textAnchor="middle" fill="rgba(192,132,252,0.7)" fontFamily="IBM Plex Mono, monospace" fontSize="7" fontWeight="700">AXL P2P</text>
+            <text x="255" y="124" textAnchor="middle" fill="rgba(192,132,252,0.4)" fontFamily="IBM Plex Mono, monospace" fontSize="6">handoff</text>
+
+            {/* Builder box */}
+            <rect x="290" y="20" width="200" height="180" rx="8" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.3)" strokeWidth="1" />
+            <text x="390" y="44" textAnchor="middle" fill="rgba(34,197,94,0.9)" fontFamily="IBM Plex Mono, monospace" fontSize="10" fontWeight="700">BUILDER</text>
+            {[
+              { y: 64, label: 'verify chain', icon: 'v' },
+              { y: 88, label: 'file_read', icon: '6' },
+              { y: 112, label: 'api_call', icon: '7' },
+              { y: 136, label: 'decision', icon: '8' },
+              { y: 160, label: 'usefulness_review', icon: '9' },
+            ].map(r => (
+              <g key={r.icon}>
+                <rect x="306" y={r.y - 8} width="168" height="18" rx="3" fill={r.icon === 'v' ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.08)'} stroke={r.icon === 'v' ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.15)'} strokeWidth="0.5" />
+                <circle cx="318" cy={r.y + 1} r="6" fill={r.icon === '9' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)'} stroke={r.icon === '9' ? 'rgba(245,158,11,0.4)' : 'rgba(34,197,94,0.4)'} strokeWidth="0.5" />
+                <text x="318" y={r.y + 4} textAnchor="middle" fill={r.icon === '9' ? 'rgba(245,158,11,0.8)' : 'rgba(34,197,94,0.8)'} fontFamily="IBM Plex Mono, monospace" fontSize="7" fontWeight="700">{r.icon}</text>
+                <text x="332" y={r.y + 4} fill="rgba(255,255,255,0.5)" fontFamily="IBM Plex Mono, monospace" fontSize="8">{r.label}</text>
+              </g>
+            ))}
+
+            {/* Root hash */}
+            <line x1="390" y1="204" x2="390" y2="228" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="3,2" />
+            <text x="390" y="242" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontFamily="IBM Plex Mono, monospace" fontSize="8" fontWeight="600">compute root hash</text>
+
+            {/* 0G layer boxes */}
+            <line x1="390" y1="248" x2="390" y2="266" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+            {[
+              { x: 36, label: '0G Compute', sub: 'TEE (Intel TDX)', color: 'rgba(34,197,94,0.7)' },
+              { x: 168, label: '0G Chain', sub: '4 contracts', color: 'rgba(34,197,94,0.7)' },
+              { x: 300, label: '0G Storage', sub: 'Merkle root', color: 'rgba(34,197,94,0.7)' },
+              { x: 432, label: 'Registry', sub: 'per wallet', color: 'rgba(96,165,250,0.7)' },
+              { x: 564, label: '0G Training', sub: 'quality-gated', color: 'rgba(34,197,94,0.7)' },
+            ].map(b => (
+              <g key={b.label}>
+                <rect x={b.x} y="268" width="120" height="46" rx="6" fill="rgba(255,255,255,0.02)" stroke={b.color} strokeWidth="0.8" />
+                <text x={b.x + 60} y="286" textAnchor="middle" fill={b.color} fontFamily="IBM Plex Mono, monospace" fontSize="8" fontWeight="700">{b.label}</text>
+                <text x={b.x + 60} y="300" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontFamily="IBM Plex Mono, monospace" fontSize="7">{b.sub}</text>
+                <line x1="390" y1="266" x2={b.x + 60} y2="268" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+              </g>
+            ))}
+
+            {/* TEE badge on llm_call */}
+            <rect x="166" y="102" width="30" height="12" rx="2" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.3)" strokeWidth="0.5" />
+            <text x="181" y="111" textAnchor="middle" fill="rgba(34,197,94,0.8)" fontFamily="IBM Plex Mono, monospace" fontSize="6" fontWeight="700">TEE</text>
+
+            {/* TEE badge on review */}
+            <rect x="436" y="150" width="30" height="12" rx="2" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.3)" strokeWidth="0.5" />
+            <text x="451" y="159" textAnchor="middle" fill="rgba(245,158,11,0.8)" fontFamily="IBM Plex Mono, monospace" fontSize="6" fontWeight="700">TEE</text>
+
+            {/* Wallet icon at Registry */}
+            <rect x="530" y="20" width="170" height="50" rx="6" fill="rgba(96,165,250,0.04)" stroke="rgba(96,165,250,0.2)" strokeWidth="0.5" />
+            <text x="615" y="38" textAnchor="middle" fill="rgba(96,165,250,0.6)" fontFamily="IBM Plex Mono, monospace" fontSize="8" fontWeight="700">YOUR WALLET</text>
+            <text x="615" y="52" textAnchor="middle" fill="rgba(96,165,250,0.35)" fontFamily="IBM Plex Mono, monospace" fontSize="7">signs to ReceiptRegistry</text>
+            <line x1="615" y1="72" x2="492" y2="268" stroke="rgba(96,165,250,0.15)" strokeWidth="0.8" strokeDasharray="4,3" />
+          </svg>
+        </div>
+      </section>
+
       {/* ── WHAT RECEIPT CAPTURES ── */}
       <section style={{ padding: '0 1.5rem 1.5rem', maxWidth: '620px', margin: '0 auto', width: '100%' }}>
         <h2 style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.8rem', textAlign: 'center' }}>Every action, end to end</h2>
@@ -181,6 +279,7 @@ export default function LandingPage() {
               { label: 'ReceiptAnchor', addr: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651' },
               { label: 'AgentNFT', addr: '0xf964d45c3Ea5368918B1FDD49551E373028108c9' },
               { label: 'ValidationRegistry', addr: '0x2E32E845928A92DB193B59676C16D52923Fa01dd' },
+              { label: 'ReceiptRegistry', addr: '0x717D062E47898441a51EAdcA40873190A339B328' },
             ].map(c => (
               <a key={c.addr} href={`https://chainscan.0g.ai/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
                 style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)', textDecoration: 'none', padding: '0.15rem 0.35rem', background: 'var(--bg)', borderRadius: '3px', border: '1px solid var(--border)' }}>
@@ -222,7 +321,7 @@ export default function LandingPage() {
             'Ed25519 signatures', 'SHA-256 hash chains', 'TEE enclaves (Intel TDX)',
             '0G Mainnet (16661)', 'ERC-7857 Agentic ID', 'ERC-8004 Validation',
             'WebCrypto client-side verify', 'Gensyn AXL P2P mesh',
-            'agenticproof@0.1.2 on npm', '3 smart contracts live', '47 SDK tests passing',
+            'agenticproof@0.1.2 on npm', '4 smart contracts live', '47 SDK tests passing',
           ].map(tag => (
             <span key={tag} style={{ ...mono, fontSize: '0.52rem', padding: '0.2rem 0.45rem', borderRadius: '3px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
               {tag}

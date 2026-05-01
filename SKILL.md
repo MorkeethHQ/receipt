@@ -38,6 +38,7 @@ Code: `packages/receipt-sdk/src/integrations/axl.ts` (401 lines)
 | ReceiptAnchorV2 | `0x73B9A7768679B154D7E1eC5F2570a622A3b49651` | Custom |
 | AgentNFT | `0xf964d45c3Ea5368918B1FDD49551E373028108c9` | ERC-7857 |
 | ValidationRegistry | `0x2E32E845928A92DB193B59676C16D52923Fa01dd` | ERC-8004 |
+| ReceiptRegistry | `0x717D062E47898441a51EAdcA40873190A339B328` | Custom |
 
 Explorer: https://chainscan.0g.ai
 

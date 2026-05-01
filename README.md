@@ -20,6 +20,7 @@
 - ReceiptAnchorV2: [`0x73B9A7768679B154D7E1eC5F2570a622A3b49651`](https://chainscan.0g.ai/address/0x73B9A7768679B154D7E1eC5F2570a622A3b49651) — stores usefulness scores on-chain
 - AgentNFT: [`0xf964d45c3Ea5368918B1FDD49551E373028108c9`](https://chainscan.0g.ai/address/0xf964d45c3Ea5368918B1FDD49551E373028108c9) — ERC-7857 agent identity
 - ValidationRegistry: [`0x2E32E845928A92DB193B59676C16D52923Fa01dd`](https://chainscan.0g.ai/address/0x2E32E845928A92DB193B59676C16D52923Fa01dd) — ERC-8004 agent proof attestations
+- ReceiptRegistry: [`0x717D062E47898441a51EAdcA40873190A339B328`](https://chainscan.0g.ai/address/0x717D062E47898441a51EAdcA40873190A339B328) — on-chain chain coordination per wallet
 
 ## Architecture
 
@@ -112,6 +113,7 @@ contracts/
   ReceiptAnchorV2.sol           On-chain anchor — stores usefulness scores (deployed on 0G Mainnet)
   AgentNFT.sol                  ERC-7857 Agentic Identity NFT contract
   ValidationRegistry.sol        ERC-8004 agent proof attestations (deployed on 0G Mainnet)
+  ReceiptRegistry.sol           On-chain chain coordination — maps wallets to receipt chains
 
 demo/
   app/                          Next.js demo — 8 pages (home, live demo, trial, team, verify, eval, reputation, dashboard)
