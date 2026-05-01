@@ -1854,12 +1854,12 @@ export default function Demo() {
                 }}
                 style={{
                   padding: '0.35rem 0.8rem', borderRadius: '6px',
-                  border: '1px solid var(--green)', background: 'rgba(22, 163, 74, 0.06)',
-                  color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit',
+                  border: 'none', background: 'var(--green)',
+                  color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
                   fontSize: '0.72rem', fontWeight: 600,
                 }}
               >
-                Verify
+                Verify This Chain
               </button>
               <button
                 onClick={() => {
@@ -1900,7 +1900,7 @@ export default function Demo() {
             cursor: 'pointer', fontFamily: 'inherit',
             fontSize: '0.72rem', fontWeight: 600,
           }}>
-            {adversarial ? 'Run Honest' : 'Run Adversarial'}
+            {adversarial ? 'Now Try Honest' : 'Now Try Adversarial'}
           </button>
           <button onClick={run} style={{
             padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',
