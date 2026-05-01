@@ -947,22 +947,22 @@ export default function Demo() {
         <div style={{ ...mono, fontSize: '2rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
           R.E.C.E.I.P.T.
         </div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: '1.5rem', ...mono }}>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: '1rem', ...mono }}>
           Proof that AI work actually mattered
         </p>
-        <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-          Did the agent actually read the file, or just assume the data? Did it really search the web, or guess the answer? Watch two agents work — every action signed, every output hashed, every lie caught.
+        <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+          Watch two agents work — every action signed, every output hashed, every lie caught.
         </p>
 
         {/* Mode selector — two modes */}
         <div style={{
           background: adversarial ? '#fef2f2' : 'var(--surface)',
           border: `2px solid ${adversarial ? 'var(--red)' : 'var(--border)'}`,
-          borderRadius: '12px', padding: '1.5rem 2rem',
-          marginBottom: '2rem',
+          borderRadius: '12px', padding: '1.2rem 1.8rem',
+          marginBottom: '1.5rem',
           transition: 'all 0.3s ease',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.8rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
             {([
               { key: 'honest', label: 'Honest Agent', active: !adversarial, color: 'var(--green)', bg: '#f0fdf4' },
               { key: 'adversarial', label: 'Catch the Lie', active: adversarial, color: 'var(--red)', bg: '#fef2f2' },
@@ -985,77 +985,15 @@ export default function Demo() {
               </button>
             ))}
           </div>
-          <p style={{ fontSize: '0.82rem', color: adversarial ? '#991b1b' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: adversarial ? '#991b1b' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
             {adversarial
-              ? 'The Researcher claims it verified a contract — but it never actually checked. It assumed the data. Watch the Builder catch a fabricated receipt.'
-              : 'Both agents work honestly. Every file read, every API call, every inference — signed and hash-linked. The full chain verifies.'}
+              ? 'The Researcher claims it verified a contract — but it never actually checked. Watch the Builder catch a fabricated receipt.'
+              : 'Both agents work honestly. Every action signed and hash-linked. The full chain verifies.'}
           </p>
         </div>
 
-        {/* AXL Node Status */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem',
-          marginBottom: '1.5rem',
-        }}>
-          {(['researcher', 'builder'] as const).map(node => {
-            const info = axlNodes[node];
-            const status = axlStatus[node];
-            return (
-              <div key={node} style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.4rem 0.8rem', borderRadius: '8px',
-                background: status === null ? 'var(--surface)' : status ? '#f0fdf4' : 'var(--surface)',
-                border: `1px solid ${status === null ? 'var(--border)' : status ? '#bbf7d0' : 'var(--border)'}`,
-                transition: 'all 0.3s ease',
-              }}>
-                <div style={{
-                  width: '8px', height: '8px', borderRadius: '50%',
-                  background: status === null ? 'var(--text-dim)' : status ? 'var(--green)' : 'var(--text-dim)',
-                  boxShadow: status ? '0 0 6px rgba(34,197,94,0.4)' : 'none',
-                  transition: 'all 0.3s ease',
-                }} />
-                <div>
-                  <div style={{ ...mono, fontSize: '0.58rem', fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>
-                    {node} Node
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>
-                    {status === null ? 'Checking...' : status ? (info.key ? `${info.key.slice(0, 12)}... · ${info.peers} peer${info.peers !== 1 ? 's' : ''}` : 'Connected') : 'Direct mode'}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {axlStatus.researcher === false && axlStatus.builder === false && (
-          <div style={{
-            ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center',
-            marginBottom: '1rem', lineHeight: 1.6,
-          }}>
-            Handoff via direct HTTP. With AXL nodes running, this travels<br />
-            peer-to-peer over encrypted Yggdrasil mesh — no central server.
-          </div>
-        )}
-
-        {/* Story flow preview */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-          flexWrap: 'wrap', marginBottom: '2rem',
-        }}>
-          {['Researcher', 'Handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder', 'Review', adversarial ? null : 'Record'].filter(Boolean).map((step, i, arr) => (
-            <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <div style={{
-                ...mono, fontSize: '0.62rem', padding: '0.3rem 0.6rem',
-                borderRadius: '6px', background: 'var(--surface)', border: '1px solid var(--border)',
-                color: 'var(--text-muted)', fontWeight: 500,
-              }}>
-                {step}
-              </div>
-              {i < arr.length - 1 && <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>&#8594;</span>}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+        {/* Start button — primary action */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
           <button onClick={run} className="pulse-btn" style={{
             padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
             background: adversarial ? 'var(--red)' : 'var(--text)',
@@ -1076,6 +1014,46 @@ export default function Demo() {
             />
             Guided walkthrough (recommended for first run)
           </label>
+        </div>
+
+        {/* Flow preview — below the fold */}
+        <div className="demo-flow-preview" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
+          flexWrap: 'wrap', marginBottom: '1rem',
+        }}>
+          {['Researcher', 'Handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder', 'Review', adversarial ? null : 'Record'].filter(Boolean).map((step, i, arr) => (
+            <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <div style={{
+                ...mono, fontSize: '0.58rem', padding: '0.25rem 0.5rem',
+                borderRadius: '6px', background: 'var(--surface)', border: '1px solid var(--border)',
+                color: 'var(--text-muted)', fontWeight: 500,
+              }}>
+                {step}
+              </div>
+              {i < arr.length - 1 && <span style={{ color: 'var(--text-dim)', fontSize: '0.65rem' }}>&#8594;</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* Transport status — compact */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
+          ...mono, fontSize: '0.52rem', color: 'var(--text-dim)',
+        }}>
+          {(['researcher', 'builder'] as const).map(node => {
+            const status = axlStatus[node];
+            return (
+              <div key={node} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: status === null ? 'var(--text-dim)' : status ? 'var(--green)' : 'var(--text-dim)',
+                  boxShadow: status ? '0 0 4px rgba(34,197,94,0.4)' : 'none',
+                }} />
+                <span style={{ textTransform: 'capitalize' }}>{node}</span>
+                <span>{status === null ? '...' : status ? 'P2P' : 'HTTP'}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
