@@ -42,6 +42,7 @@ export default function LandingPage() {
         </a>
         <div className="nav-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Home</a>
+          <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
@@ -83,12 +84,12 @@ export default function LandingPage() {
           }}>
             Watch the Demo
           </a>
-          <a href="/verify" style={{
+          <a href="/team" style={{
             padding: '0.7rem 1.8rem', borderRadius: '8px', border: '1px solid var(--border)',
             background: 'var(--surface)', color: 'var(--text)', textDecoration: 'none',
             fontFamily: 'Inter, sans-serif', fontSize: '0.88rem', fontWeight: 500,
           }}>
-            Verify a Chain
+            Open Dashboard
           </a>
         </div>
       </section>
@@ -238,6 +239,7 @@ export default function LandingPage() {
         fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif',
       }}>
         <div style={{ display: 'flex', gap: '1rem' }}>
+          <a href="/team" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</a>
           <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Demo</a>
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>

@@ -54,13 +54,35 @@ function timeAgo(ts: number): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export default function TeamPage() {
+export default function DashboardPage() {
   const [chains, setChains] = useState<ChainSummary[]>([]);
   const [sources, setSources] = useState<Record<string, SourceStatus>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
+  const [shareCopiedId, setShareCopiedId] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<string | null>(null);
+  const [walletConnecting, setWalletConnecting] = useState(false);
+
+  const connectWallet = useCallback(async () => {
+    const eth = (window as any).ethereum;
+    if (!eth) { setError('No wallet found. Install MetaMask or a browser wallet.'); return; }
+    setWalletConnecting(true);
+    try {
+      const accounts: string[] = await eth.request({ method: 'eth_requestAccounts' });
+      if (accounts[0]) {
+        setWallet(accounts[0]);
+        localStorage.setItem('receipt-wallet', accounts[0]);
+      }
+    } catch { setError('Wallet connection cancelled.'); }
+    setWalletConnecting(false);
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('receipt-wallet');
+    if (saved) setWallet(saved);
+  }, []);
 
   const fetchChains = useCallback(async () => {
     try {
@@ -86,8 +108,16 @@ export default function TeamPage() {
 
   const verifyChain = useCallback((chain: ChainSummary) => {
     if (!chain.receipts?.length) return;
-    sessionStorage.setItem('receipt-verify-chain', JSON.stringify(chain.receipts));
-    window.location.href = '/verify?from=session&auto=1';
+    // Use the chain ID for a shareable verify link
+    window.location.href = `/verify?id=${encodeURIComponent(chain.id)}&auto=1`;
+  }, []);
+
+  const shareChain = useCallback((chain: ChainSummary) => {
+    const url = `${window.location.origin}/verify?id=${encodeURIComponent(chain.id)}&auto=1`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopiedId(chain.id);
+      setTimeout(() => setShareCopiedId(null), 2000);
+    });
   }, []);
 
   const totalReceipts = chains.reduce((s, c) => s + c.receiptCount, 0);
@@ -109,6 +139,7 @@ export default function TeamPage() {
         <a href="/" style={{ ...mono, fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}>R.E.C.E.I.P.T.</a>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Home</a>
+          <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', ...inter, fontWeight: 600 }}>Dashboard</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Verify</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>GitHub</a>
@@ -117,11 +148,38 @@ export default function TeamPage() {
 
       {/* Header */}
       <header style={{ padding: '1.5rem 2rem 1rem', maxWidth: '860px', margin: '0 auto', width: '100%' }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 700, ...inter, marginBottom: '0.4rem' }}>Team Chains</h1>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', ...inter, lineHeight: 1.6 }}>
-          Every agent on your team — Claude Code, OpenClaw, or any RECEIPT-enabled tool — generates
-          cryptographic receipt chains. This is the feed. Every action verified, every output scored.
-        </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 700, ...inter, marginBottom: '0.4rem' }}>Your Agents</h1>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', ...inter, lineHeight: 1.6, maxWidth: '520px' }}>
+              Chains arrive automatically when your agents run. Every action verified, every output scored.
+            </p>
+          </div>
+          {wallet ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.8rem', background: 'var(--surface)', border: '1px solid var(--green)', borderRadius: '8px', flexShrink: 0 }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 4px rgba(34,197,94,0.4)' }} />
+              <div>
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>Connected</div>
+                <div style={{ ...mono, fontSize: '0.7rem', color: 'var(--text)', fontWeight: 600 }}>{wallet.slice(0, 6)}...{wallet.slice(-4)}</div>
+              </div>
+              <button onClick={() => { setWallet(null); localStorage.removeItem('receipt-wallet'); }} style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>x</button>
+            </div>
+          ) : (
+            <button
+              onClick={connectWallet}
+              disabled={walletConnecting}
+              style={{
+                ...mono, fontSize: '0.75rem', fontWeight: 600,
+                padding: '0.6rem 1.2rem', borderRadius: '8px',
+                border: '2px solid var(--text)', background: 'var(--text)',
+                color: '#fff', cursor: walletConnecting ? 'wait' : 'pointer',
+                flexShrink: 0, opacity: walletConnecting ? 0.6 : 1,
+              }}
+            >
+              {walletConnecting ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          )}
+        </div>
       </header>
 
       <div style={{ maxWidth: '860px', margin: '0 auto', width: '100%', padding: '0 2rem 3rem' }}>
@@ -221,6 +279,23 @@ export default function TeamPage() {
                   # add plugin to openclaw.json
                 </code>
                 <div style={{ ...inter, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>Every agent run gets a chain</div>
+              </div>
+              <div style={{ textAlign: 'left', padding: '1rem 1.2rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '260px' }}>
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--green)', fontWeight: 700, marginBottom: '0.4rem' }}>Any Agent (SDK)</div>
+                <code style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.8, display: 'block', whiteSpace: 'pre-wrap' }}>
+{`import { ReceiptAgent }
+  from 'agenticproof';
+const agent =
+  ReceiptAgent.create('my-agent');
+// ... do work ...
+await fetch('/api/chains', {
+  method: 'POST',
+  body: JSON.stringify({
+    receipts: agent.getReceipts()
+  })
+});`}
+                </code>
+                <div style={{ ...inter, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>3 lines to publish a chain</div>
               </div>
             </div>
             <div style={{ marginTop: '1.5rem' }}>
@@ -357,13 +432,27 @@ export default function TeamPage() {
                             style={{
                               ...mono, fontSize: '0.65rem', fontWeight: 600,
                               padding: '0.4rem 0.8rem', borderRadius: '4px',
-                              border: '1px solid var(--green)', background: 'rgba(22,163,74,0.06)',
-                              color: 'var(--green)', cursor: 'pointer',
+                              border: 'none', background: 'var(--green)',
+                              color: '#fff', cursor: 'pointer',
                             }}
                           >
-                            Verify this chain
+                            Verify
                           </button>
                         )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); shareChain(chain); }}
+                          style={{
+                            ...mono, fontSize: '0.65rem', fontWeight: 600,
+                            padding: '0.4rem 0.8rem', borderRadius: '4px',
+                            border: `1px solid ${shareCopiedId === chain.id ? 'var(--green)' : 'var(--researcher)'}`,
+                            background: shareCopiedId === chain.id ? 'rgba(22,163,74,0.06)' : 'rgba(37,99,235,0.06)',
+                            color: shareCopiedId === chain.id ? 'var(--green)' : 'var(--researcher)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {shareCopiedId === chain.id ? 'Link Copied' : 'Share'}
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -396,10 +485,9 @@ export default function TeamPage() {
         flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.68rem', color: 'var(--text-dim)', ...inter,
       }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Live</a>
-          <a href="/team" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Team</a>
+          <a href="/team" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</a>
+          <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Demo</a>
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
-          <a href="/eval" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
         <span style={{ ...mono, fontSize: '0.6rem' }}>Auto-refreshes every 15s</span>

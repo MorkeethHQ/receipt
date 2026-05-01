@@ -1757,6 +1757,18 @@ export default function Demo() {
             >
               {linkCopied ? '✓ Link Copied' : 'Copy Link'}
             </button>
+            <a
+              href="/team"
+              style={{
+                ...mono, fontSize: '0.55rem', color: 'var(--researcher)',
+                textDecoration: 'none', fontWeight: 600,
+                padding: '0.2rem 0.5rem', borderRadius: '4px',
+                border: '1px solid rgba(37,99,235,0.2)',
+                background: 'rgba(37,99,235,0.06)',
+              }}
+            >
+              View in Dashboard &rarr;
+            </a>
           </div>
         )}
 
@@ -1914,6 +1926,7 @@ export default function Demo() {
         </a>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
+          <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
