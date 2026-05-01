@@ -110,7 +110,7 @@ contracts/
   ValidationRegistry.sol        ERC-8004 agent proof attestations (deployed on 0G Mainnet)
 
 demo/
-  app/                          Next.js demo — 5 pages (home, live demo, team, verify, eval)
+  app/                          Next.js demo — 6 pages (home, live demo, trial, team, verify, eval)
   agents/                       Standalone agent scripts (researcher → builder handoff)
   axl/                          Gensyn AXL P2P demo (sender + receiver)
 ```
