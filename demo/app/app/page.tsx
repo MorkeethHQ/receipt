@@ -81,8 +81,8 @@ export default function LandingPage() {
           marginBottom: '1rem',
           letterSpacing: '0.02em',
         }}>
-          Other tools verify that agents DID work.<br />
-          RECEIPT verifies that agents did GOOD work.
+          Cursor built keep rates for code.<br />
+          We built verification rates for everything else.
         </p>
         <h1 className="hero-title" style={{
           fontSize: '2.2rem',
@@ -101,8 +101,8 @@ export default function LandingPage() {
           marginBottom: '2rem',
           fontFamily: 'Inter, sans-serif',
         }}>
-          Cryptographic proof that every agent action happened.
-          TEE-attested proof that the output was worth paying for.
+          The evaluation layer every agent harness needs.
+          Cryptographic proof that the work happened — and that it was worth paying for.
         </p>
 
         {/* npm install */}

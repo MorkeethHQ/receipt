@@ -1137,8 +1137,31 @@ export default function Demo() {
               boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)',
             }}>B</div>
           </div>
-          <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            Chain traveling peer-to-peer
+          <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '0.3rem' }}>
+            Chain traveling peer-to-peer via Gensyn AXL
+          </div>
+          {/* A2A Protocol Envelope */}
+          <div style={{
+            padding: '0.35rem 0.5rem', borderRadius: '4px',
+            background: 'rgba(37,99,235,0.04)', border: '1px solid rgba(37,99,235,0.15)',
+          }}>
+            <div style={{ ...mono, fontSize: '0.45rem', color: 'var(--researcher)', fontWeight: 700, marginBottom: '0.2rem', letterSpacing: '0.04em' }}>
+              A2A PROTOCOL ENVELOPE
+            </div>
+            <pre style={{
+              ...mono, fontSize: '0.42rem', color: 'var(--text-dim)', lineHeight: 1.5,
+              margin: 0, whiteSpace: 'pre', overflow: 'hidden',
+            }}>{`{
+  "jsonrpc": "2.0",
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "parts": [{ "type": "data",
+        "data": { "bundle": {
+          "receipts": [${receipts.length}],
+          "chainRootHash": "${(chainRootHash || '').slice(0, 12)}..."
+  }}]}}}
+}`}</pre>
           </div>
         </div>
       )}

@@ -164,16 +164,69 @@ function DegradationTracker({ chains }: { chains: ChainSummary[] }) {
   );
 }
 
+interface CostData {
+  runs: number;
+  totalTokens: number;
+  totalCost: number;
+  avgCostPerUseful: number;
+  avgQuality: number;
+  avgVerificationRate: number;
+  cheapestRun: { runId: string; cost: number; quality: number } | null;
+  mostExpensiveRun: { runId: string; cost: number; quality: number } | null;
+}
+
+function CostAnalysis({ data }: { data: CostData }) {
+  return (
+    <div style={{ marginTop: '2rem' }}>
+      <h2 style={{ ...inter, fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.8rem', color: 'var(--text)', borderBottom: '1px solid var(--border)', paddingBottom: '0.4rem' }}>
+        Cost Analysis
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.6rem', marginBottom: '0.8rem' }}>
+        <div style={{ padding: '0.8rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ ...mono, fontSize: '1.3rem', fontWeight: 700, color: data.avgCostPerUseful < 0.002 ? 'var(--green)' : data.avgCostPerUseful < 0.01 ? 'var(--amber)' : 'var(--red)' }}>
+            ${data.avgCostPerUseful.toFixed(4)}
+          </div>
+          <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Avg $/Useful Output</div>
+        </div>
+        <div style={{ padding: '0.8rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ ...mono, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
+            {data.totalTokens.toLocaleString()}
+          </div>
+          <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Total Tokens</div>
+        </div>
+        <div style={{ padding: '0.8rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ ...mono, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
+            ${data.totalCost.toFixed(4)}
+          </div>
+          <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Total Cost</div>
+        </div>
+      </div>
+      {data.cheapestRun && data.mostExpensiveRun && (
+        <div style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-muted)', lineHeight: 1.8, padding: '0.5rem', background: 'var(--surface)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+          Best ROI: ${data.cheapestRun.cost.toFixed(4)} at quality {data.cheapestRun.quality}/100
+          <br />
+          Worst ROI: ${data.mostExpensiveRun.cost.toFixed(4)} at quality {data.mostExpensiveRun.quality}/100
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReputationPage() {
   const [chains, setChains] = useState<ChainSummary[]>([]);
+  const [costData, setCostData] = useState<CostData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/chains')
-      .then(res => res.json())
-      .then(data => { setChains(data.chains ?? []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+    Promise.all([
+      fetch('/api/chains').then(r => r.json()),
+      fetch('/api/cost-analysis').then(r => r.json()).catch(() => null),
+    ]).then(([chainsData, costs]) => {
+      setChains(chainsData.chains ?? []);
+      if (costs) setCostData(costs);
+      setLoading(false);
+    }).catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
   const { agents, totalRuns, avgVerification, avgQuality, totalReceipts } = computeStats(chains);
@@ -255,6 +308,7 @@ export default function ReputationPage() {
             </table>
 
             <DegradationTracker chains={chains} />
+            {costData && <CostAnalysis data={costData} />}
           </>
         )}
       </div>
