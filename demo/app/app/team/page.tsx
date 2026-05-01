@@ -37,6 +37,7 @@ const ACTION_LABELS: Record<string, string> = {
   context_read: 'Context',
   message_send: 'Message',
   tool_call: 'Tool Call',
+  mcp_tool: 'MCP Tool',
 };
 
 function qualityColor(q: number): string {
@@ -109,6 +110,7 @@ export default function TeamPage() {
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Home</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Live</a>
+          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Trial</a>
           <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', ...inter, fontWeight: 600 }}>Team</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Verify</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Eval</a>

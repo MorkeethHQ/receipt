@@ -36,6 +36,7 @@ const actionMethodMap: Record<ActionType, (agent: ReceiptAgent, input: string, o
   context_read: (agent, input, output) => agent.contextRead(input, output),
   message_send: (agent, input, output) => agent.messageSend(input, output),
   usefulness_review: (agent, input, output) => agent.reviewUsefulness(input, output),
+  mcp_tool: (agent, input, output) => agent.mcpTool(input, output),
 };
 
 export function createReceiptMiddleware(config: MiddlewareConfig = {}): ReceiptMiddleware {

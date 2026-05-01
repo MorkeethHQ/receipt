@@ -85,6 +85,10 @@ export class ReceiptAgent {
     return this.act('message_send', `Message to ${recipient}`, recipient, content);
   }
 
+  mcpTool(toolName: string, result: string): Receipt {
+    return this.act('mcp_tool', `MCP tool: ${toolName}`, toolName, result);
+  }
+
   getReceipts(): Receipt[] {
     return this.chain.getReceipts();
   }
