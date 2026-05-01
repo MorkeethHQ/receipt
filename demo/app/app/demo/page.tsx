@@ -853,10 +853,11 @@ export default function Demo() {
           R.E.C.E.I.P.T.
         </div>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: '1rem', ...mono }}>
-          Proof that AI work actually mattered
+          The evaluation layer for AI agents
         </p>
         <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-          Watch two agents work — every action signed, every output hashed, every lie caught.
+          A Researcher agent gathers data. A Builder agent verifies every claim independently.
+          Every action is signed, hash-linked, and scored for usefulness.
         </p>
 
         {/* Mode selector — two modes */}
@@ -926,7 +927,7 @@ export default function Demo() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '1rem',
         }}>
-          {['Researcher', 'Handoff', 'Builder verifies', adversarial ? 'Rejected' : 'Builder', 'Review', adversarial ? null : 'Record'].filter(Boolean).map((step, i, arr) => (
+          {['5 Receipts', 'P2P Handoff', 'Verify Chain', adversarial ? 'Rejected' : 'Score Quality', adversarial ? null : 'Anchor On-Chain'].filter(Boolean).map((step, i, arr) => (
             <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <div style={{
                 ...mono, fontSize: '0.58rem', padding: '0.25rem 0.5rem',
