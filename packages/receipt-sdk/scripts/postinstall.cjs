@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+console.log(`
+  \x1b[32m┌─────────────────────────────────────────┐\x1b[0m
+  \x1b[32m│\x1b[0m                                         \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   \x1b[1mR.E.C.E.I.P.T.\x1b[0m                       \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   Proof of Agent Work                   \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m                                         \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   ACTION ............ signed            \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   VERIFY ............ pass              \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   QUALITY ........... 82/100            \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   ANCHORED .......... 0G Mainnet        \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m                                         \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   agenticproof v0.1.2                   \x1b[32m│\x1b[0m
+  \x1b[32m│\x1b[0m   Ed25519 + SHA-256 | ERC-7857 | 0G     \x1b[32m│\x1b[0m
+  \x1b[32m└─────────────────────────────────────────┘\x1b[0m
+`);

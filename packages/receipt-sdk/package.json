@@ -1,6 +1,6 @@
 {
   "name": "agenticproof",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Cryptographic proof layer for AI agent work — signed, hash-linked receipts with TEE-attested quality scoring and on-chain anchoring.",
   "main": "dist/index.js",
@@ -44,6 +44,7 @@
   },
   "files": [
     "dist",
+    "scripts/postinstall.cjs",
     "LICENSE"
   ],
   "license": "MIT",
@@ -66,6 +67,7 @@
     "quality-scoring"
   ],
   "scripts": {
+    "postinstall": "node scripts/postinstall.cjs",
     "build": "tsc && node scripts/fix-esm-imports.cjs",
     "dev": "tsc --watch",
     "test": "vitest run",
