@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="zigzag-bottom">
+      <path d="M0 0 H512 V470 L496 485 L480 470 L464 485 L448 470 L432 485 L416 470 L400 485 L384 470 L368 485 L352 470 L336 485 L320 470 L304 485 L288 470 L272 485 L256 470 L240 485 L224 470 L208 485 L192 470 L176 485 L160 470 L144 485 L128 470 L112 485 L96 470 L80 485 L64 470 L48 485 L32 470 L16 485 L0 470 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#f5f3ef"/>
+
+  <!-- Receipt paper -->
+  <g clip-path="url(#zigzag-bottom)">
+    <rect x="96" y="48" width="320" height="440" rx="4" fill="#fffef8" stroke="#e5e0d8" stroke-width="2"/>
+  </g>
+
+  <!-- Zigzag bottom edge line -->
+  <path d="M96 470 L112 485 L128 470 L144 485 L160 470 L176 485 L192 470 L208 485 L224 470 L240 485 L256 470 L272 485 L288 470 L304 485 L320 470 L336 485 L352 470 L368 485 L384 470 L400 485 L416 470" fill="none" stroke="#e5e0d8" stroke-width="2"/>
+
+  <!-- Dashed lines on receipt -->
+  <line x1="128" y1="120" x2="384" y2="120" stroke="#d4cfc6" stroke-width="2" stroke-dasharray="6,4"/>
+  <line x1="128" y1="240" x2="384" y2="240" stroke="#d4cfc6" stroke-width="2" stroke-dasharray="6,4"/>
+  <line x1="128" y1="340" x2="384" y2="340" stroke="#d4cfc6" stroke-width="2" stroke-dasharray="6,4"/>
+
+  <!-- R.E.C.E.I.P.T. text -->
+  <text x="256" y="96" text-anchor="middle" font-family="'Courier New', monospace" font-size="28" font-weight="700" fill="#1a1a1a" letter-spacing="3">R.E.C.E.I.P.T.</text>
+
+  <!-- Receipt line items -->
+  <text x="140" y="160" font-family="'Courier New', monospace" font-size="18" fill="#6b6560">ACTION</text>
+  <text x="340" y="160" text-anchor="end" font-family="'Courier New', monospace" font-size="18" fill="#1a1a1a" font-weight="600">file_read</text>
+
+  <text x="140" y="190" font-family="'Courier New', monospace" font-size="18" fill="#6b6560">SOURCE</text>
+  <text x="340" y="190" text-anchor="end" font-family="'Courier New', monospace" font-size="18" fill="#16a34a" font-weight="600">TEE Verified</text>
+
+  <text x="140" y="220" font-family="'Courier New', monospace" font-size="18" fill="#6b6560">SIGNED</text>
+  <text x="340" y="220" text-anchor="end" font-family="'Courier New', monospace" font-size="18" fill="#1a1a1a">ed25519</text>
+
+  <!-- Hash display -->
+  <text x="140" y="272" font-family="'Courier New', monospace" font-size="14" fill="#a09a92">IN  7a3f8b2c1d9e...</text>
+  <text x="140" y="295" font-family="'Courier New', monospace" font-size="14" fill="#a09a92">OUT e4f2a9b8c7d1...</text>
+  <text x="140" y="318" font-family="'Courier New', monospace" font-size="14" fill="#a09a92">SIG 2f8c4a1b9e3d...</text>
+
+  <!-- Quality score circle -->
+  <circle cx="256" cy="395" r="42" fill="none" stroke="#16a34a" stroke-width="5"/>
+  <text x="256" y="403" text-anchor="middle" font-family="'Courier New', monospace" font-size="30" font-weight="700" fill="#16a34a">82</text>
+  <text x="256" y="425" text-anchor="middle" font-family="'Courier New', monospace" font-size="10" fill="#6b6560">/100</text>
+
+  <!-- Chain link icons on the left side -->
+  <g transform="translate(72, 140)">
+    <circle cx="0" cy="0" r="8" fill="#2563eb" opacity="0.9"/>
+    <line x1="0" y1="8" x2="0" y2="42" stroke="#2563eb" stroke-width="2" opacity="0.4"/>
+    <circle cx="0" cy="50" r="8" fill="#2563eb" opacity="0.9"/>
+    <line x1="0" y1="58" x2="0" y2="92" stroke="#2563eb" stroke-width="2" opacity="0.4"/>
+    <circle cx="0" cy="100" r="8" fill="#2563eb" opacity="0.9"/>
+    <line x1="0" y1="108" x2="0" y2="142" stroke="#7c3aed" stroke-width="2" opacity="0.4"/>
+    <circle cx="0" cy="150" r="8" fill="#7c3aed" opacity="0.9"/>
+    <line x1="0" y1="158" x2="0" y2="192" stroke="#7c3aed" stroke-width="2" opacity="0.4"/>
+    <circle cx="0" cy="200" r="8" fill="#16a34a" opacity="0.9"/>
+  </g>
+
+  <!-- Checkmark in bottom right -->
+  <circle cx="420" cy="420" r="36" fill="#16a34a"/>
+  <polyline points="402,420 416,434 440,406" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

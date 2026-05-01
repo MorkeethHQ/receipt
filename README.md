@@ -2,9 +2,9 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-**[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Team](https://receipt-murex.vercel.app/team) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval)
+**[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Trial](https://receipt-murex.vercel.app/trial) · [Team](https://receipt-murex.vercel.app/team) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval) · [Reputation](https://receipt-murex.vercel.app/reputation)
 
-**Two-layer proof for agent work.** Signed, hash-linked receipts for verifiable AI agent handoffs — with TEE-attested quality scoring.
+**The evaluation layer every agent harness needs.** Cursor built keep rates for code. We built verification rates for everything else. Signed, hash-linked receipts for verifiable AI agent handoffs with TEE-attested quality scoring.
 
 **Layer 1 — Proof of Action.** Every agent action — reading a file, calling an API, running inference, making a decision — produces a cryptographically signed receipt (ed25519 + SHA-256). Receipts hash-link into a tamper-proof chain. Any modification breaks the chain. When The Builder receives work from The Researcher, it independently verifies every receipt before continuing.
 
@@ -91,10 +91,12 @@ Standalone demos:
 
 ## Demo Pages
 
-- **[Live Demo](https://receipt-murex.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Honest mode + adversarial tamper detection ("I didn't actually open the file, I assumed the data").
+- **[Live Demo](https://receipt-murex.vercel.app/demo)** — Watch Researcher + Builder generate receipts in real-time. Honest mode + adversarial tamper detection. Verification rate hero metric, 6 harness layer pills, receipt impact visualization, training data qualification.
+- **[Trial](https://receipt-murex.vercel.app/trial)** — Execution replay with timeline visualization, token/time/quality metrics, human review (becomes receipt #11), and comparison mode.
 - **[Team](https://receipt-murex.vercel.app/team)** — Multi-agent chain feed. Aggregates receipt chains from Claude Code hooks and OpenClaw plugin. Filter by source, inspect receipt timelines, verify any chain.
-- **[Verify](https://receipt-murex.vercel.app/verify)** — Independent chain verifier using WebCrypto (ed25519 + SHA-256). Paste any chain — authentic or tampered — and see exactly where it breaks.
-- **[Eval](https://receipt-murex.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop.
+- **[Verify](https://receipt-murex.vercel.app/verify)** — Independent chain verifier using WebCrypto (ed25519 + SHA-256). Paste any chain and see exactly where it breaks.
+- **[Eval](https://receipt-murex.vercel.app/eval)** — Constitutional AI evaluation harness. 60 test cases, 3 model evaluators, self-critique loop, consensus accuracy, dramatic disagreement cards.
+- **[Reputation](https://receipt-murex.vercel.app/reputation)** — Agent leaderboard with verification rate, degradation tracking sparkline, and cost-per-useful-output analysis.
 
 ## Project Structure
 
@@ -110,7 +112,7 @@ contracts/
   ValidationRegistry.sol        ERC-8004 agent proof attestations (deployed on 0G Mainnet)
 
 demo/
-  app/                          Next.js demo — 6 pages (home, live demo, trial, team, verify, eval)
+  app/                          Next.js demo — 8 pages (home, live demo, trial, team, verify, eval, reputation, dashboard)
   agents/                       Standalone agent scripts (researcher → builder handoff)
   axl/                          Gensyn AXL P2P demo (sender + receiver)
 ```
@@ -134,6 +136,18 @@ run.messageSend('user', 'Audit complete. No issues.');
 
 const chain = run.finalize();
 console.log(chain.valid); // true — every action signed and hash-linked
+```
+
+## Middleware — 3 Lines
+
+```typescript
+import { createReceiptMiddleware } from 'agenticproof';
+
+const middleware = createReceiptMiddleware({ agentName: 'my-agent' });
+const result = await middleware.wrap('llm_call', 'Analyze data', async () => {
+  return await llm.chat('Analyze this dataset');
+});
+const chain = middleware.getChain();
 ```
 
 ## OpenClaw Plugin — Zero-Code Agent Receipting

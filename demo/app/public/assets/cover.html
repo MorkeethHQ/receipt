@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1920px; height: 1080px;
+    background: #f5f3ef;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    max-height: 1080px;
+  }
+
+  .left {
+    width: 860px; padding: 80px 70px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+
+  .right {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 40px 60px 40px 0;
+  }
+
+  .tagline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; color: #a09a92;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-size: 56px; font-weight: 700; color: #1a1a1a;
+    line-height: 1.15; margin-bottom: 28px;
+  }
+
+  .subtitle {
+    font-size: 22px; color: #6b6560; line-height: 1.7;
+    margin-bottom: 40px; max-width: 600px;
+  }
+
+  .npm-badge {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: #1a1a1a; border-radius: 10px;
+    padding: 14px 24px; margin-bottom: 40px;
+  }
+  .npm-badge code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px; color: #e5e5e5;
+  }
+  .npm-badge .ver {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: #4ade80; font-weight: 600;
+  }
+
+  .pills {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; padding: 8px 16px;
+    border-radius: 6px; background: #fff;
+    border: 1px solid #e5e0d8; color: #6b6560;
+  }
+  .pill.green { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
+
+  /* Receipt card stack */
+  .receipt-stack {
+    position: relative; width: 420px; height: 780px;
+  }
+
+  .receipt {
+    position: absolute; width: 380px;
+    background: #fffef8; border: 1.5px solid #e5e0d8;
+    border-radius: 4px; font-family: 'IBM Plex Mono', monospace;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .receipt-header {
+    padding: 12px 18px;
+    display: flex; justify-content: space-between;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .receipt-header .id { font-size: 10px; color: #a09a92; font-weight: 400; }
+
+  .receipt .dashed {
+    border-top: 1px dashed #d4cfc6;
+  }
+
+  .receipt-body {
+    padding: 10px 18px; font-size: 13px; line-height: 2;
+  }
+  .receipt-body .label { color: #a09a92; }
+  .receipt-body .val { font-weight: 600; float: right; }
+  .receipt-body .green { color: #16a34a; }
+  .receipt-body .blue { color: #2563eb; }
+  .receipt-body .purple { color: #7c3aed; }
+
+  .receipt-hash {
+    padding: 8px 18px; font-size: 11px; color: #a09a92; line-height: 1.8;
+  }
+  .receipt-sig {
+    padding: 8px 18px; font-size: 11px; color: #a09a92;
+  }
+  .receipt-stamp {
+    padding: 10px 18px; text-align: center;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.06em;
+    color: #a09a92;
+  }
+  .receipt-stamp.verified { color: #16a34a; }
+  .receipt-stamp.rejected { color: #dc2626; }
+
+  .chain-link {
+    padding: 4px 18px; display: flex; align-items: center; gap: 6px;
+    background: rgba(37,99,235,0.04); font-size: 10px;
+  }
+  .chain-link .prev { color: #2563eb; font-weight: 600; }
+  .chain-link .hash { color: #a09a92; }
+  .chain-link .linked { color: #16a34a; margin-left: auto; }
+
+  /* Quality score overlay */
+  .quality-overlay {
+    position: absolute; bottom: 30px; right: 30px;
+    width: 180px; height: 180px;
+    background: #fff; border: 2px solid #16a34a;
+    border-radius: 20px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(22,163,74,0.15);
+  }
+  .quality-overlay .score {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 54px; font-weight: 700; color: #16a34a;
+  }
+  .quality-overlay .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: #6b6560; margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+  .quality-overlay .verdict {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #16a34a; font-weight: 700;
+    margin-top: 8px; letter-spacing: 0.04em;
+  }
+
+  /* Verification badges */
+  .verif-row {
+    position: absolute; top: 30px; right: 30px;
+    display: flex; gap: 8px;
+  }
+  .verif-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    padding: 6px 14px; border-radius: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .verif-badge.pass {
+    background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0;
+  }
+
+  /* Connector line between receipts */
+  .connector {
+    position: absolute; left: 32px;
+    width: 3px; background: #2563eb; opacity: 0.3; border-radius: 2px;
+  }
+
+  .handoff-label {
+    position: absolute; left: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #7c3aed; font-weight: 700;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<!-- Left side: Text -->
+<div class="left">
+  <div class="tagline">The Evaluation Layer for Agent Harnesses</div>
+  <h1>Every action proven.<br>Every lie caught.<br>Every output scored.</h1>
+  <p class="subtitle">
+    Cursor built keep rates for code. We built verification rates for everything else. Cryptographic proof that AI outputs were actually useful.
+  </p>
+  <div class="npm-badge">
+    <code>npm install agenticproof</code>
+    <span class="ver">v0.1.1</span>
+  </div>
+  <div class="pills">
+    <span class="pill green">0G Verified Compute</span>
+    <span class="pill green">0G Verified Identity</span>
+    <span class="pill green">0G Verified Training</span>
+    <span class="pill">Gensyn AXL P2P</span>
+    <span class="pill">Ed25519 + SHA-256</span>
+    <span class="pill">ERC-7857</span>
+    <span class="pill">ERC-8004</span>
+  </div>
+</div>
+
+<!-- Right side: Receipt cards -->
+<div class="right">
+  <div class="receipt-stack">
+
+    <!-- Verification badges -->
+    <div class="verif-row">
+      <div class="verif-badge pass">&#10003; Compute</div>
+      <div class="verif-badge pass">&#10003; Identity</div>
+      <div class="verif-badge pass">&#10003; Training</div>
+    </div>
+
+    <!-- Receipt 1: Researcher -->
+    <div class="receipt" style="top: 50px; left: 20px; transform: rotate(-0.5deg);">
+      <div class="receipt-header">
+        <span>R.E.C.E.I.P.T.</span>
+        <span class="id">#0 &middot; b83b1c12</span>
+      </div>
+      <div class="dashed"></div>
+      <div class="chain-link">
+        <span class="prev">CHAIN START</span>
+        <span class="hash">genesis receipt</span>
+      </div>
+      <div class="receipt-body">
+        <div><span class="label">ACTION</span><span class="val">file_read</span></div>
+        <div><span class="label">SOURCE</span><span class="val green">TEE Verified</span></div>
+      </div>
+      <div class="dashed"></div>
+      <div class="receipt-hash">
+        IN  1833bfb6d659ed8b...<br>
+        OUT e881d90184770623...
+      </div>
+      <div class="dashed"></div>
+      <div class="receipt-stamp">SIGNED</div>
+    </div>
+
+    <!-- Connector -->
+    <div class="connector" style="top: 250px; height: 25px;"></div>
+
+    <!-- Receipt 2: Researcher LLM -->
+    <div class="receipt" style="top: 275px; left: 10px; transform: rotate(0.3deg);">
+      <div class="receipt-header">
+        <span>R.E.C.E.I.P.T.</span>
+        <span class="id">#2 &middot; cf173725</span>
+      </div>
+      <div class="dashed"></div>
+      <div class="chain-link">
+        <span class="prev">PREV</span>
+        <span class="hash">7698b235-59c5-4ccb...</span>
+        <span class="linked">linked</span>
+      </div>
+      <div class="receipt-body">
+        <div><span class="label">ACTION</span><span class="val">llm_call</span></div>
+        <div><span class="label">SOURCE</span><span class="val green">TEE Verified</span></div>
+        <div><span class="label">MODEL</span><span class="val">DeepSeek V3</span></div>
+      </div>
+      <div class="dashed"></div>
+      <div class="receipt-hash">
+        IN  29cb4ab745b76e40...<br>
+        OUT 328a696a3ca69cad...
+      </div>
+      <div class="dashed"></div>
+      <div class="receipt-stamp verified">SIGNED &middot; TEE &#10003;</div>
+    </div>
+
+    <!-- Handoff marker -->
+    <div class="handoff-label" style="top: 505px;">HANDOFF</div>
+    <div class="connector" style="top: 490px; height: 25px; background: #7c3aed;"></div>
+
+    <!-- Receipt 3: Builder -->
+    <div class="receipt" style="top: 515px; left: 25px; transform: rotate(-0.2deg);">
+      <div class="receipt-header">
+        <span>R.E.C.E.I.P.T.</span>
+        <span class="id">#9 &middot; review</span>
+      </div>
+      <div class="dashed"></div>
+      <div class="chain-link">
+        <span class="prev" style="color: #7c3aed;">PREV</span>
+        <span class="hash">a7f3e218-builder...</span>
+        <span class="linked">linked</span>
+      </div>
+      <div class="receipt-body">
+        <div><span class="label">ACTION</span><span class="val purple">usefulness_review</span></div>
+        <div><span class="label">SOURCE</span><span class="val green">TEE Verified</span></div>
+      </div>
+      <div class="dashed"></div>
+      <!-- Mini score bars -->
+      <div style="padding: 8px 18px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="font-size:10px;color:#a09a92;width:50px;">ALIGN</span>
+          <div style="flex:1;height:5px;background:#e5e0d8;border-radius:3px;overflow:hidden;">
+            <div style="width:85%;height:100%;background:#16a34a;border-radius:3px;"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;">85</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="font-size:10px;color:#a09a92;width:50px;">SUBST</span>
+          <div style="flex:1;height:5px;background:#e5e0d8;border-radius:3px;overflow:hidden;">
+            <div style="width:78%;height:100%;background:#16a34a;border-radius:3px;"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;">78</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:10px;color:#a09a92;width:50px;">QUAL</span>
+          <div style="flex:1;height:5px;background:#e5e0d8;border-radius:3px;overflow:hidden;">
+            <div style="width:82%;height:100%;background:#16a34a;border-radius:3px;"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;">82</span>
+        </div>
+      </div>
+      <div class="dashed"></div>
+      <div class="receipt-stamp verified">GATE PASSED</div>
+    </div>
+
+    <!-- Quality score overlay -->
+    <div class="quality-overlay">
+      <div class="score">82</div>
+      <div class="label">USEFULNESS</div>
+      <div class="verdict">ANCHORED ON-CHAIN</div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
