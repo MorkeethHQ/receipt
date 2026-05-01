@@ -549,21 +549,18 @@ export default function VerifyPage() {
       </nav>
 
       {/* Verify Sub-Header */}
-      <header style={{ padding: '1.2rem 2rem 1rem', borderBottom: '1px solid var(--border)' }}>
-        <h1 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.4rem' }}>
+      <header style={{ padding: '0.6rem 2rem 0.5rem', borderBottom: '1px solid var(--border)' }}>
+        <h1 style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.2rem' }}>
           Verify agent work
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, maxWidth: '680px' }}>
-          Check whether an agent&apos;s receipt chain is authentic. Paste the JSON output from any RECEIPT-enabled agent below — or try the examples to see verification in action. We check every signature, every hash link, and every timestamp.
-        </p>
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.65rem', marginTop: '0.4rem', fontFamily: 'Inter, sans-serif' }}>
-          All checks run client-side using WebCrypto (Ed25519 + SHA-256) — no data leaves your browser.
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginTop: '0.1rem', fontFamily: 'Inter, sans-serif', lineHeight: 1.5, maxWidth: '680px' }}>
+          Paste a receipt chain JSON below, or try an example. Every signature, hash link, and timestamp checked client-side via WebCrypto.
         </p>
       </header>
 
-      <div className="verify-container" style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem 2rem 4rem' }}>
+      <div className="verify-container" style={{ maxWidth: '960px', margin: '0 auto', padding: '0.8rem 2rem 2rem' }}>
         {/* Quick load buttons */}
-        <div className="verify-buttons" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div className="verify-buttons" style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <button
             onClick={loadValidExample}
             disabled={generatingValid}
@@ -619,8 +616,8 @@ export default function VerifyPage() {
         </div>
 
         {/* Input area */}
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ marginBottom: '0.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.55rem', color: 'var(--text-dim)', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Receipt Chain JSON
           </label>
           <textarea
@@ -630,8 +627,8 @@ export default function VerifyPage() {
             spellCheck={false}
             style={{
               width: '100%',
-              minHeight: '100px',
-              maxHeight: '140px',
+              minHeight: '80px',
+              maxHeight: '110px',
               background: 'var(--paper)',
               color: 'var(--text)',
               border: '1px solid var(--border)',
@@ -647,7 +644,7 @@ export default function VerifyPage() {
         </div>
 
         {/* Verify button */}
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div style={{ marginBottom: '0.5rem' }}>
           <button
             onClick={verify}
             disabled={phase === 'verifying' || !input.trim()}
