@@ -574,8 +574,7 @@ export default function VerifyPage() {
           Verify agent work
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginTop: '0.1rem', fontFamily: 'Inter, sans-serif', lineHeight: 1.5, maxWidth: '680px' }}>
-          Chains come from the SDK (<code style={{ fontSize: '0.62rem', background: 'var(--surface)', padding: '0.1rem 0.3rem', borderRadius: '3px' }}>agent.exportChain()</code>) or the demo&apos;s &quot;Copy JSON&quot; button.
-          Every signature, hash link, and timestamp is verified client-side via WebCrypto. No server involved.
+          Don&apos;t trust the demo? Verify any chain yourself. Paste a receipt chain JSON and this page checks every Ed25519 signature, every SHA-256 hash link, and every timestamp order. Everything runs client-side via WebCrypto. No server, no trust required.
         </p>
       </header>
 

@@ -699,28 +699,32 @@ export default function Demo() {
       return { events: collected };
     };
 
-    // Phase 1: Researcher creates chain, sends via AXL (streams live)
-    lastEventTimeRef.current = performance.now();
-    const { events: researcherEvents } = await streamSSE('/api/researcher', { adversarial });
+    try {
+      // Phase 1: Researcher creates chain, sends via AXL (streams live)
+      lastEventTimeRef.current = performance.now();
+      const { events: researcherEvents } = await streamSSE('/api/researcher', { adversarial });
 
-    const researcherDone = researcherEvents.find(e => e.event === 'researcher_done');
-    const researcherChain = researcherDone?.data?.receipts;
-    const researcherPubKey = researcherDone?.data?.publicKey;
+      const researcherDone = researcherEvents.find(e => e.event === 'researcher_done');
+      const researcherChain = researcherDone?.data?.receipts;
+      const researcherPubKey = researcherDone?.data?.publicKey;
 
-    // Chapter 1: Researcher done
-    await showChapter(1, 'Researcher done',
-      adversarial
-        ? '5 receipts signed — but one is a lie. Handing off to the Builder.'
-        : '5 receipts signed and hash-linked. Handing off to the Builder for verification.');
+      // Chapter 1: Researcher done
+      await showChapter(1, 'Researcher done',
+        adversarial
+          ? '5 receipts signed — but one is a lie. Handing off to the Builder.'
+          : '5 receipts signed and hash-linked. Handing off to the Builder for verification.');
 
-    // Phase 2: Builder receives via AXL, verifies, extends (streams live)
-    if (researcherChain) {
-      await streamSSE('/api/builder', {
-        receipts: researcherChain,
-        publicKey: researcherPubKey,
-      });
-    } else if (researcherEvents.length === 0) {
-      setPipelineError('Failed to connect to pipeline — check your network connection');
+      // Phase 2: Builder receives via AXL, verifies, extends (streams live)
+      if (researcherChain) {
+        await streamSSE('/api/builder', {
+          receipts: researcherChain,
+          publicKey: researcherPubKey,
+        });
+      } else if (researcherEvents.length === 0) {
+        setPipelineError('Failed to connect to pipeline — check your network connection');
+      }
+    } catch (err) {
+      setPipelineError(err instanceof Error ? err.message : 'Pipeline error — try again');
     }
 
     setChapterPause(null);
@@ -1838,21 +1842,23 @@ export default function Demo() {
               </button>
             </>
           )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           <button onClick={() => { setAdversarial(!adversarial); switchAndRunRef.current = true; }} style={{
-            padding: '0.35rem 0.8rem', borderRadius: '6px',
-            border: `1px solid ${adversarial ? 'var(--green)' : 'var(--red)'}`,
-            background: adversarial ? 'rgba(22,163,74,0.06)' : 'rgba(220,38,38,0.06)',
+            padding: '0.45rem 1.2rem', borderRadius: '6px',
+            border: `2px solid ${adversarial ? 'var(--green)' : 'var(--red)'}`,
+            background: adversarial ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)',
             color: adversarial ? 'var(--green)' : 'var(--red)',
             cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: '0.72rem', fontWeight: 600,
+            fontSize: '0.78rem', fontWeight: 700,
           }}>
             {adversarial ? 'Now Try Honest' : 'Now Try Adversarial'}
           </button>
           <button onClick={run} style={{
-            padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',
+            padding: '0.45rem 1.2rem', borderRadius: '6px', border: 'none',
             background: adversarial ? 'var(--red)' : 'var(--text)',
             color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: '0.72rem', fontWeight: 600,
+            fontSize: '0.78rem', fontWeight: 700,
           }}>
             Run Again
           </button>
