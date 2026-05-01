@@ -2142,28 +2142,29 @@ export default function Demo() {
                 </span>
               </div>
               {/* Story stage indicator */}
-              {phase === 'running' && (
+              {(phase === 'running' || phase === 'done') && (
                 <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
                   {(['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'] as StoryStage[]).map((stage, i) => {
                     const labels = ['Researcher', 'Handoff', 'Verification', adversarial ? 'Rejected' : 'Builder', 'Record'];
                     const stageOrder: StoryStage[] = ['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'];
-                    const currentIdx = stageOrder.indexOf(storyStage);
-                    const isActive = stage === storyStage;
-                    const isPast = i < currentIdx;
+                    const currentIdx = phase === 'done' ? stageOrder.length : stageOrder.indexOf(storyStage);
+                    const isActive = phase !== 'done' && stage === storyStage;
+                    const isPast = phase === 'done' || i < currentIdx;
+                    const isFailed = phase === 'done' && fabricationDetected && stage === 'agent-b-rejected';
                     return (
                       <div key={stage} style={{
                         ...mono, fontSize: '0.52rem', padding: '0.15rem 0.4rem',
                         borderRadius: '4px',
-                        background: isActive ? (stage === 'agent-b-rejected' ? '#fef2f2' : '#f0f4ff') :
-                          isPast ? 'var(--surface)' : 'transparent',
-                        border: isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)'}` :
-                          isPast ? '1px solid var(--border)' : '1px solid transparent',
-                        color: isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)') :
+                        background: isFailed ? '#fef2f2' : isActive ? (stage === 'agent-b-rejected' ? '#fef2f2' : '#f0f4ff') :
+                          isPast ? '#f0fdf4' : 'transparent',
+                        border: isFailed ? '1px solid var(--red)' : isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)'}` :
+                          isPast ? '1px solid #bbf7d0' : '1px solid transparent',
+                        color: isFailed ? 'var(--red)' : isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)') :
                           isPast ? 'var(--green)' : 'var(--text-dim)',
-                        fontWeight: isActive ? 700 : 400,
+                        fontWeight: isActive || isPast ? 700 : 400,
                         transition: 'all 0.3s ease',
                       }}>
-                        {isPast ? '✓ ' : ''}{labels[i]}
+                        {isFailed ? '✗ ' : isPast ? '✓ ' : ''}{labels[i]}
                       </div>
                     );
                   })}
