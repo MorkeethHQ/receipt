@@ -1936,12 +1936,13 @@ export default function Demo() {
           .demo-agent-panel { border-right: none !important; border-left: none !important; max-height: 50vh; }
           .demo-idle { padding: 1.5rem 1rem !important; }
           .demo-idle h2 { font-size: 1.5rem !important; }
-          .demo-nav-links { gap: 0.8rem !important; }
+          .demo-nav-links { gap: 0.8rem !important; font-size: 0.68rem !important; }
           .demo-stage-dots { flex-wrap: wrap !important; }
           .demo-flow-preview { flex-direction: column !important; align-items: stretch !important; }
-          .demo-bottom-bar { flex-direction: column !important; align-items: stretch !important; gap: 0.4rem !important; }
+          .demo-bottom-bar { flex-direction: column !important; align-items: stretch !important; gap: 0.4rem !important; padding: 0.4rem 1rem !important; }
           .demo-bottom-metrics { gap: 0.8rem !important; justify-content: center !important; }
-          .demo-bottom-actions { justify-content: center !important; }
+          .demo-bottom-actions { justify-content: center !important; flex-wrap: wrap !important; }
+          .demo-header-badges { display: none !important; }
         }
         @media (max-width: 1280px) {
           .demo-bottom-metrics { gap: 0.8rem !important; }
@@ -2006,7 +2007,7 @@ export default function Demo() {
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        <div className="demo-header-badges" style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
           {/* AXL status during run */}
           {phase !== 'idle' && (
             <div style={{
