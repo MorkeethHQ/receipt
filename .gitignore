@@ -13,3 +13,9 @@ demo/axl/bin/
 .npmrc
 axl
 .DS_Store
+
+# Internal submission prep (not for public repo)
+DEMO-SCRIPT.md
+BUILD-PROMPT.md
+submission/
+scripts/generate-claude-chains.ts
