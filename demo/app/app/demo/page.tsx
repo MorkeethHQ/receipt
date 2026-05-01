@@ -274,6 +274,7 @@ export default function Demo() {
 
   const guidedRef = useRef(true);
   const resumeRef = useRef<(() => void) | null>(null);
+  const switchAndRunRef = useRef(false);
 
   const agentARef = useRef<HTMLDivElement>(null);
   const agentBRef = useRef<HTMLDivElement>(null);
@@ -716,6 +717,13 @@ export default function Demo() {
     setPipelineMs(Math.round(performance.now() - pipelineStartTime));
     setPhase('done');
   }, [adversarial, handleEvent, guidedMode]);
+
+  useEffect(() => {
+    if (switchAndRunRef.current) {
+      switchAndRunRef.current = false;
+      run();
+    }
+  }, [adversarial, run]);
 
   /* ---------------------------------------------------------------- */
   /*  Render: Receipt Card                                             */
@@ -1713,13 +1721,14 @@ export default function Demo() {
     const totalVerifications = verifications.length;
 
     return (
-      <div style={{
+      <div className="demo-bottom-bar" style={{
         padding: '0.6rem 1.5rem', borderTop: '2px solid var(--border)',
         background: fabricationDetected ? '#fef2f2' : 'var(--surface)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, transition: 'background 0.3s ease',
+        flexWrap: 'wrap', gap: '0.5rem',
       }}>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        <div className="demo-bottom-metrics" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Receipts count */}
           <div style={{ textAlign: 'center' }}>
             <div style={{ ...mono, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
@@ -1829,7 +1838,7 @@ export default function Demo() {
           })()}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div className="demo-bottom-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           {!fabricationDetected && receipts.length > 0 && (
             <>
               <button
@@ -1883,6 +1892,16 @@ export default function Demo() {
               </a>
             </>
           )}
+          <button onClick={() => { setAdversarial(!adversarial); switchAndRunRef.current = true; }} style={{
+            padding: '0.35rem 0.8rem', borderRadius: '6px',
+            border: `1px solid ${adversarial ? 'var(--green)' : 'var(--red)'}`,
+            background: adversarial ? 'rgba(22,163,74,0.06)' : 'rgba(220,38,38,0.06)',
+            color: adversarial ? 'var(--green)' : 'var(--red)',
+            cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: '0.72rem', fontWeight: 600,
+          }}>
+            {adversarial ? 'Run Honest' : 'Run Adversarial'}
+          </button>
           <button onClick={run} style={{
             padding: '0.35rem 0.8rem', borderRadius: '6px', border: 'none',
             background: adversarial ? 'var(--red)' : 'var(--text)',
@@ -1920,6 +1939,12 @@ export default function Demo() {
           .demo-nav-links { gap: 0.8rem !important; }
           .demo-stage-dots { flex-wrap: wrap !important; }
           .demo-flow-preview { flex-direction: column !important; align-items: stretch !important; }
+          .demo-bottom-bar { flex-direction: column !important; align-items: stretch !important; gap: 0.4rem !important; }
+          .demo-bottom-metrics { gap: 0.8rem !important; justify-content: center !important; }
+          .demo-bottom-actions { justify-content: center !important; }
+        }
+        @media (max-width: 1280px) {
+          .demo-bottom-metrics { gap: 0.8rem !important; }
         }
       `}</style>
 
@@ -1987,16 +2012,16 @@ export default function Demo() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.35rem',
               padding: '0.3rem 0.6rem', borderRadius: '6px',
-              background: axlStatus.researcher && axlStatus.builder ? '#f0fdf4' : axlStatus.researcher || axlStatus.builder ? '#fffbeb' : '#fef2f2',
-              border: `1px solid ${axlStatus.researcher && axlStatus.builder ? '#bbf7d0' : axlStatus.researcher || axlStatus.builder ? '#fde68a' : '#fecaca'}`,
+              background: axlStatus.researcher && axlStatus.builder ? '#f0fdf4' : 'var(--surface)',
+              border: `1px solid ${axlStatus.researcher && axlStatus.builder ? '#bbf7d0' : 'var(--border)'}`,
             }}>
               <div style={{
                 width: '7px', height: '7px', borderRadius: '50%',
-                background: axlStatus.researcher && axlStatus.builder ? 'var(--green)' : axlStatus.researcher || axlStatus.builder ? 'var(--amber)' : 'var(--red)',
+                background: axlStatus.researcher && axlStatus.builder ? 'var(--green)' : 'var(--text-dim)',
                 boxShadow: axlStatus.researcher && axlStatus.builder ? '0 0 5px rgba(34,197,94,0.4)' : 'none',
               }} />
               <span style={{ ...mono, fontSize: '0.55rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                AXL {axlStatus.researcher && axlStatus.builder ? 'LIVE' : 'SIM'}
+                AXL {axlStatus.researcher && axlStatus.builder ? 'LIVE' : 'DIRECT'}
               </span>
             </div>
           )}
@@ -2041,7 +2066,8 @@ export default function Demo() {
           background: chapterPause ? '#f0f4ff' : fabricationDetected ? '#fef2f2' : 'var(--surface)',
           transition: 'all 0.3s',
           flexShrink: 0,
-          height: '90px',
+          minHeight: '70px',
+          maxHeight: chapterPause ? '200px' : '90px',
           overflow: 'hidden',
         }}>
           {chapterPause ? (
