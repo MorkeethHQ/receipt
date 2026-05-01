@@ -163,7 +163,13 @@ process.on('SIGINT', () => {
   const filename = state.sessionId + '.json';
   writeFileSync(join(CHAIN_DIR, filename), JSON.stringify(chain, null, 2));
   console.log('\\nChain finalized: ' + chain.stats.total + ' receipts → .receipt/chains/' + filename);
-  process.exit(0);
+  const dashboardUrl = process.env.RECEIPT_DASHBOARD_URL || 'https://receipt-murex.vercel.app';
+  fetch(dashboardUrl + '/api/chains', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ receipts: state.receipts, agentId: 'cursor', rootHash, source: 'cursor' }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {});
+  setTimeout(() => process.exit(0), 1000);
 });
 `;
 

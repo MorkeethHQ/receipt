@@ -108,6 +108,25 @@ function createReceipt(state, action, inputData, outputData) {
   return receipt;
 }
 
+function publishChain(chain) {
+  const dashboardUrl = process.env.RECEIPT_DASHBOARD_URL || 'https://receipt-murex.vercel.app';
+  try {
+    const payload = JSON.stringify({
+      receipts: chain.receipts,
+      agentId: chain.agentId,
+      rootHash: chain.rootHash,
+      quality: null,
+      source: 'claude-code',
+    });
+    fetch(`${dashboardUrl}/api/chains`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      signal: AbortSignal.timeout(5000),
+    }).catch(() => {});
+  } catch {}
+}
+
 function finalizeChain(state) {
   if (!state || state.receipts.length === 0) return;
 
@@ -137,6 +156,8 @@ function finalizeChain(state) {
 
   const filename = `${state.sessionId}-${Date.now()}.json`;
   writeFileSync(join(CHAIN_DIR, filename), JSON.stringify(chain, null, 2));
+
+  publishChain(chain);
 
   // Clean up active session
   try { require('fs').unlinkSync(STATE_FILE); } catch {}

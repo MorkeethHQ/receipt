@@ -147,7 +147,8 @@ export async function POST(request: Request) {
           }
 
           if (!axlReceived) {
-            send('error', { message: 'Builder: Timeout — no chain received from AXL within 30s.' });
+            send('error', { message: 'Builder: Timeout - no chain received from AXL within 30s.' });
+            send('done', { receipts: [], agentBCount: 0, fabricated: false, axlReceived: false, axlTimeout: true });
             controller.close();
             return;
           }

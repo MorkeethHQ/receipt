@@ -5,7 +5,7 @@ import { homedir } from 'os';
 
 interface ChainSummary {
   id: string;
-  source: 'claude-code' | 'openclaw' | 'demo';
+  source: 'claude-code' | 'openclaw' | 'cursor' | 'demo';
   agentId: string;
   receiptCount: number;
   rootHash: string;
@@ -148,7 +148,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No receipts provided' }, { status: 400 });
     }
 
-    const chainId = `demo-${Date.now()}`;
+    const validSources = ['demo', 'claude-code', 'openclaw', 'cursor'] as const;
+    const rawSource = body.source ?? 'demo';
+    const resolvedSource = validSources.includes(rawSource) ? rawSource : 'demo';
+    const chainId = `${resolvedSource}-${Date.now()}`;
     const last = receipts[receipts.length - 1];
     const reviewReceipt = receipts.find((r: any) => r.action?.type === 'usefulness_review');
     let quality: number | null = body.quality ?? null;
@@ -161,7 +164,7 @@ export async function POST(req: Request) {
 
     const chain: ChainSummary = {
       id: chainId,
-      source: 'demo',
+      source: resolvedSource as ChainSummary['source'],
       agentId: body.agentId ?? receipts[0]?.agentId ?? 'demo-agent',
       receiptCount: receipts.length,
       rootHash: body.rootHash ?? last?.outputHash ?? '',

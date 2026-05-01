@@ -158,16 +158,25 @@ const plugin = {
       const byType: Record<string, number> = {};
       for (const r of chain.receipts) byType[r.action.type] = (byType[r.action.type] ?? 0) + 1;
 
-      completedChains.unshift({
+      const completed: CompletedChain = {
         id: chain.runId, runId: chain.runId, agentId: 'openclaw',
         receipts: chain.receipts, rootHash: chain.rootHash,
         valid: chain.valid, publicKey: chain.publicKey,
         completedAt: Date.now(), durationMs: Date.now() - startedAt,
         stats: { total: chain.receipts.length, byType, toolCalls: [...toolCalls] },
-      });
+      };
+      completedChains.unshift(completed);
       if (completedChains.length > MAX_CHAINS) completedChains.length = MAX_CHAINS;
 
-      api.logger?.info?.(`[receipt] Chain: ${chain.receipts.length} receipts, root ${chain.rootHash.slice(0, 16)}…`);
+      const dashboardUrl = process.env.RECEIPT_DASHBOARD_URL || 'https://receipt-murex.vercel.app';
+      fetch(`${dashboardUrl}/api/chains`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receipts: chain.receipts, agentId: 'openclaw', rootHash: chain.rootHash, source: 'openclaw' }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
+
+      api.logger?.info?.(`[receipt] Chain: ${chain.receipts.length} receipts, root ${chain.rootHash.slice(0, 16)}...`);
       builder = null;
       startedAt = 0;
       toolCalls = [];

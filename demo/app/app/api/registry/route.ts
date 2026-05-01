@@ -72,9 +72,10 @@ export async function POST(req: Request) {
     if (!rootHashBytes.startsWith('0x')) {
       rootHashBytes = '0x' + rootHashBytes;
     }
-    // Pad to bytes32 if needed
+    // Pad to bytes32 if needed (prepend zeros after 0x prefix)
     if (rootHashBytes.length < 66) {
-      rootHashBytes = rootHashBytes + '0'.repeat(66 - rootHashBytes.length);
+      const padding = '0'.repeat(66 - rootHashBytes.length);
+      rootHashBytes = '0x' + padding + rootHashBytes.slice(2);
     }
 
     const score = Math.max(0, Math.min(100, Math.round(qualityScore ?? 0)));

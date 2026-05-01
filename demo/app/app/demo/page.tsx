@@ -715,13 +715,14 @@ export default function Demo() {
           : '5 receipts signed and hash-linked. Handing off to the Builder for verification.');
 
       // Phase 2: Builder receives via AXL, verifies, extends (streams live)
-      if (researcherChain) {
+      if (researcherChain && researcherChain.length > 0) {
         await streamSSE('/api/builder', {
           receipts: researcherChain,
           publicKey: researcherPubKey,
         });
-      } else if (researcherEvents.length === 0) {
-        setPipelineError('Failed to connect to pipeline — check your network connection');
+      } else {
+        const errorEvent = researcherEvents.find(e => e.event === 'error');
+        setPipelineError(errorEvent?.data?.message || 'Researcher failed to produce receipts');
       }
     } catch (err) {
       setPipelineError(err instanceof Error ? err.message : 'Pipeline error — try again');

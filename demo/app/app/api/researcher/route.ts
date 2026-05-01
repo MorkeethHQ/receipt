@@ -280,6 +280,15 @@ export async function POST(request: Request) {
         });
       } catch (err: unknown) {
         send('error', { message: err instanceof Error ? err.message : String(err) });
+        send('researcher_done', {
+          receipts: [],
+          publicKey: '',
+          chainRoot: '',
+          agentId: 'researcher',
+          axlSent: false,
+          adversarial: !!adversarial,
+          partial: true,
+        });
       }
 
       controller.close();
