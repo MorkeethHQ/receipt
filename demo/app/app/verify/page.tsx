@@ -630,7 +630,8 @@ export default function VerifyPage() {
             spellCheck={false}
             style={{
               width: '100%',
-              minHeight: '160px',
+              minHeight: '100px',
+              maxHeight: '140px',
               background: 'var(--paper)',
               color: 'var(--text)',
               border: '1px solid var(--border)',
@@ -1122,99 +1123,6 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* Idle state — nudge to try examples */}
-        {phase === 'idle' && cards.length === 0 && !input.trim() && (
-          <div style={{
-            marginTop: '2rem',
-            padding: '2rem 1.5rem',
-            background: 'var(--paper)',
-            border: '1px solid var(--border)',
-            borderRadius: '4px',
-            textAlign: 'center',
-          }}>
-            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem', fontFamily: 'Inter, sans-serif' }}>
-              Don&apos;t have a receipt chain yet?
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '460px', margin: '0 auto 1rem', fontFamily: 'Inter, sans-serif' }}>
-              Try one of these examples — a clean chain where everything verifies, or a tampered chain where the agent lied about what it did.
-            </p>
-            <div style={{
-              display: 'flex',
-              gap: '0.75rem',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              alignItems: 'flex-start',
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <button
-                  onClick={loadValidExample}
-                  disabled={generatingValid}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    border: '1px solid var(--green)',
-                    background: 'rgba(22, 163, 74, 0.06)',
-                    color: 'var(--green)',
-                    cursor: generatingValid ? 'wait' : 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    opacity: generatingValid ? 0.6 : 1,
-                  }}
-                >
-                  {generatingValid ? 'Generating...' : 'Honest chain'}
-                </button>
-                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
-                  10 receipts, all valid
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <button
-                  onClick={loadTamperedExample}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    border: '1px solid var(--red)',
-                    background: 'rgba(220, 38, 38, 0.06)',
-                    color: 'var(--red)',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  Tampered chain
-                </button>
-                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
-                  agent lied, chain breaks
-                </span>
-              </div>
-              {hasLastRun && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <button
-                    onClick={loadLastRun}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      border: '1px solid var(--researcher)',
-                      background: 'rgba(37, 99, 235, 0.06)',
-                      color: 'var(--researcher)',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Your last run
-                  </button>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem', fontFamily: 'Inter, sans-serif' }}>
-                    from the Live demo
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Footer */}

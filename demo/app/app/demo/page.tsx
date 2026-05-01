@@ -979,20 +979,9 @@ export default function Demo() {
         padding: '0.6rem 0.8rem', borderBottom: '1px solid var(--border)',
         background: 'var(--surface)', flexShrink: 0,
       }}>
-        <div style={{ ...mono, fontSize: '0.62rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.04em', textAlign: 'center', marginBottom: narrative ? '0.4rem' : 0 }}>
+        <div style={{ ...mono, fontSize: '0.62rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.04em', textAlign: 'center' }}>
           CHAIN STATUS
         </div>
-        {narrative && (
-          <div style={{
-            fontSize: '0.55rem', lineHeight: 1.5, color: 'var(--text-muted)',
-            padding: '0.35rem 0.4rem', borderRadius: '4px',
-            background: fabricationDetected ? '#fef2f2' : '#f8f9fa',
-            border: `1px solid ${fabricationDetected ? '#fecaca' : 'var(--border)'}`,
-            maxHeight: '4.5em', overflow: 'hidden',
-          }}>
-            {narrative}
-          </div>
-        )}
       </div>
 
       {/* Handoff indicator */}
@@ -1157,7 +1146,7 @@ export default function Demo() {
       </div>
 
       {/* Bottom status area */}
-      <div style={{ padding: '0.5rem 0.8rem', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+      <div style={{ padding: '0.5rem 0.8rem', borderTop: '1px solid var(--border)', background: 'var(--bg)', flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {/* Fabrication rejection */}
         {fabricationDetected && (
           <div className="slide-up" style={{
@@ -1424,117 +1413,6 @@ export default function Demo() {
           </div>
         )}
 
-        {/* Receipt weight — which actions contributed most */}
-        {phase === 'done' && !fabricationDetected && reviewScores && receipts.length > 0 && (
-          <div style={{
-            padding: '0.5rem', borderRadius: '6px',
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            marginBottom: '0.4rem',
-          }}>
-            <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)', fontWeight: 700, marginBottom: '0.3rem', letterSpacing: '0.04em', textAlign: 'center' }}>
-              RECEIPT IMPACT
-            </div>
-            {(() => {
-              const weights: Record<string, number> = {
-                usefulness_review: 30, llm_call: 25, decision: 15, api_call: 12, output: 10, file_read: 5, tool_call: 3,
-              };
-              const typed = receipts.map(r => ({ id: r.id, type: r.action.type, weight: weights[r.action.type] ?? 5 }));
-              const maxWeight = Math.max(...typed.map(t => t.weight));
-              const topReceipt = typed.reduce((a, b) => b.weight > a.weight ? b : a);
-              const bottomReceipt = typed.reduce((a, b) => b.weight < a.weight ? b : a);
-              return (
-                <>
-                  <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '32px', marginBottom: '0.3rem' }}>
-                    {typed.map((t, i) => (
-                      <div key={t.id} style={{
-                        flex: 1,
-                        height: `${(t.weight / maxWeight) * 100}%`,
-                        background: t.weight >= 20 ? 'var(--green)' : t.weight >= 10 ? 'rgba(22,163,74,0.4)' : 'rgba(22,163,74,0.15)',
-                        borderRadius: '2px 2px 0 0',
-                        transition: 'height 0.5s ease',
-                      }} title={`#${i} ${t.type}: ${t.weight}% impact`} />
-                    ))}
-                  </div>
-                  <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                    Highest: #{typed.indexOf(topReceipt)} ({ACTION_LABELS[topReceipt.type] || topReceipt.type}) — {topReceipt.weight}% of quality
-                    <br />
-                    Lowest: #{typed.indexOf(bottomReceipt)} ({ACTION_LABELS[bottomReceipt.type] || bottomReceipt.type}) — {bottomReceipt.weight}%
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Training data qualification */}
-        {phase === 'done' && !fabricationDetected && reviewScores && (
-          <div style={{
-            padding: '0.5rem', borderRadius: '6px',
-            background: reviewScores.composite >= 60 ? 'rgba(22,163,74,0.04)' : 'rgba(220,38,38,0.04)',
-            border: `1px solid ${reviewScores.composite >= 60 ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}`,
-            marginBottom: '0.4rem',
-          }}>
-            <div style={{ ...mono, fontSize: '0.52rem', color: 'var(--text-dim)', fontWeight: 700, marginBottom: '0.2rem', letterSpacing: '0.04em', textAlign: 'center' }}>
-              TRAINING DATA
-            </div>
-            {reviewScores.composite >= 60 ? (
-              <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
-                <span style={{ color: 'var(--green)', fontWeight: 700 }}>QUALIFIES</span> — score {reviewScores.composite}/100 (threshold: 60)
-                <br />
-                <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>
-                  Good work → JSONL → better models. Bad work never becomes training data.
-                </span>
-              </div>
-            ) : (
-              <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
-                <span style={{ color: 'var(--red)', fontWeight: 700 }}>REJECTED</span> — score {reviewScores.composite}/100 (needed: 60)
-                <br />
-                <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>
-                  Below threshold. This work will not become training data.
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Trust score */}
-        {displayedTrustScore !== null && (
-          <div style={{
-            padding: '0.5rem', borderRadius: '6px',
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            textAlign: 'center',
-          }}>
-            <div style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.15rem' }}>
-              Trust Score
-            </div>
-            <AnimatedCounter
-              target={displayedTrustScore}
-              color={displayedTrustScore >= 80 ? 'var(--green)' : displayedTrustScore >= 50 ? 'var(--amber)' : 'var(--red)'}
-            />
-            {trustBreakdown && (
-              <div style={{ marginTop: '0.3rem', textAlign: 'left' }}>
-                {([
-                  { label: 'Chain', value: trustBreakdown.chainIntegrity, max: 70 },
-                  { label: 'Data', value: trustBreakdown.dataProvenance, max: 15 },
-                  { label: 'Enclave', value: trustBreakdown.teeAttestation, max: 15 },
-                ] as const).map(item => (
-                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
-                    <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', width: '34px' }}>{item.label}</span>
-                    <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', borderRadius: '2px',
-                        width: `${(item.value / item.max) * 100}%`,
-                        background: item.value === item.max ? 'var(--green)' : 'var(--amber)',
-                        transition: 'width 0.8s ease-out',
-                      }} />
-                    </div>
-                    <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-muted)', width: '28px', textAlign: 'right' }}>{item.value}/{item.max}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1724,8 +1602,8 @@ export default function Demo() {
         <div className="demo-bottom-metrics" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Verification Rate — hero metric */}
           {(() => {
-            const rate = totalReceiptsGenerated > 0
-              ? Math.round((verificationsPassedCount / totalReceiptsGenerated) * 100)
+            const rate = verifications.length > 0
+              ? Math.round((verificationsPassedCount / verifications.length) * 100)
               : null;
             return (
               <div style={{ textAlign: 'center' }}>
@@ -1909,7 +1787,7 @@ export default function Demo() {
     <div
       className={showShake ? 'screen-shake' : ''}
       style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        height: '100vh', display: 'flex', flexDirection: 'column',
         background: adversarial && phase === 'running' ? '#faf5f5' : 'var(--bg)',
         transition: 'background 0.5s ease',
         position: 'relative',
