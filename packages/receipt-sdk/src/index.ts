@@ -4,6 +4,7 @@ export { hash, generateKeyPair, sign, verify, publicKeyToHex } from './crypto';
 export { createReceipt, getSignaturePayload } from './receipt';
 export { ReceiptChain } from './chain';
 export { ReceiptAgent } from './agent';
+export { createReceiptMiddleware, type MiddlewareConfig, type ReceiptMiddleware } from './middleware';
 export { verifyReceipt, verifyChain, type VerificationResult } from './verify';
 
 export { anchorOnChain, type AnchorConfig } from './integrations/0g-chain';

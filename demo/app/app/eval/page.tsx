@@ -51,6 +51,7 @@ function Nav() {
           <a key={href} href={href} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>{label}</a>
         ))}
         <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', ...inter, fontWeight: 600 }}>Eval</a>
+        <a href="/reputation" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Reputation</a>
         <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>GitHub</a>
       </div>
     </nav>
@@ -202,6 +203,117 @@ export default function EvalPage() {
         {/* Report */}
         {report && (
           <>
+            {/* Hero summary cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.8rem', marginBottom: '2rem' }}>
+              {/* Consensus accuracy */}
+              <div style={{ padding: '1.2rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', textAlign: 'center' }}>
+                <div style={{ ...mono, fontSize: '2rem', fontWeight: 700, color: report.consensusAccuracy >= 70 ? 'var(--green)' : report.consensusAccuracy >= 50 ? 'var(--amber)' : 'var(--red)' }}>
+                  {report.consensusAccuracy}%
+                </div>
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.3rem' }}>
+                  Consensus Accuracy
+                </div>
+                <div style={{ ...inter, fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                  {report.consensusAccuracy > Math.max(...report.modelsUsed.map(m => report.accuracy[m]?.overall ?? 0))
+                    ? 'Beats every individual model'
+                    : 'Multi-model majority vote'}
+                </div>
+              </div>
+
+              {/* Critique improvement */}
+              {(() => {
+                const avgImprovement = report.modelsUsed.reduce((sum, m) => {
+                  const a = report.accuracy[m];
+                  return a ? sum + (a.postCritique - a.preCritique) : sum;
+                }, 0) / report.modelsUsed.length;
+                const totalChanged = Object.values(report.critiqueEffect).reduce((a, c) => a + c.changed, 0);
+                return (
+                  <div style={{ padding: '1.2rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', textAlign: 'center' }}>
+                    <div style={{ ...mono, fontSize: '2rem', fontWeight: 700, color: avgImprovement > 0 ? 'var(--green)' : 'var(--amber)' }}>
+                      +{avgImprovement.toFixed(0)}pp
+                    </div>
+                    <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.3rem' }}>
+                      Critique Effect
+                    </div>
+                    <div style={{ ...inter, fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                      {totalChanged} scores revised by self-critique
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Agreement rate */}
+              <div style={{ padding: '1.2rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', textAlign: 'center' }}>
+                <div style={{ ...mono, fontSize: '2rem', fontWeight: 700, color: report.agreement.rate >= 80 ? 'var(--green)' : 'var(--amber)' }}>
+                  {report.agreement.rate}%
+                </div>
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.3rem' }}>
+                  Model Agreement
+                </div>
+                <div style={{ ...inter, fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                  {report.agreement.disagreements} disagreement{report.agreement.disagreements !== 1 ? 's' : ''} across {report.testCaseCount} cases
+                </div>
+              </div>
+
+              {/* False positives */}
+              {(() => {
+                const totalFP = Object.values(report.falsePositives).reduce((a, b) => a + b, 0);
+                const totalFN = Object.values(report.falseNegatives).reduce((a, b) => a + b, 0);
+                return (
+                  <div style={{ padding: '1.2rem', background: 'var(--surface)', border: `1px solid ${totalFP > 0 ? 'var(--red)' : 'var(--border)'}`, borderRadius: '10px', textAlign: 'center' }}>
+                    <div style={{ ...mono, fontSize: '2rem', fontWeight: 700, color: totalFP === 0 ? 'var(--green)' : 'var(--red)' }}>
+                      {totalFP}
+                    </div>
+                    <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.3rem' }}>
+                      False Positives
+                    </div>
+                    <div style={{ ...inter, fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                      {totalFP === 0 ? 'No bad work passed as good' : `${totalFP} bad outputs scored as useful`}
+                      {totalFN > 0 ? ` · ${totalFN} FN` : ''}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Per-model visual comparison */}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${report.modelsUsed.length}, 1fr)`, gap: '0.6rem', marginBottom: '2rem' }}>
+              {report.modelsUsed.map(m => {
+                const a = report.accuracy[m];
+                if (!a) return null;
+                const delta = a.postCritique - a.preCritique;
+                return (
+                  <div key={m} style={{ padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px' }}>
+                    <div style={{ ...mono, fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.6rem' }}>{m}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                      <span style={{ ...mono, fontSize: '1.5rem', fontWeight: 700, color: a.overall >= 70 ? 'var(--green)' : a.overall >= 50 ? 'var(--amber)' : 'var(--red)' }}>{a.overall}%</span>
+                      <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)' }}>accuracy</span>
+                    </div>
+                    {/* Category bars */}
+                    {['useful', 'mediocre', 'adversarial'].map(cat => {
+                      const val = a.byCategory[cat] ?? 0;
+                      return (
+                        <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                          <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', width: '55px', textTransform: 'capitalize' }}>{cat}</span>
+                          <div style={{ flex: 1, height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${val}%`, height: '100%', background: val >= 70 ? 'var(--green)' : val >= 50 ? 'var(--amber)' : 'var(--red)', borderRadius: '3px', transition: 'width 0.5s' }} />
+                          </div>
+                          <span style={{ ...mono, fontSize: '0.55rem', fontWeight: 600, width: '28px', textAlign: 'right' }}>{val}%</span>
+                        </div>
+                      );
+                    })}
+                    {/* Critique delta */}
+                    <div style={{ ...mono, fontSize: '0.55rem', marginTop: '0.5rem', padding: '0.3rem 0.5rem', background: 'var(--bg)', borderRadius: '4px', display: 'inline-block' }}>
+                      Pre: {a.preCritique}% → Post: {a.postCritique}%
+                      <span style={{ color: delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text-dim)', marginLeft: '0.3rem', fontWeight: 700 }}>
+                        {delta > 0 ? '+' : ''}{delta}pp
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             <Section title="1. Methodology">
               <P>
                 We generated {report.testCaseCount} deterministic test cases (seed: {report.seed}) across three categories:
@@ -312,37 +424,65 @@ export default function EvalPage() {
               </P>
             </Section>
 
-            <Section title="4. Model Behavioral Differences">
+            <Section title="4. When Models Disagree">
               {report.interestingDisagreements.length === 0 ? (
                 <P>No significant disagreements found (all spreads under 20 points). Models show strong alignment on this test set.</P>
               ) : (
-                report.interestingDisagreements.map((d, i) => (
-                  <div key={d.testCaseId} style={{
-                    padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)',
-                    borderRadius: '8px', marginBottom: '1rem',
-                  }}>
-                    <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', marginBottom: '0.4rem' }}>
-                      Case #{d.testCaseId} &middot; {d.category} &middot; {d.task}
-                    </div>
-                    <div style={{ ...inter, fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.6rem', fontStyle: 'italic' }}>
-                      &ldquo;{d.workProductPreview}...&rdquo;
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                      {d.scores.map(s => (
-                        <div key={s.model} style={{
-                          ...mono, fontSize: '0.65rem', padding: '0.3rem 0.6rem',
-                          background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)',
-                        }}>
-                          <strong>{s.model}</strong>: {s.score}/100 ({s.classification})
-                          {s.revised !== null && (
-                            <span style={{ color: 'var(--amber)' }}> → {s.revised}/100 ({s.revisedClass})</span>
-                          )}
+                <>
+                  <P>
+                    These cases had the biggest score spreads (&gt;20 points) between models.
+                    This is where multi-model consensus matters most — a single model would have gotten it wrong.
+                  </P>
+                  {report.interestingDisagreements.map((d) => {
+                    const scores = d.scores.map(s => s.revised ?? s.score);
+                    const spread = Math.max(...scores) - Math.min(...scores);
+                    const highModel = d.scores.reduce((a, b) => ((b.revised ?? b.score) > (a.revised ?? a.score) ? b : a));
+                    const lowModel = d.scores.reduce((a, b) => ((b.revised ?? b.score) < (a.revised ?? a.score) ? b : a));
+                    return (
+                      <div key={d.testCaseId} style={{
+                        padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)',
+                        borderRadius: '10px', marginBottom: '0.8rem',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>
+                            Case #{d.testCaseId} · {d.category}
+                          </div>
+                          <div style={{ ...mono, fontSize: '0.6rem', padding: '0.15rem 0.5rem', borderRadius: '4px', background: spread >= 30 ? 'rgba(220,38,38,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${spread >= 30 ? 'var(--red)' : 'var(--amber)'}`, color: spread >= 30 ? 'var(--red)' : 'var(--amber)', fontWeight: 700 }}>
+                            {spread}pt spread
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                    <div style={{ ...inter, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>{d.analysis}</div>
-                  </div>
-                ))
+                        <div style={{ ...inter, fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.6rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                          &ldquo;{d.workProductPreview}...&rdquo;
+                        </div>
+                        {/* Score comparison — visual */}
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                          {d.scores.map(s => {
+                            const finalScore = s.revised ?? s.score;
+                            const isHigh = s.model === highModel.model;
+                            const isLow = s.model === lowModel.model;
+                            return (
+                              <div key={s.model} style={{
+                                ...mono, fontSize: '0.62rem', padding: '0.4rem 0.6rem',
+                                background: 'var(--bg)', borderRadius: '6px',
+                                border: `1.5px solid ${isHigh ? 'var(--green)' : isLow ? 'var(--red)' : 'var(--border)'}`,
+                                flex: '1 1 0', textAlign: 'center', minWidth: '120px',
+                              }}>
+                                <div style={{ fontWeight: 600, marginBottom: '0.2rem' }}>{s.model}</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: finalScore >= 70 ? 'var(--green)' : finalScore >= 40 ? 'var(--amber)' : 'var(--red)' }}>
+                                  {finalScore}
+                                </div>
+                                <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>
+                                  {s.revised !== null ? `${s.score} → ${s.revised} (critique)` : s.classification}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div style={{ ...inter, fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>{d.analysis}</div>
+                      </div>
+                    );
+                  })}
+                </>
               )}
             </Section>
 

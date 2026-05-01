@@ -13,6 +13,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js"
+    },
     "./integrations/axl": {
       "types": "./dist/integrations/axl.d.ts",
       "import": "./dist/integrations/axl.js"

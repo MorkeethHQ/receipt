@@ -1729,6 +1729,49 @@ export default function Demo() {
         flexWrap: 'wrap', gap: '0.5rem',
       }}>
         <div className="demo-bottom-metrics" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Verification Rate — hero metric */}
+          {(() => {
+            const rate = totalReceiptsGenerated > 0
+              ? Math.round((verificationsPassedCount / totalReceiptsGenerated) * 100)
+              : null;
+            return (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  ...mono, fontSize: '1.5rem', fontWeight: 700,
+                  color: rate === null ? 'var(--text-dim)'
+                    : rate === 100 ? 'var(--green)'
+                    : rate >= 80 ? 'var(--amber)'
+                    : 'var(--red)',
+                }}>
+                  {rate !== null ? `${rate}%` : '--%'}
+                </div>
+                <div style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Verification Rate
+                </div>
+              </div>
+            );
+          })()}
+
+          <div style={{ width: '1px', height: '28px', background: 'var(--border)' }} />
+
+          {/* Quality */}
+          {reviewScores && (
+            <>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  ...mono, fontSize: '1.1rem', fontWeight: 700,
+                  color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
+                }}>
+                  {reviewScores.composite}/100
+                </div>
+                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                  Quality
+                </div>
+              </div>
+              <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+            </>
+          )}
+
           {/* Receipts count */}
           <div style={{ textAlign: 'center' }}>
             <div style={{ ...mono, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
@@ -1738,56 +1781,6 @@ export default function Demo() {
               Receipts
             </div>
           </div>
-
-          <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
-
-          {/* Trust score */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              ...mono, fontSize: '1.1rem', fontWeight: 700,
-              color: trustScore !== null
-                ? (trustScore >= 80 ? 'var(--green)' : trustScore >= 50 ? 'var(--amber)' : 'var(--red)')
-                : 'var(--text-dim)',
-            }}>
-              {trustScore !== null ? trustScore : '--'}
-            </div>
-            <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-              Trust
-            </div>
-          </div>
-
-          <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
-
-          {/* Verifications */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              ...mono, fontSize: '1.1rem', fontWeight: 700,
-              color: passedCount === totalVerifications ? 'var(--green)' : 'var(--red)',
-            }}>
-              {passedCount}/{totalVerifications}
-            </div>
-            <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-              Verified
-            </div>
-          </div>
-
-          {/* Usefulness */}
-          {reviewScores && (
-            <>
-              <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  ...mono, fontSize: '1.1rem', fontWeight: 700,
-                  color: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
-                }}>
-                  {reviewScores.composite}
-                </div>
-                <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                  Quality
-                </div>
-              </div>
-            </>
-          )}
 
           {/* Pipeline time */}
           {pipelineMs !== null && (
@@ -1984,6 +1977,7 @@ export default function Demo() {
           <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Team</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
+          <a href="/reputation" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Reputation</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
       </nav>
@@ -2139,7 +2133,7 @@ export default function Demo() {
                   }} />
                 </div>
                 <span style={{ ...mono, fontSize: '0.5rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                  {verificationsPassedCount}/{totalReceiptsGenerated} verified
+                  {totalReceiptsGenerated > 0 ? `${Math.round((verificationsPassedCount / totalReceiptsGenerated) * 100)}%` : '—'} verification rate
                 </span>
               </div>
               {/* Story stage indicator */}
@@ -2171,6 +2165,41 @@ export default function Demo() {
                   })}
                 </div>
               )}
+              {/* Harness layer pills */}
+              {(phase === 'running' || phase === 'done') && (() => {
+                const receiptTypes = new Set(receipts.map(r => r.action.type));
+                const layers = [
+                  { id: 'context', label: 'Context', active: receiptTypes.has('file_read') || receiptTypes.has('api_call') || receiptTypes.has('context_read') },
+                  { id: 'execution', label: 'Execution', active: receiptTypes.has('llm_call') || receiptTypes.has('tool_call') || receiptTypes.has('api_call') },
+                  { id: 'state', label: 'State', active: receipts.some(r => r.attestation !== null) || receiptTypes.has('decision') },
+                  { id: 'orchestration', label: 'Orchestration', active: verificationsPassedCount > 0 },
+                  { id: 'evaluation', label: 'Evaluation', active: receiptTypes.has('usefulness_review') },
+                  { id: 'transport', label: 'Transport', active: anchorTx !== null || storyStage === 'axl-handoff' || (['agent-b-verifying', 'agent-b-working', 'agent-b-rejected', 'reviewing', 'anchoring', 'complete'] as StoryStage[]).includes(storyStage) },
+                ];
+                const activeCount = layers.filter(l => l.active).length;
+                return (
+                  <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', alignItems: 'center' }}>
+                    {layers.map(layer => (
+                      <div key={layer.id} style={{
+                        ...mono, fontSize: '0.48rem', padding: '0.12rem 0.35rem',
+                        borderRadius: '3px',
+                        background: layer.active ? 'rgba(22,163,74,0.08)' : 'transparent',
+                        border: `1px solid ${layer.active ? 'rgba(22,163,74,0.3)' : 'var(--border)'}`,
+                        color: layer.active ? 'var(--green)' : 'var(--text-dim)',
+                        fontWeight: layer.active ? 600 : 400,
+                        transition: 'all 0.4s ease',
+                      }}>
+                        {layer.active ? '● ' : ''}{layer.label}
+                      </div>
+                    ))}
+                    {phase === 'done' && (
+                      <span style={{ ...mono, fontSize: '0.45rem', color: activeCount === 6 ? 'var(--green)' : 'var(--text-dim)', marginLeft: '0.3rem' }}>
+                        {activeCount}/6 harness layers
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>
