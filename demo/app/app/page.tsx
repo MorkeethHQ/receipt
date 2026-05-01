@@ -117,7 +117,7 @@ export default function LandingPage() {
           <div style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)' }}>
             <div style={{ ...mono, fontSize: '0.58rem', color: 'var(--green)', fontWeight: 700, marginBottom: '0.3rem', letterSpacing: '0.04em' }}>LAYER 1: PROOF OF ACTION</div>
             <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              Every agent action produces an Ed25519-signed receipt. Each receipt hash-links to the previous one. Change one receipt and the entire chain breaks. Agent B verifies every receipt from Agent A before continuing.
+              Every agent action produces an Ed25519-signed receipt. Each receipt hash-links to the previous one. Change one receipt and the entire chain breaks. The Builder verifies every receipt from the Researcher before continuing.
             </div>
           </div>
           <div style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)' }}>
@@ -129,24 +129,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── WHAT IT COVERS (harness layers) ── */}
-      <section style={{ padding: '0 1.5rem 1.5rem', maxWidth: '720px', margin: '0 auto', width: '100%' }}>
-        <h2 style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.8rem', textAlign: 'center' }}>Covers all six agent harness layers</h2>
-        <div className="harness-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+      {/* ── WHAT RECEIPT CAPTURES ── */}
+      <section style={{ padding: '0 1.5rem 1.5rem', maxWidth: '620px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.8rem', textAlign: 'center' }}>Every action, end to end</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           {[
-            { layer: 'Orchestration', desc: 'Multi-agent verification pipeline' },
-            { layer: 'Context', desc: 'Inputs, outputs, full execution context' },
-            { layer: 'State', desc: 'Immutable signed receipt snapshots' },
-            { layer: 'Execution', desc: 'Every tool call and inference captured' },
-            { layer: 'Evaluation', desc: 'Independent quality scoring + verification rate' },
-            { layer: 'Transport', desc: 'On-chain anchoring + P2P handoff via AXL' },
-          ].map(h => (
-            <div key={h.layer} style={{
-              padding: '0.5rem 0.7rem', borderRadius: '6px',
+            { icon: '1', label: 'File read', detail: 'Contents hashed into signed receipt' },
+            { icon: '2', label: 'API call', detail: 'Request + response locked to chain' },
+            { icon: '3', label: 'LLM inference', detail: 'Model output attested by hardware enclave' },
+            { icon: '4', label: 'Decision', detail: 'Reasoning recorded, hash-linked to evidence' },
+            { icon: '5', label: 'Handoff', detail: 'Chain travels P2P, Builder verifies every receipt' },
+            { icon: '✓', label: 'Quality score', detail: 'Independent model grades usefulness (60+ to anchor)' },
+          ].map(s => (
+            <div key={s.label} style={{
+              display: 'flex', alignItems: 'center', gap: '0.6rem',
+              padding: '0.4rem 0.7rem', borderRadius: '6px',
               border: '1px solid var(--border)', background: 'var(--surface)',
             }}>
-              <div style={{ ...mono, fontSize: '0.6rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.15rem' }}>{h.layer}</div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.62rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{h.desc}</div>
+              <div style={{ ...mono, fontSize: '0.65rem', fontWeight: 700, color: 'var(--green)', width: '1.2rem', textAlign: 'center', flexShrink: 0 }}>{s.icon}</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text)', minWidth: '80px' }}>{s.label}</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.65rem', color: 'var(--text-muted)' }}>{s.detail}</div>
             </div>
           ))}
         </div>
@@ -161,7 +163,7 @@ export default function LandingPage() {
           <div className="og-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.6rem', marginBottom: '0.8rem' }}>
             {[
               { label: '0G Compute', desc: 'Inference in TEE enclaves (Intel TDX). Hardware proves the model ran.', color: 'var(--green)' },
-              { label: '0G Identity', desc: 'ERC-7857 soulbound agent ID on 0G Mainnet. Verifiable, non-transferable.', color: 'var(--green)' },
+              { label: '0G Identity', desc: 'ERC-7857 agent identity token on 0G Mainnet. Ed25519 key hash on-chain.', color: 'var(--green)' },
               { label: '0G Training', desc: 'Quality-gated data pipeline. Only useful chains feed model fine-tuning.', color: 'var(--green)' },
               { label: 'Gensyn AXL', desc: 'Agent-to-agent P2P handoff via encrypted Yggdrasil mesh. No central server.', color: '#c084fc' },
             ].map(v => (

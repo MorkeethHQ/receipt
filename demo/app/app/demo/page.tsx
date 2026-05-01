@@ -174,10 +174,9 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'review_scores') {
     const { alignment, substance, quality, composite } = data;
-    const verdict = composite >= 80 ? 'High quality — this chain earns on-chain reputation and becomes fine-tuning data.'
-      : composite >= 60 ? 'Acceptable quality — recorded on-chain but flagged for improvement.'
-      : 'Low quality — this work cost tokens but produced little value.';
-    return `Alignment: ${alignment}/100 (did it follow the task?). Substance: ${substance}/100 (real data or stubs?). Quality: ${quality}/100 (is the output good?). Composite: ${composite}/100. ${verdict}${data.attested ? ' Scores are hardware-verified.' : ''}`;
+    const verdict = composite >= 60 ? 'Quality gate passed — this chain earns on-chain reputation and produces training-eligible data.'
+      : 'Below threshold — this work cost tokens but produced little value. Not anchored on-chain.';
+    return `Alignment: ${alignment}/100 (did it do what was asked?). Substance: ${substance}/100 (is the content meaningful?). Quality: ${quality}/100 (is the output good?). Composite: ${composite}/100. ${verdict}${data.attested ? ' Scores are hardware-verified.' : ''}`;
   }
   if (event === 'quality_gate') {
     if (!data.passed) {
@@ -1580,7 +1579,6 @@ export default function Demo() {
         }}>
           <div style={{ display: 'flex', gap: '1.2rem' }}>
             <a href="/verify" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Verify</a>
-            <a href="/eval" style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', textDecoration: 'none', borderBottom: '1px dashed var(--border-dashed)' }}>Eval</a>
           </div>
           <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }}>
             {adversarial ? 'catch the lie' : 'honest mode'}
@@ -1744,17 +1742,6 @@ export default function Demo() {
               >
                 {copied ? '✓ Copied' : 'Copy JSON'}
               </button>
-              <a
-                href="/team"
-                style={{
-                  padding: '0.35rem 0.8rem', borderRadius: '6px',
-                  border: '1px solid var(--researcher)', background: 'rgba(37, 99, 235, 0.06)',
-                  color: 'var(--researcher)', textDecoration: 'none', fontFamily: 'inherit',
-                  fontSize: '0.72rem', fontWeight: 600,
-                }}
-              >
-                Team Feed
-              </a>
             </>
           )}
           <button onClick={() => { setAdversarial(!adversarial); switchAndRunRef.current = true; }} style={{

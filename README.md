@@ -2,7 +2,7 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-> Built at ETHGlobal Prague 2026 | **[Live Demo](https://receipt-murex.vercel.app)** | `npm install agenticproof`
+> Built at ETHGlobal Open Agents 2026 | **[Live Demo](https://receipt-murex.vercel.app)** | `npm install agenticproof`
 
 **[Live Demo](https://receipt-murex.vercel.app)** | [Pipeline](https://receipt-murex.vercel.app/demo) | [Trial](https://receipt-murex.vercel.app/trial) | [Team](https://receipt-murex.vercel.app/team) | [Verify](https://receipt-murex.vercel.app/verify) | [Eval](https://receipt-murex.vercel.app/eval) | [Reputation](https://receipt-murex.vercel.app/reputation)
 
@@ -56,7 +56,7 @@ One pipeline run exercises verified compute, verified identity, and verified tra
 Every LLM call runs inside an Intel TDX hardware enclave via `@0glabs/0g-serving-broker`. Used twice per pipeline: once for the Researcher's analysis inference, once for the Builder's independent quality review. The reviewer model is TEE-selected — the agent can't choose its own grader. Each receipt carries attestation metadata: provider address, TEE type, and a verifiable signature endpoint.
 
 **Verified Identity — ERC-7857 Agentic ID**
-Each agent mints a soulbound on-chain identity NFT via `AgentNFT.sol`. The NFT carries the agent's ed25519 public key hash and receipt chain root as `iDatas`. Supports the full iNFT lifecycle: mint, transfer, clone, authorizeUsage. Trust scores evolve as the agent builds on-chain reputation through verified work. Designed to be composable with the emerging ERC-8004 (Trustless Agents) standard — RECEIPT receipts map to ERC-8004 Validation Registry responses.
+Each agent mints an on-chain identity token via `AgentNFT.sol` (ERC-7857). The NFT carries the agent's Ed25519 public key hash and receipt chain root as `iDatas`. Supports the full iNFT lifecycle: mint, transfer, clone, authorizeUsage. Trust scores evolve as the agent builds on-chain reputation through verified work. Composable with ERC-8004 (Trustless Agents) — RECEIPT receipts map to ERC-8004 Validation Registry responses.
 
 **Verified Training — Quality-Gated Fine-Tuning**
 Only chains scoring ≥60/100 usefulness become training data. The pipeline discovers fine-tuning providers, uploads high-quality chains via TEE, and attempts LoRA deployment. Low-quality chains are excluded — the system self-improves by only training on proven good work.
