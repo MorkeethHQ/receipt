@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const headers: Record<string, string> = axlAuthToken ? { Authorization: `Bearer ${axlAuthToken}` } : {};
 
   try {
-    const r = await fetch(`${url}/topology`, { headers, signal: AbortSignal.timeout(2000) });
+    const r = await fetch(`${url}/topology`, { headers, signal: AbortSignal.timeout(5000) });
     if (r.ok) {
       const info = await r.json();
       return Response.json({
