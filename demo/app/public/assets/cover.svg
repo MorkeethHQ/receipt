@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap');
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#f5f3ef"/>
+
+  <!-- LEFT SIDE -->
+
+  <!-- Tagline -->
+  <text x="80" y="180" font-family="'IBM Plex Mono', 'Courier New', monospace" font-size="14" fill="#a09a92" letter-spacing="3" text-transform="uppercase">PROOF OF AGENT WORK</text>
+
+  <!-- Headline -->
+  <text x="80" y="260" font-family="Inter, sans-serif" font-size="56" font-weight="700" fill="#1a1a1a">Every action proven.</text>
+  <text x="80" y="330" font-family="Inter, sans-serif" font-size="56" font-weight="700" fill="#1a1a1a">Every lie caught.</text>
+  <text x="80" y="400" font-family="Inter, sans-serif" font-size="56" font-weight="700" fill="#1a1a1a">Every output scored.</text>
+
+  <!-- Subtitle -->
+  <text x="80" y="460" font-family="Inter, sans-serif" font-size="21" fill="#6b6560">Cryptographic proof that AI agents did what they claim</text>
+  <text x="80" y="490" font-family="Inter, sans-serif" font-size="21" fill="#6b6560">and that the work was actually useful.</text>
+
+  <!-- npm badge -->
+  <rect x="80" y="530" width="370" height="50" rx="10" fill="#1a1a1a"/>
+  <text x="100" y="562" font-family="'IBM Plex Mono', monospace" font-size="18" fill="#e5e5e5">npm install agenticproof</text>
+  <text x="410" y="562" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#4ade80" font-weight="600">v0.1.1</text>
+
+  <!-- Pills row 1 -->
+  <rect x="80" y="610" width="185" height="34" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="96" y="633" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#16a34a">0G Verified Compute</text>
+
+  <rect x="278" y="610" width="185" height="34" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="294" y="633" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#16a34a">0G Verified Identity</text>
+
+  <rect x="476" y="610" width="195" height="34" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="492" y="633" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#16a34a">0G Verified Training</text>
+
+  <!-- Pills row 2 -->
+  <rect x="80" y="654" width="140" height="34" rx="6" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="96" y="677" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#6b6560">Gensyn AXL P2P</text>
+
+  <rect x="232" y="654" width="155" height="34" rx="6" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="248" y="677" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#6b6560">Ed25519 + SHA-256</text>
+
+  <rect x="400" y="654" width="90" height="34" rx="6" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="416" y="677" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#6b6560">ERC-7857</text>
+
+  <rect x="502" y="654" width="90" height="34" rx="6" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="518" y="677" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#6b6560">ERC-8004</text>
+
+  <!-- Contract addresses -->
+  <text x="80" y="740" font-family="'IBM Plex Mono', monospace" font-size="11" fill="#a09a92">Deployed on 0G Mainnet (16661)</text>
+  <rect x="80" y="755" width="230" height="26" rx="4" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="90" y="773" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">Anchor: 0x73B9A776...</text>
+  <rect x="320" y="755" width="230" height="26" rx="4" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="330" y="773" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">Identity: 0xf964d45c...</text>
+  <rect x="560" y="755" width="230" height="26" rx="4" fill="#fff" stroke="#e5e0d8" stroke-width="1"/>
+  <text x="570" y="773" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">Validation: 0x2E32E845...</text>
+
+  <!-- RIGHT SIDE — Receipt cards -->
+
+  <!-- Chain link dots on far left of receipts -->
+  <circle cx="870" cy="115" r="7" fill="#2563eb" opacity="0.9"/>
+  <rect x="867" y="122" width="6" height="60" rx="3" fill="#2563eb" opacity="0.3"/>
+  <circle cx="870" cy="190" r="7" fill="#2563eb" opacity="0.9"/>
+  <rect x="867" y="197" width="6" height="60" rx="3" fill="#2563eb" opacity="0.3"/>
+  <circle cx="870" cy="265" r="7" fill="#2563eb" opacity="0.9"/>
+
+  <!-- Handoff indicator -->
+  <rect x="867" y="272" width="6" height="40" rx="3" fill="#7c3aed" opacity="0.4"/>
+  <text x="855" y="296" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#7c3aed" font-weight="700" text-anchor="end" transform="rotate(-90 855 296)">HANDOFF</text>
+  <circle cx="870" cy="320" r="7" fill="#7c3aed" opacity="0.9"/>
+  <rect x="867" y="327" width="6" height="50" rx="3" fill="#7c3aed" opacity="0.3"/>
+  <circle cx="870" cy="385" r="7" fill="#16a34a" opacity="0.9"/>
+
+  <!-- Receipt 1: file_read (Researcher) -->
+  <g transform="translate(900, 60)">
+    <rect width="440" height="175" rx="4" fill="#fffef8" stroke="#e5e0d8" stroke-width="1.5" filter="url(#shadow)"/>
+    <!-- Header -->
+    <text x="18" y="28" font-family="'IBM Plex Mono', monospace" font-size="14" font-weight="700" fill="#1a1a1a" letter-spacing="1">R.E.C.E.I.P.T.</text>
+    <text x="420" y="28" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92" text-anchor="end">#0 - b83b1c12</text>
+    <line x1="0" y1="38" x2="440" y2="38" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <!-- Chain start -->
+    <rect x="0" y="38" width="440" height="20" fill="rgba(37,99,235,0.04)"/>
+    <text x="18" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#2563eb" font-weight="600">CHAIN START</text>
+    <text x="110" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">genesis receipt</text>
+    <!-- Body -->
+    <text x="18" y="80" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#a09a92">ACTION</text>
+    <text x="420" y="80" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#1a1a1a" font-weight="600" text-anchor="end">file_read</text>
+    <text x="18" y="100" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#a09a92">TIME</text>
+    <text x="420" y="100" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#1a1a1a" text-anchor="end">10:28:19 AM</text>
+    <line x1="0" y1="112" x2="440" y2="112" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <text x="18" y="130" font-family="'IBM Plex Mono', monospace" font-size="11" fill="#a09a92">IN  1833bfb6d659ed8ba89b...</text>
+    <text x="18" y="148" font-family="'IBM Plex Mono', monospace" font-size="11" fill="#a09a92">OUT e881d90184770623717...</text>
+    <line x1="0" y1="158" x2="440" y2="158" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <text x="220" y="172" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#a09a92" text-anchor="middle" letter-spacing="2">SIGNED</text>
+  </g>
+
+  <!-- Receipt 2: llm_call (Researcher, TEE) -->
+  <g transform="translate(920, 255)">
+    <rect width="440" height="195" rx="4" fill="#fffef8" stroke="#e5e0d8" stroke-width="1.5"/>
+    <text x="18" y="28" font-family="'IBM Plex Mono', monospace" font-size="14" font-weight="700" fill="#1a1a1a" letter-spacing="1">R.E.C.E.I.P.T.</text>
+    <text x="420" y="28" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92" text-anchor="end">#2 - cf173725</text>
+    <line x1="0" y1="38" x2="440" y2="38" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <!-- Chain link -->
+    <rect x="0" y="38" width="440" height="20" fill="rgba(37,99,235,0.04)"/>
+    <text x="18" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#2563eb" font-weight="600">PREV</text>
+    <text x="60" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">7698b235-59c5-4ccb...</text>
+    <text x="420" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#16a34a" text-anchor="end">linked</text>
+    <!-- Body -->
+    <text x="18" y="80" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#a09a92">ACTION</text>
+    <text x="420" y="80" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#1a1a1a" font-weight="600" text-anchor="end">llm_call</text>
+    <text x="18" y="100" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#a09a92">SOURCE</text>
+    <text x="420" y="100" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#16a34a" font-weight="600" text-anchor="end">TEE Verified</text>
+    <line x1="0" y1="112" x2="440" y2="112" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <text x="18" y="130" font-family="'IBM Plex Mono', monospace" font-size="11" fill="#a09a92">IN  29cb4ab745b76e40565...</text>
+    <text x="18" y="148" font-family="'IBM Plex Mono', monospace" font-size="11" fill="#a09a92">OUT 328a696a3ca69cad536...</text>
+    <line x1="0" y1="158" x2="440" y2="158" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <text x="18" y="173" font-family="'IBM Plex Mono', monospace" font-size="11" fill="#a09a92">SIG 90d96f4099b4aa171eb...</text>
+    <line x1="0" y1="180" x2="440" y2="180" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <text x="170" y="193" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#16a34a" font-weight="600" letter-spacing="2">SIGNED</text>
+    <!-- TEE + model badge -->
+    <text x="300" y="193" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">DeepSeek V3 -</text>
+    <text x="392" y="193" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#16a34a" font-weight="700">TEE &#10003;</text>
+  </g>
+
+  <!-- Receipt 3: usefulness_review (Builder) -->
+  <g transform="translate(910, 470)">
+    <rect width="440" height="230" rx="4" fill="#fffef8" stroke="#e5e0d8" stroke-width="1.5"/>
+    <text x="18" y="28" font-family="'IBM Plex Mono', monospace" font-size="14" font-weight="700" fill="#1a1a1a" letter-spacing="1">R.E.C.E.I.P.T.</text>
+    <text x="420" y="28" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92" text-anchor="end">#9 - review</text>
+    <line x1="0" y1="38" x2="440" y2="38" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <!-- Chain link -->
+    <rect x="0" y="38" width="440" height="20" fill="rgba(124,58,237,0.04)"/>
+    <text x="18" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#7c3aed" font-weight="600">PREV</text>
+    <text x="60" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">a7f3e218-builder-out...</text>
+    <text x="420" y="53" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#16a34a" text-anchor="end">linked</text>
+    <!-- Body -->
+    <text x="18" y="80" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#a09a92">ACTION</text>
+    <text x="420" y="80" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#7c3aed" font-weight="600" text-anchor="end">usefulness_review</text>
+    <text x="18" y="100" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#a09a92">SOURCE</text>
+    <text x="420" y="100" font-family="'IBM Plex Mono', monospace" font-size="13" fill="#16a34a" font-weight="600" text-anchor="end">TEE Verified</text>
+    <line x1="0" y1="112" x2="440" y2="112" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <!-- Score bars -->
+    <text x="18" y="133" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">ALIGN</text>
+    <rect x="80" y="124" width="290" height="6" rx="3" fill="#e5e0d8"/>
+    <rect x="80" y="124" width="246" height="6" rx="3" fill="#16a34a"/>
+    <text x="420" y="133" font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="700" fill="#1a1a1a" text-anchor="end">85</text>
+
+    <text x="18" y="155" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">SUBST</text>
+    <rect x="80" y="146" width="290" height="6" rx="3" fill="#e5e0d8"/>
+    <rect x="80" y="146" width="226" height="6" rx="3" fill="#16a34a"/>
+    <text x="420" y="155" font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="700" fill="#1a1a1a" text-anchor="end">78</text>
+
+    <text x="18" y="177" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92">QUAL</text>
+    <rect x="80" y="168" width="290" height="6" rx="3" fill="#e5e0d8"/>
+    <rect x="80" y="168" width="238" height="6" rx="3" fill="#16a34a"/>
+    <text x="420" y="177" font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="700" fill="#1a1a1a" text-anchor="end">82</text>
+
+    <line x1="0" y1="190" x2="440" y2="190" stroke="#d4cfc6" stroke-dasharray="5,3"/>
+    <!-- Gate passed -->
+    <text x="220" y="212" font-family="'IBM Plex Mono', monospace" font-size="14" fill="#16a34a" font-weight="700" text-anchor="middle" letter-spacing="2">GATE PASSED</text>
+    <text x="220" y="226" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92" text-anchor="middle">anchored on 0G Mainnet</text>
+  </g>
+
+  <!-- Verification badges top right -->
+  <g transform="translate(1380, 730)">
+    <rect width="140" height="32" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+    <text x="14" y="22" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#16a34a" font-weight="700">&#10003; Compute</text>
+  </g>
+  <g transform="translate(1530, 730)">
+    <rect width="140" height="32" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+    <text x="14" y="22" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#16a34a" font-weight="700">&#10003; Identity</text>
+  </g>
+  <g transform="translate(1680, 730)">
+    <rect width="140" height="32" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+    <text x="14" y="22" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#16a34a" font-weight="700">&#10003; Training</text>
+  </g>
+
+  <!-- Quality score card bottom right -->
+  <g transform="translate(1450, 790)">
+    <rect width="380" height="240" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+    <text x="190" y="50" font-family="'IBM Plex Mono', monospace" font-size="14" fill="#a09a92" text-anchor="middle" letter-spacing="2">USEFULNESS SCORE</text>
+    <text x="190" y="130" font-family="'IBM Plex Mono', monospace" font-size="80" font-weight="700" fill="#16a34a" text-anchor="middle">82</text>
+    <text x="190" y="155" font-family="'IBM Plex Mono', monospace" font-size="14" fill="#a09a92" text-anchor="middle">/100</text>
+    <!-- Threshold line -->
+    <line x1="40" y1="180" x2="340" y2="180" stroke="#e5e0d8" stroke-width="1"/>
+    <text x="190" y="210" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#16a34a" font-weight="700" text-anchor="middle" letter-spacing="1">ANCHORED ON-CHAIN</text>
+    <text x="190" y="228" font-family="'IBM Plex Mono', monospace" font-size="10" fill="#a09a92" text-anchor="middle">0G Mainnet - TX 0x7a3f...</text>
+  </g>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="1040" width="1920" height="40" fill="#ffffff"/>
+  <line x1="0" y1="1040" x2="1920" y2="1040" stroke="#e5e0d8"/>
+  <text x="80" y="1066" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#a09a92">receipt-murex.vercel.app</text>
+  <text x="1840" y="1066" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#a09a92" text-anchor="end">ETHGlobal Open Agents 2026</text>
+  <text x="960" y="1066" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#1a1a1a" font-weight="700" text-anchor="middle">R.E.C.E.I.P.T.</text>
+</svg>

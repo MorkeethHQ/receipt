@@ -8,23 +8,39 @@ import { join, dirname } from 'path';
 const args = process.argv.slice(2);
 const cmd = args[0];
 
-const HELP = `
-agenticproof — Cryptographic proof layer for AI agent work
+const BANNER = `
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │   R.E.C.E.I.P.T.                       │
+  │   ─────────────────                     │
+  │   Proof of Agent Work                   │
+  │                                         │
+  │   ACTION ............ signed            │
+  │   VERIFY ............ pass              │
+  │   QUALITY ........... 82/100            │
+  │   ANCHORED .......... 0G Mainnet        │
+  │                                         │
+  │   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   │
+  │   agenticproof v0.1.1                   │
+  │   Ed25519 + SHA-256 | ERC-7857 | 0G     │
+  └─────────────────────────────────────────┘
+`;
 
-Commands:
-  init                    Generate a receipt.config.json template
-  init --claude-code      Set up RECEIPT hooks for Claude Code
-  init --cursor           Set up RECEIPT for Cursor agent mode
-  init --openclaw         Show OpenClaw plugin install instructions
-  verify <file>           Verify a receipt chain from JSON file
-  inspect <file>          Show chain stats and receipt summary
-  wrap                    Print wrapper code for your agent
+const HELP = `${BANNER}
+  Commands:
+    init                    Generate receipt.config.json
+    init --claude-code      Set up RECEIPT hooks for Claude Code
+    init --cursor           Set up RECEIPT for Cursor agent mode
+    init --openclaw         Show OpenClaw plugin install instructions
+    verify <file>           Verify a receipt chain from JSON
+    inspect <file>          Show chain stats and receipt summary
+    wrap                    Print wrapper code for your agent
 
-Usage:
-  npx receipt init
-  npx receipt init --claude-code
-  npx receipt verify chain.json
-  npx receipt inspect chain.json
+  Usage:
+    npx receipt init
+    npx receipt init --claude-code
+    npx receipt verify chain.json
+    npx receipt inspect chain.json
 `;
 
 function initClaudeCode() {
@@ -53,14 +69,15 @@ ${readFileSync(join(dirname(new URL(import.meta.url).pathname), '..', 'examples'
 
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
 
-  console.log('RECEIPT hooks installed for Claude Code.');
+  console.log(BANNER);
+  console.log('  ✓ Hooks installed for Claude Code');
   console.log('');
-  console.log('Files created:');
-  console.log('  .receipt/receipt-hook.mjs  — hook script (receipts every tool call)');
-  console.log('  .claude/settings.json     — hooks config (SessionStart, PostToolUse, Stop)');
+  console.log('  Files:');
+  console.log('    .receipt/receipt-hook.mjs  hook script');
+  console.log('    .claude/settings.json     hooks config');
   console.log('');
-  console.log('Chains are written to .receipt/chains/ when a session ends.');
-  console.log('Verify with: npx receipt verify .receipt/chains/<file>.json');
+  console.log('  Chains → .receipt/chains/ (on session end)');
+  console.log('  Verify → npx receipt verify .receipt/chains/<file>.json');
 }
 
 function initCursor() {
@@ -152,37 +169,33 @@ process.on('SIGINT', () => {
 
   writeFileSync('.receipt/cursor-watcher.mjs', watcherScript);
 
-  console.log('RECEIPT watcher installed for Cursor.');
+  console.log(BANNER);
+  console.log('  ✓ Watcher installed for Cursor');
   console.log('');
-  console.log('Files created:');
-  console.log('  .receipt/cursor-watcher.mjs — file watcher (receipts every edit Cursor makes)');
+  console.log('  File: .receipt/cursor-watcher.mjs');
   console.log('');
-  console.log('Usage:');
-  console.log('  1. Start the watcher: node .receipt/cursor-watcher.mjs');
-  console.log('  2. Use Cursor normally — every file change becomes a receipt');
-  console.log('  3. Press Ctrl+C to finalize the chain');
+  console.log('  Usage:');
+  console.log('    1. node .receipt/cursor-watcher.mjs');
+  console.log('    2. Use Cursor — every edit becomes a receipt');
+  console.log('    3. Ctrl+C to finalize the chain');
   console.log('');
-  console.log('Chains are written to .receipt/chains/');
+  console.log('  Chains → .receipt/chains/');
 }
 
 function initOpenClaw() {
-  console.log('OpenClaw RECEIPT Plugin');
+  console.log(BANNER);
+  console.log('  OpenClaw RECEIPT Plugin');
   console.log('');
-  console.log('Install the native OpenClaw plugin:');
+  console.log('  Install:');
+  console.log('    openclaw plugins install openclaw-plugin-receipt');
   console.log('');
-  console.log('  openclaw plugins install openclaw-plugin-receipt');
+  console.log('  Or from source:');
+  console.log('    git clone https://github.com/MorkeethHQ/receipt.git');
+  console.log('    cd receipt/packages/openclaw-plugin-receipt');
+  console.log('    npm run build && openclaw plugins install .');
   console.log('');
-  console.log('Or from source:');
-  console.log('');
-  console.log('  git clone https://github.com/MorkeethHQ/receipt.git');
-  console.log('  cd receipt/packages/openclaw-plugin-receipt');
-  console.log('  npm run build');
-  console.log('  openclaw plugins install .');
-  console.log('');
-  console.log('The plugin hooks into the agent lifecycle automatically.');
-  console.log('Every tool call, context read, and message becomes a signed receipt.');
-  console.log('');
-  console.log('Query chains: curl http://localhost:18789/plugins/receipt/latest');
+  console.log('  Every tool call and message → signed receipt');
+  console.log('  Query: curl http://localhost:18789/plugins/receipt/latest');
 }
 
 function init() {
@@ -224,17 +237,17 @@ function init() {
   }
 
   writeFileSync('receipt.config.json', JSON.stringify(config, null, 2) + '\n');
-  console.log('Created receipt.config.json');
+  console.log(BANNER);
+  console.log('  ✓ Created receipt.config.json');
   console.log('');
-  console.log('Next steps:');
-  console.log('  1. Set agent.name to your agent\'s identifier');
-  console.log('  2. Set PRIVATE_KEY env var for on-chain operations');
-  console.log('  3. Enable axl for multi-machine agent handoff');
-  console.log('  4. Import and wrap your agent:');
+  console.log('  Next:');
+  console.log('    1. Set agent.name');
+  console.log('    2. Set PRIVATE_KEY env var for on-chain ops');
+  console.log('    3. Wrap your agent:');
   console.log('');
-  console.log('     import { ReceiptAgent } from "agenticproof";');
-  console.log('     const agent = ReceiptAgent.create("my-agent");');
-  console.log('     agent.callLlm(prompt, response);');
+  console.log('       import { ReceiptAgent } from "agenticproof";');
+  console.log('       const agent = ReceiptAgent.create("my-agent");');
+  console.log('       agent.callLlm(prompt, response);');
 }
 
 function verify(file: string) {
@@ -256,14 +269,17 @@ function verify(file: string) {
     process.exit(1);
   }
 
-  console.log(`Verifying ${receipts.length} receipts...`);
-  console.log('');
-
   const chain = ReceiptChain.fromReceipts(receipts);
   const rootHash = chain.computeRootHash();
 
   let passed = 0;
   let failed = 0;
+
+  console.log('');
+  console.log('  ┌─────────────────────────────────────────────┐');
+  console.log('  │  R.E.C.E.I.P.T.  CHAIN VERIFICATION        │');
+  console.log(`  │  ${receipts.length} receipts${' '.repeat(35 - String(receipts.length).length)}│`);
+  console.log('  ├─────────────────────────────────────────────┤');
 
   for (let i = 0; i < receipts.length; i++) {
     const r = receipts[i];
@@ -271,16 +287,28 @@ function verify(file: string) {
 
     const linkOk = i === 0 ? r.prevId === null : r.prevId === prev?.id;
 
-    const status = linkOk ? 'PASS' : 'FAIL';
     if (linkOk) passed++; else failed++;
 
     const icon = linkOk ? '✓' : '✗';
-    console.log(`  ${icon} #${i + 1} [${r.action.type}] ${r.action.description?.slice(0, 50) || ''} — ${status}`);
+    const label = `${r.action.type}`;
+    const desc = (r.action.description || '').slice(0, 24);
+    const status = linkOk ? 'PASS' : 'FAIL';
+    const line = `  ${icon} #${String(i).padEnd(2)} ${label.padEnd(18)} ${status}`;
+    console.log(`  │ ${line.padEnd(43)}│`);
+    if (i < receipts.length - 1) {
+      console.log('  │  │                                           │');
+    }
   }
 
+  console.log('  ├─────────────────────────────────────────────┤');
+  const resultLine = `${passed} passed, ${failed} failed`;
+  const resultIcon = failed === 0 ? '✓ CHAIN VALID' : '✗ CHAIN BROKEN';
+  console.log(`  │  ${resultIcon.padEnd(43)}│`);
+  console.log(`  │  ${resultLine.padEnd(43)}│`);
+  console.log('  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤');
+  console.log(`  │  ROOT ${rootHash.slice(0, 36)}│`);
+  console.log('  └─────────────────────────────────────────────┘');
   console.log('');
-  console.log(`Chain: ${passed} passed, ${failed} failed`);
-  console.log(`Root hash: ${rootHash}`);
 
   if (failed > 0) process.exit(1);
 }
@@ -304,23 +332,32 @@ function inspect(file: string) {
 
   const chain = ReceiptChain.fromReceipts(receipts);
 
-  console.log(`Chain: ${receipts.length} receipts`);
-  console.log(`Agents: ${[...agents].join(', ')}`);
-  console.log(`Root hash: ${chain.computeRootHash()}`);
+  const rootHash = chain.computeRootHash();
+
   console.log('');
-  console.log('By type:');
+  console.log('  ┌─────────────────────────────────────────────┐');
+  console.log('  │  R.E.C.E.I.P.T.  CHAIN INSPECTOR           │');
+  console.log('  ├─────────────────────────────────────────────┤');
+  console.log(`  │  RECEIPTS ......... ${String(receipts.length).padEnd(23)}│`);
+  console.log(`  │  AGENTS ........... ${[...agents].join(', ').slice(0, 23).padEnd(23)}│`);
+  console.log('  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤');
   for (const [type, count] of Object.entries(byType)) {
-    console.log(`  ${type}: ${count}`);
+    const bar = '█'.repeat(Math.min(count * 3, 18));
+    console.log(`  │  ${type.padEnd(18)} ${bar.padEnd(18)} ${String(count).padStart(2)} │`);
   }
 
   const review = receipts.find((r: any) => r.action.type === 'usefulness_review');
   if (review) {
-    console.log('');
-    console.log(`Usefulness review: present (agent: ${review.agentId})`);
-    if (review.attestation) {
-      console.log(`  TEE attested: ${review.attestation.provider} (${review.attestation.type})`);
-    }
+    console.log('  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤');
+    const attested = review.attestation ? `✓ ${review.attestation.provider}` : 'none';
+    console.log(`  │  QUALITY REVIEW ... ${review.agentId.slice(0, 23).padEnd(23)}│`);
+    console.log(`  │  TEE .............. ${attested.slice(0, 23).padEnd(23)}│`);
   }
+
+  console.log('  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤');
+  console.log(`  │  ROOT ${rootHash.slice(0, 36)}│`);
+  console.log('  └─────────────────────────────────────────────┘');
+  console.log('');
 }
 
 function wrap() {
