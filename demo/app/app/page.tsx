@@ -177,9 +177,9 @@ export default function LandingPage() {
         <h2 style={{ fontSize: '0.65rem', fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1.5rem', textAlign: 'center' }}>How it works</h2>
         <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
           {[
-            { n: '1', title: 'Wrap your agent', desc: 'Add one import. Every file read, API call, and LLM response gets a cryptographic receipt automatically.' },
-            { n: '2', title: 'Catch lies', desc: 'Receipts hash-link together. If an agent skips a step or fabricates a result, the chain breaks and you see exactly where.' },
-            { n: '3', title: 'Score the work', desc: 'A different model reviews the chain inside a hardware enclave. The agent can\'t pick its own grader. Score below 60? The chain is rejected — never touches the blockchain, never becomes training data.' },
+            { n: '1', title: 'Wrap your agent', desc: 'npm install agenticproof. Every file read, API call, and LLM inference produces a signed receipt with input/output hashes.' },
+            { n: '2', title: 'Verify the chain', desc: 'Agent B receives Agent A\'s work and checks every receipt: signature valid? Hash chain intact? One tampered receipt = entire handoff rejected.' },
+            { n: '3', title: 'Score usefulness', desc: 'A separate model inside a hardware enclave scores the output. The agent can\'t pick its own grader. Below 60/100? Not anchored on-chain, not used for training.' },
           ].map(s => (
             <div key={s.n} style={{ textAlign: 'center' }}>
               <div style={{
@@ -272,10 +272,10 @@ export default function LandingPage() {
       <section style={{ padding: '0 1.5rem 3rem', maxWidth: '580px', margin: '0 auto', width: '100%' }}>
         <div className="cases-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
           {[
-            'Your coding agent says it reviewed 50 files. Prove which ones it actually opened.',
-            'Agent A hands work to Agent B. Agent B verifies every receipt before continuing. No blind trust between agents — ever.',
-            'Your research agent claims 12 sources. The receipt chain shows exactly what it fetched and when.',
-            'An agent scores 34/100 on usefulness. The chain gets flagged — not anchored, not used for training.',
+            'Claude Code says it edited 12 files. The receipt chain proves which ones it actually touched and what changed.',
+            'A research agent hands off to a builder agent. The builder verifies every receipt before trusting the research. No blind handoffs.',
+            'Your Cursor agent runs for 20 minutes. RECEIPT measures cost per useful output: was it worth $0.30 or did it burn tokens doing nothing?',
+            'An agent scores 34/100 on usefulness. The chain is rejected. Not anchored on-chain, never becomes training data for future models.',
           ].map(item => (
             <div key={item} style={{
               padding: '1rem 1.2rem',
@@ -339,7 +339,7 @@ export default function LandingPage() {
             'ERC-7857 Agentic ID',
             'ERC-8004 Validation',
             'WebCrypto client-side verify',
-            'agenticproof@0.1.1 on npm',
+            'agenticproof@0.1.2 on npm',
             '3 smart contracts deployed',
             '47 SDK tests passing',
           ].map(tag => (
@@ -381,7 +381,7 @@ export default function LandingPage() {
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
         <a href="https://www.npmjs.com/package/agenticproof" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', color: 'var(--text-dim)', textDecoration: 'none' }}>
-          agenticproof@0.1.1
+          agenticproof@0.1.2
         </a>
       </footer>
     </div>

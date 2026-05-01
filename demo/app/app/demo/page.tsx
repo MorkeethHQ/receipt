@@ -733,38 +733,31 @@ export default function Demo() {
   const renderReceipt = (receipt: Receipt, index: number) => {
     const meta = receiptMeta[receipt.id];
     const isTampered = tamperedIds.has(receipt.id);
-    const timing = timings.find(t => t.eventIndex === index + 1);
 
     return (
       <div key={receipt.id} className="slide-up" style={{ maxWidth: '320px', width: '100%' }}>
         <div className={`receipt-card ${isTampered ? 'tampered' : ''}`} style={{ fontSize: '0.75rem' }}>
-          <div style={{ padding: '0.4rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ ...mono, fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.04em' }}>R.E.C.E.I.P.T.</span>
-            <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)' }} title={receipt.id}>#{index} · {receipt.id.slice(0, 8)}</span>
+          <div style={{ padding: '0.3rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ ...mono, fontWeight: 700, fontSize: '0.62rem', letterSpacing: '0.04em' }}>R.E.C.E.I.P.T.</span>
+            <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }} title={receipt.id}>#{index} · {receipt.id.slice(0, 8)}</span>
           </div>
           <div className="dashed" />
-          {/* Chain link indicator */}
           {receipt.prevId && (
-            <div style={{ padding: '0.15rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(37,99,235,0.04)' }}>
-              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--researcher)', fontWeight: 600 }}>PREV</span>
-              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>{receipt.prevId.slice(0, 16)}...</span>
-              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--green)', marginLeft: 'auto' }}>linked</span>
+            <div style={{ padding: '0.1rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(37,99,235,0.04)' }}>
+              <span style={{ ...mono, fontSize: '0.44rem', color: 'var(--researcher)', fontWeight: 600 }}>PREV</span>
+              <span style={{ ...mono, fontSize: '0.44rem', color: 'var(--text-dim)' }}>{receipt.prevId.slice(0, 12)}...</span>
+              <span style={{ ...mono, fontSize: '0.44rem', color: 'var(--green)', marginLeft: 'auto' }}>linked</span>
             </div>
           )}
           {!receipt.prevId && index === 0 && (
-            <div style={{ padding: '0.15rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(37,99,235,0.04)' }}>
-              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--researcher)', fontWeight: 600 }}>CHAIN START</span>
-              <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>genesis receipt</span>
+            <div style={{ padding: '0.1rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(37,99,235,0.04)' }}>
+              <span style={{ ...mono, fontSize: '0.44rem', color: 'var(--researcher)', fontWeight: 600 }}>CHAIN START</span>
             </div>
           )}
-          <div style={{ padding: '0.35rem 0.6rem', ...mono, fontSize: '0.68rem', lineHeight: 1.8 }}>
+          <div style={{ padding: '0.25rem 0.6rem', ...mono, fontSize: '0.62rem', lineHeight: 1.6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-dim)' }}>ACTION</span>
               <span style={{ fontWeight: 600 }}>{receipt.action.type}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-dim)' }}>TIME</span>
-              <span>{new Date(receipt.timestamp).toLocaleTimeString()}</span>
             </div>
             {(receipt.action.type === 'llm_call' || receipt.action.type === 'usefulness_review') && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -775,11 +768,11 @@ export default function Demo() {
               </div>
             )}
             {receipt.action.type === 'usefulness_review' && reviewScores && (
-              <div style={{ marginTop: '0.2rem' }}>
+              <div style={{ marginTop: '0.15rem' }}>
                 {(['alignment', 'substance', 'quality'] as const).map(axis => (
-                  <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
-                    <span style={{ color: 'var(--text-dim)', width: '46px', textTransform: 'uppercase', fontSize: '0.56rem' }}>{axis.slice(0, 5)}</span>
-                    <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.1rem' }}>
+                    <span style={{ color: 'var(--text-dim)', width: '40px', textTransform: 'uppercase', fontSize: '0.5rem' }}>{axis.slice(0, 5)}</span>
+                    <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', borderRadius: '2px',
                         width: `${reviewScores[axis]}%`,
@@ -787,109 +780,31 @@ export default function Demo() {
                         transition: 'width 1s ease-out',
                       }} />
                     </div>
-                    <span style={{ fontSize: '0.58rem', fontWeight: 600, width: '22px', textAlign: 'right' }}>{reviewScores[axis]}</span>
+                    <span style={{ fontSize: '0.5rem', fontWeight: 600, width: '20px', textAlign: 'right' }}>{reviewScores[axis]}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
           <div className="dashed" />
-          <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.6rem', lineHeight: 1.7, color: 'var(--text-muted)' }}>
-            <div>IN  {receipt.inputHash.slice(0, 20)}...</div>
-            <div style={{ color: isTampered ? 'var(--red)' : undefined, textDecoration: isTampered ? 'line-through' : undefined }}>
-              OUT {receipt.outputHash.slice(0, 20)}...
-            </div>
-          </div>
-          {/* What actually happened */}
-          {meta?.rawInput && (
-            <div style={{ padding: '0.2rem 0.6rem 0.3rem', fontSize: '0.56rem', lineHeight: 1.5 }}>
-              <div style={{ color: 'var(--text-dim)', ...mono, fontSize: '0.48rem', marginBottom: '0.1rem' }}>WHAT HAPPENED</div>
-              <div style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {meta.rawInput.slice(0, 60)}{meta.rawInput.length > 60 ? '...' : ''}
-              </div>
-              {meta.rawOutput && (
-                <div style={{ color: isTampered ? 'var(--red)' : 'var(--text-dim)', fontFamily: 'Inter, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.1rem', fontStyle: isTampered ? 'italic' : 'normal' }}>
-                  {isTampered ? 'claimed: ' : ''}{meta.rawOutput.slice(0, 50)}{meta.rawOutput.length > 50 ? '...' : ''}
-                </div>
-              )}
-            </div>
-          )}
-          {receiptWeights[index] !== undefined && receipt.action.type !== 'usefulness_review' && (
-            <>
-              <div className="dashed" />
-              <div style={{ padding: '0.25rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <span style={{ ...mono, fontSize: '0.54rem', color: 'var(--text-dim)', width: '50px' }}>QUALITY</span>
-                <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', borderRadius: '2px',
-                    width: `${receiptWeights[index] * 100}%`,
-                    background: receiptWeights[index] >= 0.7 ? 'var(--green)' : receiptWeights[index] >= 0.4 ? 'var(--amber)' : 'var(--red)',
-                    transition: 'width 1s ease-out',
-                  }} />
-                </div>
-                <span style={{ ...mono, fontSize: '0.56rem', fontWeight: 700, color: receiptWeights[index] >= 0.7 ? 'var(--green)' : receiptWeights[index] >= 0.4 ? 'var(--amber)' : 'var(--red)' }}>
-                  {(receiptWeights[index] * 100).toFixed(0)}%
-                </span>
-              </div>
-            </>
-          )}
-          <div className="dashed" />
-          <div style={{ padding: '0.3rem 0.6rem', ...mono, fontSize: '0.6rem', color: 'var(--text-dim)' }}>
-            SIG {receipt.signature.slice(0, 20)}...
+          <div style={{ padding: '0.2rem 0.6rem', ...mono, fontSize: '0.5rem', color: 'var(--text-muted)' }}>
+            IN {receipt.inputHash.slice(0, 16)}... OUT {receipt.outputHash.slice(0, 16)}...
+            {isTampered && <span style={{ color: 'var(--red)', marginLeft: '0.3rem' }}>MISMATCH</span>}
           </div>
           <div className="dashed" />
-          <div style={{ padding: '0.35rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ textAlign: 'center', ...mono, fontSize: '0.68rem', fontWeight: 700, flex: 1 }}>
+          <div style={{ padding: '0.2rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ ...mono, fontSize: '0.6rem', fontWeight: 700 }}>
               {isTampered ? (
-                <span className="stamp" style={{ color: 'var(--red)', letterSpacing: '0.1em' }}>TAMPERED</span>
+                <span className="stamp" style={{ color: 'var(--red)', letterSpacing: '0.08em' }}>TAMPERED</span>
               ) : (
-                <span style={{ color: 'var(--text-dim)', letterSpacing: '0.05em' }}>SIGNED</span>
+                <span style={{ color: 'var(--text-dim)', letterSpacing: '0.04em' }}>SIGNED</span>
               )}
             </div>
-            {timing && (
-              <span style={{
-                ...mono, fontSize: '0.58rem', color: 'var(--text-dim)',
-                background: 'var(--bg)', padding: '0.1rem 0.3rem', borderRadius: '3px',
-                border: '1px solid var(--border)',
-              }}>
-                {(timing.ms / 1000).toFixed(1)}s
-              </span>
-            )}
+            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', ...mono, fontSize: '0.48rem', color: 'var(--text-dim)' }}>
+              {meta?.teeAttested && <span style={{ color: 'var(--green)' }}>TEE &#10003;</span>}
+              {meta?.durationMs != null && <span>{(meta.durationMs / 1000).toFixed(1)}s</span>}
+            </div>
           </div>
-          {/* Execution metrics */}
-          {(() => {
-            const parts: React.ReactNode[] = [];
-            if (meta?.durationMs != null) {
-              parts.push(<span key="dur">{(meta.durationMs / 1000).toFixed(1)}s</span>);
-            }
-            if (meta?.teeProvider) {
-              const p = meta.teeProvider.toLowerCase();
-              const modelName = p.includes('deepseek') ? 'DeepSeek V3' : p.includes('glm') ? 'GLM-5' : meta.teeProvider;
-              parts.push(<span key="model">{modelName}</span>);
-            } else if (meta?.llmSource && meta.llmSource !== 'pending') {
-              parts.push(<span key="src" style={{ textTransform: 'capitalize' }}>{meta.llmSource === '0g-compute' ? '0G Compute' : meta.llmSource}</span>);
-            }
-            if (meta?.teeAttested) {
-              parts.push(<span key="tee" style={{ color: 'var(--green)' }}>TEE &#10003;</span>);
-            }
-            if (meta?.tokensUsed) {
-              parts.push(<span key="tok">~{meta.tokensUsed} tokens</span>);
-            }
-            if (!meta?.tokensUsed && !meta?.llmSource) {
-              parts.push(<span key="local">local</span>);
-            }
-            if (parts.length === 0) return null;
-            return (
-              <div style={{ display: 'flex', gap: '0.3rem', padding: '0.25rem 0.6rem 0.35rem', ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', alignItems: 'center', flexWrap: 'wrap' }}>
-                {parts.map((part, i) => (
-                  <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    {i > 0 && <span style={{ opacity: 0.5 }}>&middot;</span>}
-                    {part}
-                  </span>
-                ))}
-              </div>
-            );
-          })()}
         </div>
       </div>
     );
@@ -907,39 +822,20 @@ export default function Demo() {
     const isAgent = meta?.agent || 'A';
 
     return (
-      <div key={receipt.id} className="slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: isAgent === 'A' ? 'flex-start' : 'flex-end' }}>
-        {/* Step label */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.4rem',
-          marginBottom: '0.1rem',
-        }}>
+      <div key={receipt.id} className="slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', alignItems: isAgent === 'A' ? 'flex-start' : 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
           <div style={{
-            ...mono, fontSize: '0.55rem', fontWeight: 700,
+            ...mono, fontSize: '0.5rem', fontWeight: 700,
             color: '#fff',
             background: isAgent === 'A' ? 'var(--researcher)' : 'var(--builder)',
-            padding: '0.1rem 0.4rem', borderRadius: '10px',
+            padding: '0.05rem 0.35rem', borderRadius: '8px',
             lineHeight: 1.4,
           }}>
-            Step {stepNum}
+            {stepNum}
           </div>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            {stepDescription}
+          <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+            {receipt.action.description}
           </span>
-        </div>
-        <div className={`chat-bubble ${isAgent === 'A' ? 'left' : 'right'}`} style={{ fontSize: '0.72rem' }}>
-          <span style={{ fontWeight: 500 }}>{receipt.action.description}</span>
-          {meta?.rawOutput && (
-            <div style={{
-              marginTop: '0.3rem', padding: '0.25rem 0.4rem',
-              background: 'rgba(0,0,0,0.04)', borderRadius: '4px',
-              fontSize: '0.6rem', color: 'var(--text-dim)',
-              fontFamily: "'IBM Plex Mono', monospace",
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              maxWidth: '240px',
-            }}>
-              {meta.rawOutput.slice(0, 80)}{meta.rawOutput.length > 80 ? '...' : ''}
-            </div>
-          )}
         </div>
         {renderReceipt(receipt, index)}
       </div>
@@ -2150,42 +2046,40 @@ export default function Demo() {
       {/* Narrator Bar / Chapter Pause */}
       {phase !== 'idle' && (chapterPause || narrative) && (
         <div style={{
-          padding: chapterPause ? '1rem 1.5rem' : '0.5rem 1.5rem',
+          padding: chapterPause ? '0.5rem 1.5rem' : '0.5rem 1.5rem',
           borderBottom: `1px solid ${chapterPause ? 'var(--researcher)' : 'var(--border)'}`,
           background: chapterPause ? '#f0f4ff' : fabricationDetected ? '#fef2f2' : 'var(--surface)',
           transition: 'all 0.3s',
           flexShrink: 0,
-          minHeight: chapterPause ? '70px' : '36px',
-          maxHeight: chapterPause ? '200px' : '50px',
+          minHeight: '36px',
+          maxHeight: chapterPause ? '60px' : '50px',
           overflow: 'hidden',
         }}>
           {chapterPause ? (
-            <div style={{ maxWidth: '700px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                <span style={{
-                  ...mono, fontSize: '0.6rem', fontWeight: 700,
-                  padding: '0.2rem 0.5rem', borderRadius: '4px',
-                  background: 'var(--researcher)', color: '#fff',
-                }}>
-                  {chapterPause.chapter} / 5
-                </span>
-                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', maxWidth: '900px' }}>
+              <span style={{
+                ...mono, fontSize: '0.55rem', fontWeight: 700,
+                padding: '0.15rem 0.4rem', borderRadius: '4px',
+                background: 'var(--researcher)', color: '#fff',
+                flexShrink: 0,
+              }}>
+                {chapterPause.chapter}/5
+              </span>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
                   {chapterPause.title}
                 </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '0.6rem' }}>
+                  {chapterPause.body}
+                </span>
               </div>
-              <p style={{
-                fontSize: '0.82rem', lineHeight: 1.6, color: 'var(--text-muted)',
-                fontFamily: 'Inter, sans-serif', margin: '0 0 0.8rem 0',
-              }}>
-                {chapterPause.body}
-              </p>
-              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
                 <button
                   onClick={() => { setChapterPause(null); resumeRef.current?.(); }}
                   style={{
-                    padding: '0.5rem 1.5rem', borderRadius: '6px', border: 'none',
+                    padding: '0.35rem 1rem', borderRadius: '6px', border: 'none',
                     background: 'var(--text)', color: '#fff', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600,
+                    fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 600,
                   }}
                 >
                   Continue
@@ -2193,13 +2087,13 @@ export default function Demo() {
                 <button
                   onClick={() => { guidedRef.current = false; setGuidedMode(false); setChapterPause(null); resumeRef.current?.(); }}
                   style={{
-                    padding: '0.5rem 1rem', borderRadius: '6px',
+                    padding: '0.35rem 0.7rem', borderRadius: '6px',
                     border: '1px solid var(--border)', background: 'transparent',
                     color: 'var(--text-dim)', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 500,
+                    fontFamily: 'inherit', fontSize: '0.65rem', fontWeight: 500,
                   }}
                 >
-                  Skip tour
+                  Skip
                 </button>
               </div>
             </div>
