@@ -330,8 +330,8 @@ export default function Demo() {
     builder: { connected: boolean; key: string; peers: number };
   }>({ researcher: { connected: false, key: '', peers: 0 }, builder: { connected: false, key: '', peers: 0 } });
 
-  const agentAReceipts = receipts.slice(0, agentACount || receipts.length);
-  const agentBReceipts = agentACount > 0 ? receipts.slice(agentACount) : [];
+  const agentAReceipts = receipts.filter(r => (receiptMeta[r.id]?.agent || 'A') === 'A');
+  const agentBReceipts = receipts.filter(r => receiptMeta[r.id]?.agent === 'B');
 
   const addCenterLog = useCallback((text: string, type: CenterLogEntry['type']) => {
     setCenterLog(prev => [...prev, {
