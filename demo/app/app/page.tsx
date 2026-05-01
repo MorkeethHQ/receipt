@@ -226,29 +226,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Works with */}
-      <section style={{ padding: '0 1.5rem 2rem', maxWidth: '480px', margin: '0 auto', width: '100%', textAlign: 'center' }}>
-        <div style={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: '0.6rem',
-          color: 'var(--text-dim)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          marginBottom: '0.6rem',
-        }}>
-          Works with every agent
+      {/* Get started - how to integrate */}
+      <section style={{ padding: '0 1.5rem 2rem', maxWidth: '620px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ fontSize: '0.65rem', fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem', textAlign: 'center' }}>Add RECEIPT to your agent</h2>
+        <div style={{ background: '#1a1a1a', borderRadius: '8px', padding: '1.2rem 1.4rem', overflow: 'auto' }}>
+          <pre style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '0.68rem',
+            lineHeight: 1.8,
+            color: '#e5e5e5',
+            margin: 0,
+          }}>
+            <span style={{ color: '#888' }}>{'// 1. Install'}</span>{'\n'}
+            <span style={{ color: '#c084fc' }}>npm install</span> agenticproof{'\n'}
+            {'\n'}
+            <span style={{ color: '#888' }}>{'// 2. Wrap your agent'}</span>{'\n'}
+            <span style={{ color: '#c084fc' }}>import</span> {'{'} ReceiptAgent {'}'} <span style={{ color: '#c084fc' }}>from</span> <span style={{ color: '#4ade80' }}>&apos;agenticproof&apos;</span>;{'\n'}
+            <span style={{ color: '#c084fc' }}>const</span> agent = ReceiptAgent.<span style={{ color: '#60a5fa' }}>create</span>(<span style={{ color: '#4ade80' }}>&apos;my-agent&apos;</span>);{'\n'}
+            {'\n'}
+            <span style={{ color: '#888' }}>{'// 3. Every action becomes a receipt'}</span>{'\n'}
+            agent.<span style={{ color: '#60a5fa' }}>readFile</span>(path, contents);    <span style={{ color: '#888' }}>{'// signed + hashed'}</span>{'\n'}
+            agent.<span style={{ color: '#60a5fa' }}>callApi</span>(url, response);       <span style={{ color: '#888' }}>{'// signed + hashed'}</span>{'\n'}
+            agent.<span style={{ color: '#60a5fa' }}>callLlm</span>(prompt, output);      <span style={{ color: '#888' }}>{'// signed + hashed'}</span>{'\n'}
+            {'\n'}
+            <span style={{ color: '#888' }}>{'// 4. Verify + export'}</span>{'\n'}
+            agent.<span style={{ color: '#60a5fa' }}>verifyOwnChain</span>();             <span style={{ color: '#888' }}>{'// true'}</span>{'\n'}
+            <span style={{ color: '#c084fc' }}>const</span> chain = agent.<span style={{ color: '#60a5fa' }}>exportChain</span>(); <span style={{ color: '#888' }}>{'// paste into /verify'}</span>
+          </pre>
         </div>
-        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['Claude Code', 'Cursor', 'OpenClaw', 'Custom agents'].map(name => (
+        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+          {['Claude Code', 'Cursor', 'OpenClaw', 'Any agent'].map(name => (
             <span key={name} style={{
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '0.78rem',
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.62rem',
               fontWeight: 600,
-              padding: '0.4rem 0.8rem',
-              borderRadius: '6px',
+              padding: '0.3rem 0.6rem',
+              borderRadius: '4px',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              color: 'var(--text)',
+              color: 'var(--text-muted)',
             }}>
               {name}
             </span>
