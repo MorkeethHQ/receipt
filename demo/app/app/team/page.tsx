@@ -7,7 +7,7 @@ const inter = { fontFamily: 'Inter, sans-serif' } as const;
 
 const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_RECEIPT_REGISTRY_ADDRESS ?? '0x717D062E47898441a51EAdcA40873190A339B328';
 const OG_RPC = 'https://evmrpc.0g.ai';
-const OG_CHAIN_ID = '0x410D'; // 16661
+const OG_CHAIN_ID = '0x4115'; // 16661
 
 interface OnChainEntry {
   rootHash: string;
@@ -77,16 +77,18 @@ async function switchTo0GNetwork() {
     await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: OG_CHAIN_ID }] });
   } catch (err: any) {
     if (err.code === 4902) {
-      await eth.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: OG_CHAIN_ID,
-          chainName: '0G Mainnet',
-          rpcUrls: [OG_RPC],
-          nativeCurrency: { name: 'A0GI', symbol: 'A0GI', decimals: 18 },
-          blockExplorerUrls: ['https://chainscan.0g.ai'],
-        }],
-      });
+      try {
+        await eth.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: OG_CHAIN_ID,
+            chainName: '0G Mainnet',
+            rpcUrls: [OG_RPC],
+            nativeCurrency: { name: 'A0GI', symbol: 'A0GI', decimals: 18 },
+            blockExplorerUrls: ['https://chainscan.0g.ai'],
+          }],
+        });
+      } catch {}
     }
   }
 }
