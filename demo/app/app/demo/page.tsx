@@ -270,6 +270,8 @@ export default function Demo() {
   const [copied, setCopied] = useState(false);
   const [pipelineMs, setPipelineMs] = useState<number | null>(null);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
+  const [publishedVerifyUrl, setPublishedVerifyUrl] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const chaptersShownRef = useRef<Set<number>>(new Set());
 
   const guidedRef = useRef(true);
@@ -297,6 +299,7 @@ export default function Demo() {
   useEffect(() => {
     if (phase === 'done' && receipts.length > 0) {
       try { localStorage.setItem('receipt_last_chain', JSON.stringify(receipts)); } catch {}
+      // Auto-publish chain to server and capture the shareable verify URL
       fetch('/api/chains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -306,7 +309,12 @@ export default function Demo() {
           rootHash: chainRootHash,
           quality: reviewScores?.composite ?? null,
         }),
-      }).catch(() => {});
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.verifyUrl) setPublishedVerifyUrl(data.verifyUrl);
+        })
+        .catch(() => {});
     }
   }, [phase, receipts, adversarial, chainRootHash, reviewScores]);
 
@@ -564,6 +572,8 @@ export default function Demo() {
     setCopied(false);
     setPipelineMs(null);
     setPipelineError(null);
+    setPublishedVerifyUrl(null);
+    setLinkCopied(false);
     eventIndexRef.current = 0;
     lastEventTimeRef.current = 0;
     setChapterPause(null);
@@ -1701,18 +1711,90 @@ export default function Demo() {
           })()}
         </div>
 
+        {/* Shareable verify link — the key product moment */}
+        {!fabricationDetected && publishedVerifyUrl && (
+          <div className="slide-up" style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+            padding: '0.4rem 0.8rem', marginBottom: '0.4rem',
+            background: 'rgba(22, 163, 74, 0.04)', border: '1px solid rgba(22, 163, 74, 0.25)',
+            borderRadius: '6px',
+          }}>
+            <span style={{ ...mono, fontSize: '0.6rem', color: 'var(--green)', fontWeight: 600 }}>
+              Chain published.
+            </span>
+            <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-muted)' }}>
+              Anyone can verify:
+            </span>
+            <a
+              href={publishedVerifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                ...mono, fontSize: '0.55rem', color: 'var(--researcher)',
+                textDecoration: 'underline', wordBreak: 'break-all',
+                maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap', display: 'inline-block',
+              }}
+              title={publishedVerifyUrl}
+            >
+              {publishedVerifyUrl.replace(/^https?:\/\//, '')}
+            </a>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(publishedVerifyUrl);
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 1500);
+              }}
+              style={{
+                padding: '0.2rem 0.5rem', borderRadius: '4px',
+                border: `1px solid ${linkCopied ? 'var(--green)' : 'var(--border)'}`,
+                background: linkCopied ? 'rgba(22,163,74,0.06)' : 'transparent',
+                color: linkCopied ? 'var(--green)' : 'var(--text-dim)',
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: '0.6rem', fontWeight: linkCopied ? 600 : 500,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {linkCopied ? '✓ Link Copied' : 'Copy Link'}
+            </button>
+          </div>
+        )}
+
         <div className="demo-bottom-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           {!fabricationDetected && receipts.length > 0 && (
             <>
               <button
                 onClick={() => {
-                  const chainJson = JSON.stringify(receipts);
-                  const encoded = encodeURIComponent(chainJson);
-                  if (encoded.length < 8000) {
-                    window.open(`/verify?chain=${encoded}&auto=1`, '_blank');
+                  if (publishedVerifyUrl) {
+                    window.open(publishedVerifyUrl, '_blank');
                   } else {
-                    sessionStorage.setItem('receipt-verify-chain', chainJson);
-                    window.open('/verify?from=session&auto=1', '_blank');
+                    // Fallback: publish chain first, then redirect
+                    const chainJson = JSON.stringify(receipts);
+                    fetch('/api/chains', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        receipts,
+                        agentId: adversarial ? 'demo-adversarial' : 'demo-honest',
+                        rootHash: chainRootHash,
+                        quality: reviewScores?.composite ?? null,
+                      }),
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.verifyUrl) {
+                          setPublishedVerifyUrl(data.verifyUrl);
+                          window.open(data.verifyUrl, '_blank');
+                        } else {
+                          // Final fallback: sessionStorage
+                          sessionStorage.setItem('receipt-verify-chain', chainJson);
+                          window.open('/verify?from=session&auto=1', '_blank');
+                        }
+                      })
+                      .catch(() => {
+                        sessionStorage.setItem('receipt-verify-chain', chainJson);
+                        window.open('/verify?from=session&auto=1', '_blank');
+                      });
                   }
                 }}
                 style={{

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
+import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -16,6 +16,32 @@ interface ChainSummary {
 
 const VPS_HOST = process.env.OPENCLAW_HOST ?? 'http://204.168.133.192:18789';
 const VPS_TOKEN = process.env.OPENCLAW_TOKEN ?? '';
+
+// In-memory chain store. Vercel serverless has ephemeral filesystem, so we use
+// a module-level Map instead. Keeps last MAX_CHAINS entries. This is fine for a
+// hackathon demo — production would use 0G Storage.
+const MAX_CHAINS = 100;
+const chainStore = new Map<string, ChainSummary>();
+
+function pruneStore() {
+  if (chainStore.size <= MAX_CHAINS) return;
+  // Remove oldest entries (Map iterates in insertion order)
+  const excess = chainStore.size - MAX_CHAINS;
+  const keys = chainStore.keys();
+  for (let i = 0; i < excess; i++) {
+    const next = keys.next();
+    if (!next.done) chainStore.delete(next.value);
+  }
+}
+
+function getBaseUrl(req: Request): string {
+  // Use x-forwarded-host/proto for Vercel, fall back to request URL
+  const forwarded = req.headers.get('x-forwarded-host');
+  const proto = req.headers.get('x-forwarded-proto') ?? 'https';
+  if (forwarded) return `${proto}://${forwarded}`;
+  const url = new URL(req.url);
+  return `${url.protocol}//${url.host}`;
+}
 
 async function fetchOpenClawChains(): Promise<ChainSummary[]> {
   try {
@@ -77,35 +103,31 @@ async function fetchClaudeCodeChains(): Promise<ChainSummary[]> {
   return chains;
 }
 
-const DEMO_CHAINS_DIR = join(homedir(), '.receipt', 'demo-chains');
-
-async function fetchDemoChains(): Promise<ChainSummary[]> {
-  const chains: ChainSummary[] = [];
-  try {
-    const files = await readdir(DEMO_CHAINS_DIR);
-    const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse().slice(0, 10);
-    for (const file of jsonFiles) {
-      try {
-        const raw = await readFile(join(DEMO_CHAINS_DIR, file), 'utf-8');
-        const data = JSON.parse(raw);
-        chains.push(data);
-      } catch {}
-    }
-  } catch {}
-  return chains;
-}
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const source = searchParams.get('source');
+  const id = searchParams.get('id');
 
-  const [openclaw, claudeCode, demo] = await Promise.all([
+  // Single-chain lookup by ID — check in-memory store first
+  if (id) {
+    const chain = chainStore.get(id);
+    if (chain) {
+      return NextResponse.json({ chain });
+    }
+    return NextResponse.json({ error: 'Chain not found' }, { status: 404 });
+  }
+
+  // List all chains
+  const inMemoryChains = Array.from(chainStore.values());
+
+  const [openclaw, claudeCode] = await Promise.all([
     source === 'claude-code' || source === 'demo' ? Promise.resolve([]) : fetchOpenClawChains(),
     source === 'openclaw' || source === 'demo' ? Promise.resolve([]) : fetchClaudeCodeChains(),
-    source === 'openclaw' || source === 'claude-code' ? Promise.resolve([]) : fetchDemoChains(),
   ]);
 
-  const all: ChainSummary[] = [...openclaw, ...claudeCode, ...demo]
+  const demoChains = source === 'openclaw' || source === 'claude-code' ? [] : inMemoryChains;
+
+  const all: ChainSummary[] = [...openclaw, ...claudeCode, ...demoChains]
     .sort((a, b) => b.timestamp - a.timestamp);
 
   return NextResponse.json({
@@ -113,7 +135,7 @@ export async function GET(req: Request) {
     sources: {
       openclaw: { available: openclaw.length > 0, count: openclaw.length },
       claudeCode: { available: claudeCode.length > 0, count: claudeCode.length },
-      demo: { available: demo.length > 0, count: demo.length },
+      demo: { available: demoChains.length > 0, count: demoChains.length },
     },
   });
 }
@@ -148,10 +170,13 @@ export async function POST(req: Request) {
       receipts,
     };
 
-    await mkdir(DEMO_CHAINS_DIR, { recursive: true });
-    await writeFile(join(DEMO_CHAINS_DIR, `${chainId}.json`), JSON.stringify(chain, null, 2));
+    chainStore.set(chainId, chain);
+    pruneStore();
 
-    return NextResponse.json({ id: chainId, saved: true });
+    const baseUrl = getBaseUrl(req);
+    const verifyUrl = `${baseUrl}/verify?id=${chainId}&auto=1`;
+
+    return NextResponse.json({ id: chainId, verifyUrl, saved: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });

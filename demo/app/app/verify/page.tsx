@@ -265,14 +265,33 @@ export default function VerifyPage() {
     detectEd25519Support().then(setEd25519Supported);
   }, []);
 
-  // Load chain from URL params, sessionStorage, or detect last run
+  // Load chain from URL params, sessionStorage, API (by id), or detect last run
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const chainParam = params.get('chain');
     const fromSession = params.get('from');
     const autoRun = params.get('auto');
+    const idParam = params.get('id');
 
-    if (chainParam) {
+    if (idParam) {
+      // Fetch chain by ID from the API
+      fetch(`/api/chains?id=${encodeURIComponent(idParam)}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Chain not found');
+          return res.json();
+        })
+        .then(data => {
+          const chain = data.chain;
+          if (chain?.receipts) {
+            const json = JSON.stringify(chain.receipts, null, 2);
+            setInput(json);
+            if (autoRun === '1') setAutoVerify(true);
+          }
+        })
+        .catch(() => {
+          setError(`Chain "${idParam}" not found. It may have expired from the server cache.`);
+        });
+    } else if (chainParam) {
       try {
         const decoded = decodeURIComponent(chainParam);
         JSON.parse(decoded);
