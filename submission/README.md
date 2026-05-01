@@ -67,7 +67,7 @@ Built on 0G — full stack integration across all three verification pillars:
 Agent-to-agent transport runs through Gensyn AXL — two peer-to-peer nodes relaying receipt chains through an encrypted mesh network. No central server touches the proof at any point in the pipeline.
 
 What we shipped:
-- Published SDK on npm: `npm install agenticproof` (94 tests passing) with 3-line middleware integration
+- Published SDK on npm: `npm install agenticproof` (47 tests passing) with 3-line middleware integration
 - 8-page demo app with real-time streaming, guided walkthrough, adversarial mode, and full evaluation harness
 - Verification Rate as hero metric — the "keep rate for agent work beyond code"
 - 6 harness layer pills that light up during the demo (Context, Execution, State, Orchestration, Evaluation, Transport)
@@ -151,7 +151,7 @@ What AI built:
 - Smart contracts: ReceiptAnchorV2, AgentNFT, ValidationRegistry
 - Demo app: 8-page Next.js app with real-time streaming, guided walkthrough, adversarial mode, eval harness, reputation tracking
 - All integrations: 0G Compute/Storage/Chain, Gensyn AXL transport, hardware enclave verification
-- Test suite: 94 tests covering agent actions, chain integrity, tamper detection, handoffs
+- Test suite: 47 tests covering agent actions, chain integrity, tamper detection, handoffs
 
 What Oscar designed:
 - Architecture: receipt chain concept, hash-linking strategy, multi-agent verification protocol
