@@ -656,28 +656,28 @@ export default function Demo() {
 
             if (item.event === 'axl_handoff') {
               await showChapter(2,
-                item.data.mode === 'live' ? 'Handoff — live P2P' : 'Handoff — direct',
+                item.data.mode === 'live' ? 'Handoff — P2P' : 'Handoff',
                 item.data.mode === 'live'
-                  ? 'The chain just traveled peer-to-peer via Gensyn AXL between two independent nodes. Encrypted Yggdrasil mesh, no central server, no API relay. Now the Builder has to decide: trust it, or verify it?'
-                  : 'The chain was passed directly (AXL nodes offline). In production, this travels peer-to-peer via Gensyn AXL between independent nodes. Now the Builder has to decide: trust it, or verify it?');
+                  ? 'Chain traveled peer-to-peer via Gensyn AXL. Builder will now verify every receipt.'
+                  : 'Chain handed off. Builder will now verify every receipt independently.');
             } else if (item.event === 'verification_complete') {
-              await showChapter(3, 'Verification complete',
-                'Every signature checked. Every hash link validated. The Builder independently confirmed that the Researcher\'s work is authentic — not because it trusts the Researcher, but because the math checks out.');
+              await showChapter(3, 'Verified',
+                'Every signature and hash link checked. The Researcher\'s work is authentic.');
             } else if (item.event === 'fabrication_detected') {
-              await showChapter(3, 'The lie didn\'t survive',
-                'The Builder checked the hashes. Receipt #2 — "verified contract on 0G Mainnet" — was fabricated. The agent never actually called the chain scanner. It guessed. The signature doesn\'t match the claimed output. Chain rejected.');
+              await showChapter(3, 'Lie caught',
+                'Receipt #2 was fabricated. Hash doesn\'t match. Chain rejected.');
             } else if (item.event === 'review_start') {
-              await showChapter(4, 'Was the work worth paying for?',
-                'A different model — selected inside a TEE hardware enclave, not by the agent — scores the entire chain. Not "did it run" but "was the output actually useful." The agent can\'t pick its own grader. The operator can\'t modify the score.');
+              await showChapter(4, 'Scoring usefulness',
+                'A separate model inside a TEE enclave scores the chain. The agent can\'t pick its own grader.');
             } else if (item.event === 'review_scores' || item.event === 'quality_gate') {
               const isGood = item.event === 'review_scores' && item.data.composite >= 60;
               const isRejected = item.event === 'quality_gate' && !item.data.passed;
               if (isRejected) {
-                await showChapter(5, 'Quality gate: REJECTED',
-                  `Score: ${item.data.score}/100. This chain will NOT be recorded on-chain. The agents ran, tokens were spent, but the output wasn't good enough. RECEIPT filters noise from signal — only useful work becomes training data.`);
+                await showChapter(5, 'REJECTED',
+                  `Score: ${item.data.score}/100. Not anchored on-chain. Not used for training.`);
               } else if (isGood) {
-                await showChapter(5, 'Verdict: quality work',
-                  `Score: ${item.data.composite}/100. This chain passes the quality gate, gets anchored on 0G Mainnet, and becomes fine-tuning data. Good agent work trains better agents.`);
+                await showChapter(5, 'Quality work',
+                  `Score: ${item.data.composite}/100. Anchored on 0G Mainnet. Becomes training data.`);
               }
             }
           } else {
@@ -699,10 +699,10 @@ export default function Demo() {
     const researcherPubKey = researcherDone?.data?.publicKey;
 
     // Chapter 1: Researcher done
-    await showChapter(1, 'The Researcher is done',
+    await showChapter(1, 'Researcher done',
       adversarial
-        ? '5 actions, 5 signed receipts — but one of them is a lie. The Researcher said it verified the contract on-chain, but it never actually checked. It assumed the data. Now it\'s handing this chain to the Builder.'
-        : '5 actions, 5 signed receipts. Every file read, every API call, every inference — cryptographically proven. Now the chain passes to the Builder. Will it survive independent verification?');
+        ? '5 receipts signed — but one is a lie. Handing off to the Builder.'
+        : '5 receipts signed and hash-linked. Handing off to the Builder for verification.');
 
     // Phase 2: Builder receives via AXL, verifies, extends (streams live)
     if (researcherChain) {
