@@ -2070,12 +2070,8 @@ export default function Demo() {
         </a>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Home</a>
-          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Live</a>
-          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Trial</a>
-          <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Team</a>
+          <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
-          <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
-          <a href="/reputation" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Reputation</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
       </nav>
@@ -2154,13 +2150,13 @@ export default function Demo() {
       {/* Narrator Bar / Chapter Pause */}
       {phase !== 'idle' && (chapterPause || narrative) && (
         <div style={{
-          padding: chapterPause ? '1rem 1.5rem' : '0.7rem 1.5rem',
+          padding: chapterPause ? '1rem 1.5rem' : '0.5rem 1.5rem',
           borderBottom: `1px solid ${chapterPause ? 'var(--researcher)' : 'var(--border)'}`,
           background: chapterPause ? '#f0f4ff' : fabricationDetected ? '#fef2f2' : 'var(--surface)',
           transition: 'all 0.3s',
           flexShrink: 0,
-          minHeight: '70px',
-          maxHeight: chapterPause ? '200px' : '90px',
+          minHeight: chapterPause ? '70px' : '36px',
+          maxHeight: chapterPause ? '200px' : '50px',
           overflow: 'hidden',
         }}>
           {chapterPause ? (
@@ -2208,19 +2204,20 @@ export default function Demo() {
               </div>
             </div>
           ) : (
-            <>
-              <div style={{
-                fontSize: '0.78rem', lineHeight: 1.5,
-                color: fabricationDetected ? 'var(--red)' : 'var(--text)',
-                fontWeight: narrativeHighlight ? 500 : 400,
-                transition: 'font-weight 0.3s',
-                maxWidth: '900px',
-                minHeight: '24px',
-              }}>
-                {narrative}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontSize: '0.78rem', lineHeight: 1.5,
+                  color: fabricationDetected ? 'var(--red)' : 'var(--text)',
+                  fontWeight: narrativeHighlight ? 500 : 400,
+                  transition: 'font-weight 0.3s',
+                  maxWidth: '700px',
+                  minHeight: '20px',
+                }}>
+                  {narrative}
+                </div>
               </div>
-              {/* Chain integrity meter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '180px' }}>
                 <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
@@ -2230,75 +2227,11 @@ export default function Demo() {
                     transition: 'width 0.5s ease, background 0.3s ease',
                   }} />
                 </div>
-                <span style={{ ...mono, fontSize: '0.5rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                  {totalReceiptsGenerated > 0 ? `${Math.round((verificationsPassedCount / totalReceiptsGenerated) * 100)}%` : '—'} verification rate
+                <span style={{ ...mono, fontSize: '0.55rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                  {totalReceiptsGenerated > 0 ? `${Math.round((verificationsPassedCount / totalReceiptsGenerated) * 100)}%` : '---'} verified
                 </span>
               </div>
-              {/* Story stage indicator */}
-              {(phase === 'running' || phase === 'done') && (
-                <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.4rem' }}>
-                  {(['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'] as StoryStage[]).map((stage, i) => {
-                    const labels = ['Researcher', 'Handoff', 'Verification', adversarial ? 'Rejected' : 'Builder', 'Record'];
-                    const stageOrder: StoryStage[] = ['agent-a-working', 'axl-handoff', 'agent-b-verifying', adversarial ? 'agent-b-rejected' : 'agent-b-working', 'anchoring'];
-                    const currentIdx = phase === 'done' ? stageOrder.length : stageOrder.indexOf(storyStage);
-                    const isActive = phase !== 'done' && stage === storyStage;
-                    const isPast = phase === 'done' || i < currentIdx;
-                    const isFailed = phase === 'done' && fabricationDetected && stage === 'agent-b-rejected';
-                    return (
-                      <div key={stage} style={{
-                        ...mono, fontSize: '0.52rem', padding: '0.15rem 0.4rem',
-                        borderRadius: '4px',
-                        background: isFailed ? '#fef2f2' : isActive ? (stage === 'agent-b-rejected' ? '#fef2f2' : '#f0f4ff') :
-                          isPast ? '#f0fdf4' : 'transparent',
-                        border: isFailed ? '1px solid var(--red)' : isActive ? `1px solid ${stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)'}` :
-                          isPast ? '1px solid #bbf7d0' : '1px solid transparent',
-                        color: isFailed ? 'var(--red)' : isActive ? (stage === 'agent-b-rejected' ? 'var(--red)' : 'var(--researcher)') :
-                          isPast ? 'var(--green)' : 'var(--text-dim)',
-                        fontWeight: isActive || isPast ? 700 : 400,
-                        transition: 'all 0.3s ease',
-                      }}>
-                        {isFailed ? '✗ ' : isPast ? '✓ ' : ''}{labels[i]}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {/* Harness layer pills */}
-              {(phase === 'running' || phase === 'done') && (() => {
-                const receiptTypes = new Set(receipts.map(r => r.action.type));
-                const layers = [
-                  { id: 'context', label: 'Context', active: receiptTypes.has('file_read') || receiptTypes.has('api_call') || receiptTypes.has('context_read') },
-                  { id: 'execution', label: 'Execution', active: receiptTypes.has('llm_call') || receiptTypes.has('tool_call') || receiptTypes.has('api_call') },
-                  { id: 'state', label: 'State', active: receipts.some(r => r.attestation !== null) || receiptTypes.has('decision') },
-                  { id: 'orchestration', label: 'Orchestration', active: verificationsPassedCount > 0 },
-                  { id: 'evaluation', label: 'Evaluation', active: receiptTypes.has('usefulness_review') },
-                  { id: 'transport', label: 'Transport', active: anchorTx !== null || storyStage === 'axl-handoff' || (['agent-b-verifying', 'agent-b-working', 'agent-b-rejected', 'reviewing', 'anchoring', 'complete'] as StoryStage[]).includes(storyStage) },
-                ];
-                const activeCount = layers.filter(l => l.active).length;
-                return (
-                  <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', alignItems: 'center' }}>
-                    {layers.map(layer => (
-                      <div key={layer.id} style={{
-                        ...mono, fontSize: '0.48rem', padding: '0.12rem 0.35rem',
-                        borderRadius: '3px',
-                        background: layer.active ? 'rgba(22,163,74,0.08)' : 'transparent',
-                        border: `1px solid ${layer.active ? 'rgba(22,163,74,0.3)' : 'var(--border)'}`,
-                        color: layer.active ? 'var(--green)' : 'var(--text-dim)',
-                        fontWeight: layer.active ? 600 : 400,
-                        transition: 'all 0.4s ease',
-                      }}>
-                        {layer.active ? '● ' : ''}{layer.label}
-                      </div>
-                    ))}
-                    {phase === 'done' && (
-                      <span style={{ ...mono, fontSize: '0.45rem', color: activeCount === 6 ? 'var(--green)' : 'var(--text-dim)', marginLeft: '0.3rem' }}>
-                        {activeCount}/6 harness layers
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </>
+            </div>
           )}
         </div>
       )}

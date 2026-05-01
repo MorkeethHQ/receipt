@@ -47,11 +47,9 @@ function Nav() {
     <nav style={{ padding: '0.6rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <a href="/" style={{ ...mono, fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}>R.E.C.E.I.P.T.</a>
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-        {[['/', 'Home'], ['/demo', 'Live'], ['/trial', 'Trial'], ['/team', 'Team'], ['/verify', 'Verify']].map(([href, label]) => (
-          <a key={href} href={href} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>{label}</a>
-        ))}
-        <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', ...inter, fontWeight: 600 }}>Eval</a>
-        <a href="/reputation" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Reputation</a>
+        <a href="/" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Home</a>
+        <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Demo</a>
+        <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Verify</a>
         <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>GitHub</a>
       </div>
     </nav>
@@ -189,8 +187,79 @@ export default function EvalPage() {
         </div>
 
         {running && (
-          <div style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            Evaluating: {progress.task}...
+          <div style={{ padding: '1.2rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', marginBottom: '1.5rem' }}>
+            <style>{`
+              @keyframes evalSpin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              @keyframes evalPulse {
+                0%, 100% { opacity: 0.4; }
+                50% { opacity: 1; }
+              }
+              @keyframes evalProgress {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+              }
+            `}</style>
+            {/* Header with spinner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginBottom: '0.8rem' }}>
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '50%',
+                border: '2px solid var(--border)', borderTopColor: 'var(--text)',
+                animation: 'evalSpin 0.8s linear infinite',
+              }} />
+              <span style={{ ...inter, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
+                Running evaluation across {progress.total || 3} models...
+              </span>
+            </div>
+            {/* Subtext */}
+            <div style={{ ...inter, fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
+              Each test case is scored, then self-critiqued against 5 Constitutional AI principles. This takes ~30 seconds.
+            </div>
+            {/* Progress bar */}
+            {progress.total > 0 && (
+              <div style={{ marginBottom: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                    Case {progress.index} of {progress.total}
+                  </span>
+                  <span style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-dim)' }}>
+                    {Math.round((progress.index / progress.total) * 100)}%
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${(progress.index / progress.total) * 100}%`,
+                    height: '100%', borderRadius: '3px',
+                    background: 'var(--text)',
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+              </div>
+            )}
+            {/* Indeterminate shimmer when no progress yet */}
+            {progress.total === 0 && (
+              <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.8rem' }}>
+                <div style={{
+                  width: '100%', height: '100%', borderRadius: '3px',
+                  background: 'linear-gradient(90deg, var(--border) 0%, var(--text-muted) 50%, var(--border) 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'evalProgress 1.8s ease-in-out infinite',
+                }} />
+              </div>
+            )}
+            {/* Current task */}
+            {progress.task && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ ...mono, fontSize: '0.62rem', color: 'var(--text-dim)', animation: 'evalPulse 1.5s ease-in-out infinite' }}>
+                  &#9679;
+                </span>
+                <span style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                  {progress.task}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
