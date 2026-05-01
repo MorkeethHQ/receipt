@@ -2,7 +2,9 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-**[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Trial](https://receipt-murex.vercel.app/trial) · [Team](https://receipt-murex.vercel.app/team) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval) · [Reputation](https://receipt-murex.vercel.app/reputation)
+> Built at ETHGlobal Prague 2026 | **[Live Demo](https://receipt-murex.vercel.app)** | `npm install agenticproof`
+
+**[Live Demo](https://receipt-murex.vercel.app)** | [Pipeline](https://receipt-murex.vercel.app/demo) | [Trial](https://receipt-murex.vercel.app/trial) | [Team](https://receipt-murex.vercel.app/team) | [Verify](https://receipt-murex.vercel.app/verify) | [Eval](https://receipt-murex.vercel.app/eval) | [Reputation](https://receipt-murex.vercel.app/reputation)
 
 **The evaluation layer every agent harness needs.** Claude Code, Cursor, OpenClaw, Hermes -- agents are shipping everywhere. RECEIPT measures whether their work was actually useful. Signed, hash-linked receipts for verifiable AI agent handoffs with TEE-attested quality scoring.
 

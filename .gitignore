@@ -20,3 +20,4 @@ DEMO-SCRIPT.md
 BUILD-PROMPT.md
 submission/
 scripts/generate-claude-chains.ts
+demo/app/tsconfig.tsbuildinfo
