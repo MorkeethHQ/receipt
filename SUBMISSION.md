@@ -45,8 +45,9 @@ R.E.C.E.I.P.T. is a two-layer proof system:
 - Researcher → Builder handoff over encrypted P2P mesh
 - Full provenance preserved through transport
 
-### Demo App (5 Pages)
-- **Live Demo** — Watch 2 agents generate receipts in real-time. Guided walkthrough with chapter pauses. Each receipt shows chain links (PREV hash), raw data previews, verification badges (sig/hash/time), and execution metrics (model, TEE status, tokens, duration). Done state shows 0G verification summary (Compute/Identity/Training), quality gate with threshold visualization, on-chain TX links, cost-per-useful-output, and total pipeline stats. Adversarial mode shows RECEIPT detecting a lie ("I didn't actually open the file, I assumed the data")
+### Demo App (6 Pages)
+- **Live Demo** — Watch 2 agents generate receipts in real-time. Guided walkthrough with chapter pauses. Each receipt shows chain links (PREV hash), raw data previews, verification badges (sig/hash/time), and execution metrics (model, TEE status, tokens, duration). Done state shows 0G verification summary (Compute/Identity/Training), quality gate with threshold visualization, on-chain TX links, cost-per-useful-output, pipeline timing, and completed pipeline stage indicators. One-click mode switch between honest and adversarial runs. Adversarial mode shows RECEIPT detecting a lie ("I didn't actually open the file, I assumed the data")
+- **Trial** — Execution replay page with timeline visualization, three-number summary (time/tokens/quality), 0G verification card, reviewer selection card, and human review (creates receipt #11 client-side via WebCrypto Ed25519). Comparison mode runs honest vs low-quality side-by-side showing efficiency delta
 - **Team** — Multi-agent chain feed aggregating receipt chains from Claude Code hooks + OpenClaw plugin + demo runs. Filter by source, inspect receipt timelines, TEE attestation counts, verify any chain
 - **Verify** — Independent chain verifier using WebCrypto (client-side, real ed25519 + SHA-256). Sample chains generated with real Ed25519 keys. Paste any chain — authentic or tampered — and see exactly which receipts fail. Shows chain summary stats after verification
 - **Eval** — Constitutional AI evaluation harness (60 test cases, 3 model evaluators via 0G Compute, Constitutional AI self-critique against 5 adversarial bias principles)
