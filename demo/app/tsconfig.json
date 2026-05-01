@@ -19,7 +19,7 @@
     "incremental": true,
     "paths": {
       "@receipt/sdk": [
-        "../../packages/receipt-sdk/src/core"
+        "../../packages/receipt-sdk/src"
       ],
       "@receipt/sdk/*": [
         "../../packages/receipt-sdk/src/*"
