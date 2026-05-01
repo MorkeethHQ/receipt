@@ -4,7 +4,7 @@
 
 **[Live Demo](https://receipt-murex.vercel.app)** · [Live](https://receipt-murex.vercel.app/demo) · [Trial](https://receipt-murex.vercel.app/trial) · [Team](https://receipt-murex.vercel.app/team) · [Verify](https://receipt-murex.vercel.app/verify) · [Eval](https://receipt-murex.vercel.app/eval) · [Reputation](https://receipt-murex.vercel.app/reputation)
 
-**The evaluation layer every agent harness needs.** Cursor built keep rates for code. We built verification rates for everything else. Signed, hash-linked receipts for verifiable AI agent handoffs with TEE-attested quality scoring.
+**The evaluation layer every agent harness needs.** Claude Code, Cursor, OpenClaw, Hermes -- agents are shipping everywhere. RECEIPT measures whether their work was actually useful. Signed, hash-linked receipts for verifiable AI agent handoffs with TEE-attested quality scoring.
 
 **Layer 1 — Proof of Action.** Every agent action — reading a file, calling an API, running inference, making a decision — produces a cryptographically signed receipt (ed25519 + SHA-256). Receipts hash-link into a tamper-proof chain. Any modification breaks the chain. When The Builder receives work from The Researcher, it independently verifies every receipt before continuing.
 

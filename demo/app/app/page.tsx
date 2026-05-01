@@ -82,8 +82,8 @@ export default function LandingPage() {
           marginBottom: '1rem',
           letterSpacing: '0.02em',
         }}>
-          Cursor built keep rates for code.<br />
-          We built verification rates for everything else.
+          Claude Code. Cursor. OpenClaw. Hermes.<br />
+          One evaluation layer for every agent.
         </p>
         <h1 className="hero-title" style={{
           fontSize: '2.2rem',
