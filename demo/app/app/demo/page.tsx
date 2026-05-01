@@ -2115,14 +2115,14 @@ export default function Demo() {
                 <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
-                    width: `${receipts.length > 0 ? ((verificationsPassedCount / Math.max(totalReceiptsGenerated, 1)) * 100) : 0}%`,
+                    width: `${verifications.length > 0 ? ((verificationsPassedCount / verifications.length) * 100) : (receipts.length > 0 ? 100 : 0)}%`,
                     background: fabricationDetected ? 'var(--red)' : 'var(--green)',
                     borderRadius: '2px',
                     transition: 'width 0.5s ease, background 0.3s ease',
                   }} />
                 </div>
-                <span style={{ ...mono, fontSize: '0.55rem', color: fabricationDetected ? 'var(--red)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                  {totalReceiptsGenerated > 0 ? `${Math.round((verificationsPassedCount / totalReceiptsGenerated) * 100)}%` : '---'} verified
+                <span style={{ ...mono, fontSize: '0.55rem', color: fabricationDetected ? 'var(--red)' : verifications.length > 0 ? 'var(--green)' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                  {verifications.length > 0 ? `${verificationsPassedCount}/${verifications.length} verified` : `${receipts.length} receipts`}
                 </span>
               </div>
             </div>
