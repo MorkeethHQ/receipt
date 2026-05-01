@@ -92,6 +92,78 @@ function formatDate(ts: number): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+interface RunPoint { index: number; verRate: number; quality: number; }
+
+function computeRunPoints(chains: ChainSummary[]): RunPoint[] {
+  const sorted = [...chains].sort((a, b) => a.timestamp - b.timestamp);
+  return sorted.map((c, i) => ({
+    index: i + 1,
+    verRate: c.rootHash && c.rootHash.length > 0 ? 100 : 0,
+    quality: c.quality ?? 0,
+  }));
+}
+
+function barColor(rate: number): string {
+  return rate >= 80 ? 'var(--green)' : rate >= 60 ? 'var(--amber)' : 'var(--red)';
+}
+
+function trendColor(runs: RunPoint[]): string {
+  if (runs.length < 2) return 'var(--green)';
+  const half = Math.floor(runs.length / 2);
+  const recent = runs.slice(half);
+  const earlier = runs.slice(0, half);
+  const avgRecent = recent.reduce((s, r) => s + r.verRate, 0) / recent.length;
+  const avgEarlier = earlier.reduce((s, r) => s + r.verRate, 0) / earlier.length;
+  const drop = avgEarlier - avgRecent;
+  if (drop > 15) return 'var(--red)';
+  if (drop > 5) return 'var(--amber)';
+  return 'var(--green)';
+}
+
+function DegradationTracker({ chains }: { chains: ChainSummary[] }) {
+  const last10 = [...chains].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+  const runs = computeRunPoints(last10);
+  if (runs.length === 0) return null;
+
+  const avgVer = Math.round(runs.reduce((s, r) => s + r.verRate, 0) / runs.length);
+  const avgQual = Math.round(runs.reduce((s, r) => s + r.quality, 0) / runs.length);
+  const color = trendColor(runs);
+
+  // Find first notable drop
+  let dropNote = '';
+  for (let i = 1; i < runs.length; i++) {
+    if (runs[i - 1].verRate >= 80 && runs[i].verRate < 80) {
+      dropNote = `Verification rate dropped from ${runs[i - 1].verRate}% to ${runs[i].verRate}% on run #${runs[i].index} — fabrication detected`;
+      break;
+    }
+  }
+
+  return (
+    <div style={{ marginTop: '2rem' }}>
+      <h2 style={{ ...inter, fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.8rem', color: 'var(--text)', borderBottom: '1px solid var(--border)', paddingBottom: '0.4rem' }}>
+        Degradation Tracking
+      </h2>
+      <div style={{ padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '60px', marginBottom: '0.6rem' }}>
+          {runs.map((r) => (
+            <div key={r.index} title={`Run #${r.index}: ${r.verRate}%`} style={{
+              flex: 1, maxWidth: '24px', height: `${Math.max(r.verRate, 4)}%`,
+              background: barColor(r.verRate), borderRadius: '2px 2px 0 0', minHeight: '2px',
+              transition: 'height 0.2s',
+            }} />
+          ))}
+        </div>
+        <div style={{ ...mono, fontSize: '0.68rem', color, fontWeight: 600, marginBottom: '0.25rem' }}>
+          Last {runs.length} runs: avg verification rate {avgVer}%, avg quality {avgQual}/100
+        </div>
+        {dropNote && (
+          <div style={{ ...mono, fontSize: '0.62rem', color: 'var(--red)', marginTop: '0.2rem' }}>{dropNote}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ReputationPage() {
   const [chains, setChains] = useState<ChainSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,6 +253,8 @@ export default function ReputationPage() {
                 ))}
               </tbody>
             </table>
+
+            <DegradationTracker chains={chains} />
           </>
         )}
       </div>
