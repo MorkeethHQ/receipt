@@ -21,3 +21,7 @@ BUILD-PROMPT.md
 submission/
 scripts/generate-claude-chains.ts
 demo/app/tsconfig.tsbuildinfo
+.claude/
+.receipt/
+receipt.config.json
+packages/cursor-sdk-receipt/
