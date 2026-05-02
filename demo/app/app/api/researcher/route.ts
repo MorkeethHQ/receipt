@@ -88,7 +88,7 @@ async function tryInfer(prompt: string): Promise<InferResult> {
     allErrors.push(`pass ${pass + 1}: ${passErrors.join('; ')}`);
   }
 
-  throw new Error(`0G Compute unavailable — all providers failed. ${allErrors.join(' | ')}`);
+  throw new Error(`0G Compute unavailable - all providers failed. ${allErrors.join(' | ')}`);
 }
 
 async function fetchReal(url: string): Promise<string | null> {
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
         }
 
         const agent = new ReceiptAgent();
-        send('status', { message: `Researcher online — ${agent.agentId}` });
+        send('status', { message: `Researcher online - ${agent.agentId}` });
 
         // Check AXL node
         let axlConnected = false;
@@ -169,12 +169,12 @@ export async function POST(request: Request) {
           `https://chainscan.0g.ai/api?module=contract&action=getabi&address=${contractAddr}`,
         );
         const r2 = agent.callApi(`0G Mainnet: ReceiptAnchor (${contractAddr.slice(0, 10)}...)`, contractCheck?.slice(0, 300) ?? 'FETCH_FAILED');
-        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan.0g.ai — contract ${contractAddr}`, rawOutput: contractCheck?.slice(0, 500) ?? 'Chain scan fetch failed', durationMs: Math.round(performance.now() - s1), tokensUsed: null });
+        send('receipt', { index: 1, receipt: r2, agent: 'A', rawInput: `https://chainscan.0g.ai - contract ${contractAddr}`, rawOutput: contractCheck?.slice(0, 500) ?? 'Chain scan fetch failed', durationMs: Math.round(performance.now() - s1), tokensUsed: null });
 
         // 3. TEE inference via 0G Compute
         const s2 = performance.now();
         await sleep(200);
-        send('status', { message: 'Researcher: Analyzing via 0G Compute (TEE) — DeepSeek V3 primary...' });
+        send('status', { message: 'Researcher: Analyzing via 0G Compute (TEE) - DeepSeek V3 primary...' });
         const pkgParsed = (() => { try { const p = JSON.parse(pkgData!); return p && typeof p === 'object' ? p : {}; } catch { return {}; } })();
         const inferPrompt = `Code review: ${pkgParsed.name ?? '@receipt/sdk'} v${pkgParsed.version ?? '0.1.0'} uses ed25519 signing and SHA-256 hashing. The ReceiptAnchor contract is deployed on 0G Mainnet. Review the security of: (1) receipt chain hash linking, (2) signature verification, (3) on-chain anchoring. Are there risks for a multi-agent handoff protocol?`;
         const inferResult = await tryInfer(inferPrompt);
@@ -206,10 +206,10 @@ export async function POST(request: Request) {
           codeReviewSource: inferResult.source, teeAttested: inferResult.attested,
           verdict: 'No critical issues. Proceed with deployment.',
         });
-        const r5 = agent.produceOutput('Research report — SDK reviewed, contract verified', output);
-        send('receipt', { index: 4, receipt: r5, agent: 'A', rawInput: 'Research report — SDK reviewed, contract verified', rawOutput: output, durationMs: Math.round(performance.now() - s4), tokensUsed: null });
+        const r5 = agent.produceOutput('Research report - SDK reviewed, contract verified', output);
+        send('receipt', { index: 4, receipt: r5, agent: 'A', rawInput: 'Research report - SDK reviewed, contract verified', rawOutput: output, durationMs: Math.round(performance.now() - s4), tokensUsed: null });
 
-        // === AXL HANDOFF — send chain to Builder via real P2P ===
+        // === AXL HANDOFF - send chain to Builder via real P2P ===
         send('status', { message: 'Researcher: Preparing handoff bundle...' });
         const receipts = agent.getReceipts();
         const pubKeyHex = Buffer.from(agent.getPublicKey()).toString('hex');
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
           receiptsToSend = receipts.map((r, i) =>
             i === 1 ? { ...r, outputHash: hash('{"status":"1","result":"contract verified","fake":true,"balance":"999999 ETH"}') } : r
           );
-          send('tampered', { index: 1, field: 'outputHash', detail: 'Researcher fabricated the contract verification — claimed a different response than what 0G Mainnet returned' });
+          send('tampered', { index: 1, field: 'outputHash', detail: 'Researcher fabricated the contract verification - claimed a different response than what 0G Mainnet returned' });
         }
 
         const handoffPayload = {
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
                 researcherNode: researcherKey.slice(0, 16) + '...',
                 builderNode: builderPeerKey.slice(0, 16) + '...',
               });
-              send('status', { message: 'Chain sent via AXL — encrypted, peer-to-peer, no central server.' });
+              send('status', { message: 'Chain sent via AXL - encrypted, peer-to-peer, no central server.' });
             }
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -266,7 +266,7 @@ export async function POST(request: Request) {
             mode: 'direct', protocol: 'HTTP (AXL unavailable)',
             receiptCount: receiptsToSend.length, chainRoot,
           });
-          send('status', { message: 'AXL not available — handoff via direct HTTP.' });
+          send('status', { message: 'AXL not available - handoff via direct HTTP.' });
         }
 
         send('pipeline_timing', { totalMs: Math.round(performance.now() - pipelineStart) });

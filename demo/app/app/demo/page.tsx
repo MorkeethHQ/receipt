@@ -80,12 +80,12 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const STEP_DESCRIPTIONS: Record<string, string> = {
-  file_read: 'Hashing file contents — if anyone swaps the data later, the proof breaks',
-  api_call: 'Querying live on-chain data — the response is hashed into the receipt',
-  llm_call: 'Running inference inside a hardware enclave — the model can\'t lie about what it ran',
-  decision: 'Making a judgment call — the reasoning is signed so it can\'t be changed after the fact',
-  output: 'Locking the final output — every step that produced it is now cryptographically linked',
-  usefulness_review: 'Scoring the chain\'s actual usefulness — not just "did it run" but "was it worth it"',
+  file_read: 'Hashing file contents - if anyone swaps the data later, the proof breaks',
+  api_call: 'Querying live on-chain data - the response is hashed into the receipt',
+  llm_call: 'Running inference inside a hardware enclave - the model can\'t lie about what it ran',
+  decision: 'Making a judgment call - the reasoning is signed so it can\'t be changed after the fact',
+  output: 'Locking the final output - every step that produced it is now cryptographically linked',
+  usefulness_review: 'Scoring the chain\'s actual usefulness - not just "did it run" but "was it worth it"',
 };
 
 /* ------------------------------------------------------------------ */
@@ -98,25 +98,25 @@ function getNarrative(event: string, data: any): string {
     switch (type) {
       case 'file_read':
         return data.agent === 'B'
-          ? 'The Builder\'s first receipt chains directly to the Researcher\'s last — one continuous audit trail across two independent agents. A third agent, or a human auditor, can verify the entire history without trusting either agent.'
+          ? 'The Builder\'s first receipt chains directly to the Researcher\'s last - one continuous audit trail across two independent agents. A third agent, or a human auditor, can verify the entire history without trusting either agent.'
           : 'The file contents are hashed into this receipt. If the Researcher later claims it read different data, the hash won\'t match. This is how you catch an agent that "hallucinated" its source material.';
       case 'api_call':
         return data.agent === 'A'
-          ? 'The Researcher is querying the 0G Mainnet smart contract. The exact API response is hashed — if the Researcher fabricates contract data (e.g. claims a contract is verified when it isn\'t), the proof won\'t match.'
-          : 'The Builder called an external API. The request and response are locked into the receipt — proving exactly what data the Builder worked with, not what it claims it worked with.';
+          ? 'The Researcher is querying the 0G Mainnet smart contract. The exact API response is hashed - if the Researcher fabricates contract data (e.g. claims a contract is verified when it isn\'t), the proof won\'t match.'
+          : 'The Builder called an external API. The request and response are locked into the receipt - proving exactly what data the Builder worked with, not what it claims it worked with.';
       case 'llm_call':
         return data.teeAttested
-          ? 'This inference ran inside a hardware-sealed enclave (Intel TDX). The model, the prompt, and the response are cryptographically signed by the hardware itself. Nobody — not even the agent operator — could have swapped the output.'
-          : 'The agent ran inference. The prompt and response are hashed into the receipt — but without hardware attestation, you\'re trusting the operator that it actually ran the model it claims.';
+          ? 'This inference ran inside a hardware-sealed enclave (Intel TDX). The model, the prompt, and the response are cryptographically signed by the hardware itself. Nobody - not even the agent operator - could have swapped the output.'
+          : 'The agent ran inference. The prompt and response are hashed into the receipt - but without hardware attestation, you\'re trusting the operator that it actually ran the model it claims.';
       case 'decision':
         return 'The agent\'s reasoning is now part of the chain. If it later claims it decided something different, the signed receipt proves otherwise. Every judgment call is on the record.';
       case 'output':
         return data.agent === 'A'
-          ? 'The Researcher is done. 5 actions, 5 signed receipts. But right now this proof only exists on the Researcher\'s machine. Time to hand it off — and see if it survives independent verification.'
-          : 'The Builder produced its final deliverable. Every step — from the Researcher\'s first file read to this output — is linked in one unbroken chain. Nothing was inserted, skipped, or reordered.';
+          ? 'The Researcher is done. 5 actions, 5 signed receipts. But right now this proof only exists on the Researcher\'s machine. Time to hand it off - and see if it survives independent verification.'
+          : 'The Builder produced its final deliverable. Every step - from the Researcher\'s first file read to this output - is linked in one unbroken chain. Nothing was inserted, skipped, or reordered.';
       case 'usefulness_review':
         return data.teeAttested
-          ? 'A different model, running inside a hardware enclave, just scored the chain\'s quality. The agent can\'t pick its own grader and can\'t modify the score. This is proof of usefulness — not just proof of work.'
+          ? 'A different model, running inside a hardware enclave, just scored the chain\'s quality. The agent can\'t pick its own grader and can\'t modify the score. This is proof of usefulness - not just proof of work.'
           : 'The Builder reviewed the chain\'s output quality. Alignment (did it do what was asked?), Substance (did it use real data?), Quality (is the output good?). These scores determine whether this work earns on-chain reputation.';
       default:
         return `${data.agent === 'A' ? 'Researcher' : 'Builder'}: ${data.receipt.action.description}`;
@@ -124,27 +124,27 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'status') {
     if (data.message?.includes('Verifying') || data.message?.includes('verifying'))
-      return 'The Builder doesn\'t take the Researcher\'s word for it. Every receipt is checked independently — signature, hash link, timestamp order. One tampered receipt and the entire chain is rejected.';
+      return 'The Builder doesn\'t take the Researcher\'s word for it. Every receipt is checked independently - signature, hash link, timestamp order. One tampered receipt and the entire chain is rejected.';
     if (data.message?.includes('Fabricating'))
-      return 'The Researcher is about to lie. It says it verified the contract on-chain — but it never actually called the chain scanner. It assumed the data. The signature was computed on real data — the fabricated version won\'t match.';
+      return 'The Researcher is about to lie. It says it verified the contract on-chain - but it never actually called the chain scanner. It assumed the data. The signature was computed on real data - the fabricated version won\'t match.';
     if (data.message?.includes('Broadcasting') || data.message?.includes('Handing off'))
-      return 'The Researcher bundles its chain — 5 receipts, root hash, and public key — for handoff to the Builder.';
+      return 'The Researcher bundles its chain - 5 receipts, root hash, and public key - for handoff to the Builder.';
     if (data.message?.includes('0G Storage'))
-      return 'The chain is being stored on decentralized storage (0G). Once written, it can\'t be altered — anyone with the CID can verify the full history.';
+      return 'The chain is being stored on decentralized storage (0G). Once written, it can\'t be altered - anyone with the CID can verify the full history.';
     return '';
   }
   if (event === 'verified') {
     return data.result.valid
-      ? 'Verified. Signature matches, hash chain intact, timestamps in order. This action is authentic — the agent did what it claims.'
-      : 'FAILED. The data doesn\'t match the signature. This receipt was modified after signing — the agent is lying about what happened.';
+      ? 'Verified. Signature matches, hash chain intact, timestamps in order. This action is authentic - the agent did what it claims.'
+      : 'FAILED. The data doesn\'t match the signature. This receipt was modified after signing - the agent is lying about what happened.';
   }
   if (event === 'fabrication_detected') {
-    return 'CAUGHT. The Researcher said "I verified the contract" — but it didn\'t. It assumed the data. The hash doesn\'t match what was signed. The Builder rejects the entire chain. This is how RECEIPT catches agents that skip steps and guess.';
+    return 'CAUGHT. The Researcher said "I verified the contract" - but it didn\'t. It assumed the data. The hash doesn\'t match what was signed. The Builder rejects the entire chain. This is how RECEIPT catches agents that skip steps and guess.';
   }
   if (event === 'axl_handoff') {
     return data.mode === 'live'
-      ? 'Chain handed off via Gensyn AXL P2P — two independent nodes, encrypted Yggdrasil mesh, no central server. The proof moved directly from Researcher to Builder without any intermediary touching it.'
-      : 'Gensyn AXL: Chain handed off directly (cloud deployment). In production, this travels peer-to-peer between independent AXL nodes over an encrypted Yggdrasil mesh — no central server, no API relay.';
+      ? 'Chain handed off via Gensyn AXL P2P - two independent nodes, encrypted Yggdrasil mesh, no central server. The proof moved directly from Researcher to Builder without any intermediary touching it.'
+      : 'Gensyn AXL: Chain handed off directly (cloud deployment). In production, this travels peer-to-peer between independent AXL nodes over an encrypted Yggdrasil mesh - no central server, no API relay.';
   }
   if (event === 'axl_received') {
     return 'The Builder received the chain. Next: verify every single receipt before trusting any of it.';
@@ -153,20 +153,20 @@ function getNarrative(event: string, data: any): string {
     return 'The Builder extends the chain with its own receipts. One continuous proof trail, two independent agents. Any future agent can verify the entire history.';
   }
   if (event === 'axl_adopt') {
-    return 'Both agents\' work is now one verifiable chain. This is what makes RECEIPT a trust protocol — agents don\'t need to know or trust each other.';
+    return 'Both agents\' work is now one verifiable chain. This is what makes RECEIPT a trust protocol - agents don\'t need to know or trust each other.';
   }
   if (event === 'agent_card') {
     return `Peer discovered: ${data.name || data.agentName || 'agent'}. Public key and capabilities exchanged.`;
   }
   if (event === 'tee_verified') {
-    return `Hardware-verified via ${data.verificationMethod || 'Intel TDX'}. The inference provably ran inside a sealed enclave — the operator couldn't have faked it.`;
+    return `Hardware-verified via ${data.verificationMethod || 'Intel TDX'}. The inference provably ran inside a sealed enclave - the operator couldn't have faked it.`;
   }
   if (event === 'mcp_tool_call') {
-    return 'The Builder is programmatically verifying the Researcher\'s chain — checking every signature and hash link.';
+    return 'The Builder is programmatically verifying the Researcher\'s chain - checking every signature and hash link.';
   }
   if (event === 'done') {
     return data.fabricated
-      ? 'Fabrication caught. The agent said it did the work, but it didn\'t. No tampered data reaches the next agent. This is the trust guarantee — skip a step, and the proof breaks before anyone relies on it.'
+      ? 'Fabrication caught. The agent said it did the work, but it didn\'t. No tampered data reaches the next agent. This is the trust guarantee - skip a step, and the proof breaks before anyone relies on it.'
       : 'Complete. Every action proven, every handoff verified, quality scored and recorded on-chain. This chain is a permanent, verifiable record of useful agent work.';
   }
   if (event === 'review_start') {
@@ -174,8 +174,8 @@ function getNarrative(event: string, data: any): string {
   }
   if (event === 'review_scores') {
     const { alignment, substance, quality, composite } = data;
-    const verdict = composite >= 60 ? 'Quality gate passed — this chain earns on-chain reputation and produces training-eligible data.'
-      : 'Below threshold — this work cost tokens but produced little value. Not anchored on-chain.';
+    const verdict = composite >= 60 ? 'Quality gate passed - this chain earns on-chain reputation and produces training-eligible data.'
+      : 'Below threshold - this work cost tokens but produced little value. Not anchored on-chain.';
     return `Alignment: ${alignment}/100 (did it do what was asked?). Substance: ${substance}/100 (is the content meaningful?). Quality: ${quality}/100 (is the output good?). Composite: ${composite}/100. ${verdict}${data.attested ? ' Scores are hardware-verified.' : ''}`;
   }
   if (event === 'quality_gate') {
@@ -187,19 +187,19 @@ function getNarrative(event: string, data: any): string {
   if (event === 'storage') {
     const score = data.usefulnessScore;
     return score
-      ? `Stored on 0G with quality score ${score}/100. This chain is now permanent — any agent or human can verify it, and high-quality chains become training data for future models.`
+      ? `Stored on 0G with quality score ${score}/100. This chain is now permanent - any agent or human can verify it, and high-quality chains become training data for future models.`
       : 'Chain stored permanently for future verification.';
   }
   if (event === 'trust_score') {
     const score = data.score ?? '--';
-    return `Trust score: ${score}/100. Chain integrity (signatures + hash links), data provenance (real data vs stubs), and hardware verification (TEE attestation) — combined into one number.`;
+    return `Trust score: ${score}/100. Chain integrity (signatures + hash links), data provenance (real data vs stubs), and hardware verification (TEE attestation) - combined into one number.`;
   }
   return '';
 }
 
 
 /* ------------------------------------------------------------------ */
-/*  AnimatedCounter — animates a number from 0 to target              */
+/*  AnimatedCounter - animates a number from 0 to target              */
 /* ------------------------------------------------------------------ */
 
 function AnimatedCounter({ target, duration = 1200, color }: { target: number; duration?: number; color: string }) {
@@ -423,13 +423,13 @@ export default function Demo() {
         setTimeout(() => setShowFlash(false), 2000);
         setTimeout(() => setShowShake(false), 800);
         addCenterLog('FABRICATION DETECTED', 'fail');
-        addCenterLog('The data was modified after signing — the proof doesn\'t match', 'fail');
-        addCenterLog('Chain integrity compromised — handoff rejected', 'fail');
+        addCenterLog('The data was modified after signing - the proof doesn\'t match', 'fail');
+        addCenterLog('Chain integrity compromised - handoff rejected', 'fail');
         addTiming('Detection', Math.round(elapsed));
         break;
       case 'verification_complete':
         if (data.valid) {
-          addCenterLog('Chain verified — Builder trusts the work', 'pass');
+          addCenterLog('Chain verified - Builder trusts the work', 'pass');
         }
         break;
       case 'axl_handoff':
@@ -444,7 +444,7 @@ export default function Demo() {
         addTiming('Handoff', Math.round(elapsed));
         break;
       case 'axl_received':
-        addCenterLog(`Builder received chain — verifying...`, 'handoff');
+        addCenterLog(`Builder received chain - verifying...`, 'handoff');
         addTiming('Received', Math.round(elapsed));
         break;
       case 'mcp_tool_call':
@@ -599,7 +599,7 @@ export default function Demo() {
         if (data.connected) {
           addCenterLog(`Researcher AXL node online (${(data.publicKey || '').slice(0, 12)}...)`, 'info');
         } else {
-          addCenterLog('Gensyn AXL: cloud mode — handoff via direct pass (P2P available with local nodes)', 'info');
+          addCenterLog('Gensyn AXL: cloud mode - handoff via direct pass (P2P available with local nodes)', 'info');
         }
         return;
       }
@@ -665,7 +665,7 @@ export default function Demo() {
 
             if (item.event === 'axl_handoff') {
               await showChapter(2,
-                item.data.mode === 'live' ? 'Handoff — P2P' : 'Handoff',
+                item.data.mode === 'live' ? 'Handoff - P2P' : 'Handoff',
                 item.data.mode === 'live'
                   ? 'Chain traveled peer-to-peer via Gensyn AXL. Builder will now verify every receipt.'
                   : 'Chain handed off. Builder will now verify every receipt independently.');
@@ -711,7 +711,7 @@ export default function Demo() {
       // Chapter 1: Researcher done
       await showChapter(1, 'Researcher done',
         adversarial
-          ? '5 receipts signed — but one is a lie. Handing off to the Builder.'
+          ? '5 receipts signed - but one is a lie. Handing off to the Builder.'
           : '5 receipts signed and hash-linked. Handing off to the Builder for verification.');
 
       // Phase 2: Builder receives via AXL, verifies, extends (streams live)
@@ -725,7 +725,7 @@ export default function Demo() {
         setPipelineError(errorEvent?.data?.message || 'Researcher failed to produce receipts');
       }
     } catch (err) {
-      setPipelineError(err instanceof Error ? err.message : 'Pipeline error — try again');
+      setPipelineError(err instanceof Error ? err.message : 'Pipeline error - try again');
     }
 
     setChapterPause(null);
@@ -874,7 +874,7 @@ export default function Demo() {
           Every action is signed, hash-linked, and scored for usefulness.
         </p>
 
-        {/* Mode selector — two modes */}
+        {/* Mode selector - two modes */}
         <div style={{
           background: adversarial ? '#fef2f2' : 'var(--surface)',
           border: `2px solid ${adversarial ? 'var(--red)' : 'var(--border)'}`,
@@ -907,12 +907,12 @@ export default function Demo() {
           </div>
           <p style={{ fontSize: '0.78rem', color: adversarial ? '#991b1b' : 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
             {adversarial
-              ? 'The Researcher claims it verified a contract — but it never actually checked. Watch the Builder catch a fabricated receipt.'
+              ? 'The Researcher claims it verified a contract - but it never actually checked. Watch the Builder catch a fabricated receipt.'
               : 'Both agents work honestly. Every action signed and hash-linked. The full chain verifies.'}
           </p>
         </div>
 
-        {/* Start button — primary action */}
+        {/* Start button - primary action */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
           <button onClick={run} className="pulse-btn" style={{
             padding: '0.8rem 2.5rem', borderRadius: '8px', border: 'none',
@@ -920,7 +920,7 @@ export default function Demo() {
             color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
             fontSize: '1rem', fontWeight: 600, transition: 'all 0.2s ease',
           }}>
-            {adversarial ? 'Start — Catch the Lie' : 'Start Demo'}
+            {adversarial ? 'Start - Catch the Lie' : 'Start Demo'}
           </button>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -936,7 +936,7 @@ export default function Demo() {
           </label>
         </div>
 
-        {/* Flow preview — below the fold */}
+        {/* Flow preview - below the fold */}
         <div className="demo-flow-preview" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
           flexWrap: 'wrap', marginBottom: '1rem',
@@ -955,7 +955,7 @@ export default function Demo() {
           ))}
         </div>
 
-        {/* Transport status — compact */}
+        {/* Transport status - compact */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
           ...mono, fontSize: '0.52rem', color: 'var(--text-dim)',
@@ -1215,11 +1215,11 @@ export default function Demo() {
               WASTED
             </div>
             <div style={{ fontSize: '0.6rem', color: '#92400e', marginTop: '0.25rem', lineHeight: 1.5 }}>
-              Tokens spent, nothing earned. Quality below threshold — this chain is not recorded on-chain, not used for training.
+              Tokens spent, nothing earned. Quality below threshold - this chain is not recorded on-chain, not used for training.
             </div>
             {reviewScores && (
               <div style={{ ...mono, fontSize: '0.55rem', color: '#92400e', marginTop: '0.4rem', padding: '0.3rem 0.5rem', background: 'rgba(217,119,6,0.08)', borderRadius: '4px', display: 'inline-block' }}>
-                Score: {reviewScores.composite}/100 — needed 60 to pass
+                Score: {reviewScores.composite}/100 - needed 60 to pass
               </div>
             )}
           </div>
@@ -1286,7 +1286,7 @@ export default function Demo() {
                   color: layer.ok ? 'var(--green)' : 'var(--amber)',
                   width: '14px',
                 }}>
-                  {layer.ok ? '✓' : '—'}
+                  {layer.ok ? '✓' : '-'}
                 </span>
                 <span style={{ ...mono, fontSize: '0.52rem', fontWeight: 600, color: 'var(--text)', width: '48px' }}>
                   {layer.label}
@@ -1401,7 +1401,7 @@ export default function Demo() {
                 color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)',
                 fontWeight: 700,
               }}>
-                {reviewScores.composite >= 60 ? 'GATE PASSED — anchored on-chain' : 'GATE FAILED — not anchored'}
+                {reviewScores.composite >= 60 ? 'GATE PASSED - anchored on-chain' : 'GATE FAILED - not anchored'}
               </div>
               {scoreDelta !== null && (
                 <div style={{
@@ -1561,7 +1561,7 @@ export default function Demo() {
               marginTop: '0.2rem', lineHeight: 1.6,
               animation: 'pulse-red-border 2s ease-in-out infinite',
             }}>
-              <div>The data was modified after signing — the proof doesn't match</div>
+              <div>The data was modified after signing - the proof doesn't match</div>
               <div style={{ marginTop: '0.2rem', color: '#b91c1c' }}>Chain integrity compromised</div>
             </div>
             <div style={{
@@ -1614,7 +1614,7 @@ export default function Demo() {
         flexWrap: 'wrap', gap: '0.5rem',
       }}>
         <div className="demo-bottom-metrics" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Verification Rate — hero metric */}
+          {/* Verification Rate - hero metric */}
           {(() => {
             const rate = verifications.length > 0
               ? Math.round((verificationsPassedCount / verifications.length) * 100)
@@ -1716,7 +1716,7 @@ export default function Demo() {
           })()}
         </div>
 
-        {/* Shareable verify link — the key product moment */}
+        {/* Shareable verify link - the key product moment */}
         {!fabricationDetected && publishedVerifyUrl && (
           <div className="slide-up" style={{
             display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
@@ -1952,10 +1952,10 @@ export default function Demo() {
             <h1 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>Live Demo</h1>
             <p style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
               {phase === 'idle' ? 'Choose a mode and start' :
-                phase === 'running' ? `Running ${adversarial ? '— catching the lie' : '— watching agents generate receipts'}` :
-                  fabricationDetected ? 'Complete — fabrication detected and rejected' :
-                    qualityRejected ? 'Complete — quality gate rejected the chain' :
-                    'Complete — all receipts verified'}
+                phase === 'running' ? `Running ${adversarial ? '- catching the lie' : '- watching agents generate receipts'}` :
+                  fabricationDetected ? 'Complete - fabrication detected and rejected' :
+                    qualityRejected ? 'Complete - quality gate rejected the chain' :
+                    'Complete - all receipts verified'}
             </p>
           </div>
         </div>

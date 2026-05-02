@@ -351,7 +351,7 @@ export default function DashboardPage() {
           {[
             { label: 'Chains', value: chains.length, sub: wallet ? 'linked to wallet' : 'from all sources' },
             { label: 'Receipts', value: totalReceipts, sub: 'across all chains' },
-            { label: 'Avg Quality', value: chains.some(c => c.quality !== null) ? Math.round(avgQuality) : '—', sub: '/100', color: chains.some(c => c.quality !== null) ? qualityColor(avgQuality) : undefined },
+            { label: 'Avg Quality', value: chains.some(c => c.quality !== null) ? Math.round(avgQuality) : '-', sub: '/100', color: chains.some(c => c.quality !== null) ? qualityColor(avgQuality) : undefined },
             { label: 'On-Chain', value: onChainCount, sub: totalOnChain !== null ? `of ${totalOnChain} total` : '0G Mainnet', color: onChainCount > 0 ? 'var(--green)' : undefined },
           ].map(s => (
             <div key={s.label} style={{ padding: '0.8rem 1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>

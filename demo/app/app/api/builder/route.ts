@@ -77,7 +77,7 @@ async function tryInfer(prompt: string, role: 'analysis' | 'review' = 'review'):
     allErrors.push(`pass ${pass + 1}: ${passErrors.join('; ')}`);
   }
 
-  throw new Error(`0G Compute unavailable — all providers failed. ${allErrors.join(' | ')}`);
+  throw new Error(`0G Compute unavailable - all providers failed. ${allErrors.join(' | ')}`);
 }
 
 async function fetchReal(url: string): Promise<string | null> {
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
 
         send('status', { message: 'Builder: Chain verified. All signatures and hash links valid. Starting work...' });
 
-        // === BUILDER WORK — 4 receipts ===
+        // === BUILDER WORK - 4 receipts ===
         const agentB = ReceiptAgent.continueFrom(receiptsForVerify);
         const agentBPubKeyHex = Buffer.from(agentB.getPublicKey()).toString('hex');
 
@@ -198,14 +198,14 @@ export async function POST(request: Request) {
         send('status', { message: 'Builder: Querying 0G Mainnet...' });
         const chainData = await fetchReal('https://evmrpc.0g.ai');
         const b2 = agentB.callApi('0G Mainnet RPC (eth_blockNumber)', chainData?.slice(0, 200) ?? 'RPC_UNAVAILABLE');
-        send('receipt', { index: 6, receipt: b2, agent: 'B', rawInput: 'https://evmrpc.0g.ai — eth_blockNumber', rawOutput: chainData?.slice(0, 200) ?? '0G RPC unavailable', durationMs: Math.round(performance.now() - s6), tokensUsed: null });
+        send('receipt', { index: 6, receipt: b2, agent: 'B', rawInput: 'https://evmrpc.0g.ai - eth_blockNumber', rawOutput: chainData?.slice(0, 200) ?? '0G RPC unavailable', durationMs: Math.round(performance.now() - s6), tokensUsed: null });
 
         // 3. Build decision
         const s7 = performance.now();
         await sleep(250);
         const source = receiptsForVerify.some((r: any) => r.attestation) ? '0g-compute' : 'unattested';
         const attested = receiptsForVerify.some((r: any) => r.attestation?.type === 'tee');
-        const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x73B9...';
+        const contractAddr = process.env.OG_CONTRACT_ADDRESS || '0x73B9A7768679B154D7E1eC5F2570a622A3b49651';
         const buildReasoning = `Researcher verified ${receiptsForVerify.length} actions. Contract ${contractAddr.slice(0, 10)}... confirmed on 0G Mainnet. Proceeding with chain anchoring.`;
         const buildDecision = 'Deploy: anchor receipt chain on 0G Storage + Chain. Mint agent identity (ERC-7857).';
         const b3 = agentB.decide(buildReasoning, buildDecision);
@@ -220,10 +220,10 @@ export async function POST(request: Request) {
           deployments: ['0G Storage (Merkle root)', '0G Chain (anchor tx)', 'ERC-7857 (agent identity)'],
           chain: '0G Mainnet (16661)',
         });
-        const b4 = agentB.produceOutput('Deployment manifest — anchoring receipt chain', b4Output);
-        send('receipt', { index: 8, receipt: b4, agent: 'B', rawInput: 'Deployment manifest — anchoring receipt chain', rawOutput: b4Output, durationMs: Math.round(performance.now() - s8), tokensUsed: null });
+        const b4 = agentB.produceOutput('Deployment manifest - anchoring receipt chain', b4Output);
+        send('receipt', { index: 8, receipt: b4, agent: 'B', rawInput: 'Deployment manifest - anchoring receipt chain', rawOutput: b4Output, durationMs: Math.round(performance.now() - s8), tokensUsed: null });
 
-        // === PROOF OF USEFULNESS — TEE review ===
+        // === PROOF OF USEFULNESS - TEE review ===
         const s9 = performance.now();
         const preReviewReceipts = agentB.getReceipts().filter(r => r.action.type !== 'usefulness_review');
         const chainSummary = preReviewReceipts.map((r, i) =>
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
           }
           send('reviewer_selection', { model: reviewerModel, reason: reviewerReason, attested: reviewerAttested, provider: selResult.provider });
         } catch {
-          send('reviewer_selection', { model: reviewerModel, reason: 'Default — TEE selection unavailable', attested: false, provider: 'default' });
+          send('reviewer_selection', { model: reviewerModel, reason: 'Default - TEE selection unavailable', attested: false, provider: 'default' });
         }
 
         send('status', { message: `Builder: Usefulness review via ${reviewerModel} (TEE)...` });
@@ -306,7 +306,7 @@ export async function POST(request: Request) {
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          send('error', { message: `TEE review unavailable — scoring from verification results: ${msg.slice(0, 100)}` });
+          send('error', { message: `TEE review unavailable - scoring from verification results: ${msg.slice(0, 100)}` });
           const verifiedPct = results.length > 0 ? results.filter(r => r.valid).length / results.length : 0;
           const fallbackScore = Math.round(verifiedPct * 85 + 5);
           reviewScores = { alignment: fallbackScore + 3, substance: fallbackScore - 2, quality: fallbackScore, composite: fallbackScore, reasoning: `Scored from verification: ${results.filter(r => r.valid).length}/${results.length} receipts verified` };
@@ -372,7 +372,7 @@ export async function POST(request: Request) {
         const qualityThreshold = 60;
         const passesQualityGate = reviewScores.composite >= qualityThreshold;
         if (!passesQualityGate) {
-          send('quality_gate', { passed: false, score: reviewScores.composite, threshold: qualityThreshold, message: `Chain scored ${reviewScores.composite}/100 — below threshold. Not anchored.` });
+          send('quality_gate', { passed: false, score: reviewScores.composite, threshold: qualityThreshold, message: `Chain scored ${reviewScores.composite}/100 - below threshold. Not anchored.` });
         }
 
         // Agentic ID (ERC-7857)
@@ -405,7 +405,7 @@ export async function POST(request: Request) {
             send('agentic_id', { tokenId, txHash: txReceipt.hash, metadataHash, agentId: senderAgentId, standard: 'ERC-7857', status: 'minted', chain: '0g-mainnet', chainId: 16661, iDatas, contractAddress });
             send('nft_minted', { tokenId, txHash: txReceipt.hash, contract: contractAddress, explorer: `https://chainscan.0g.ai/tx/${txReceipt.hash}` });
           } else {
-            send('status', { message: 'NFT mint skipped — credentials not configured' });
+            send('status', { message: 'NFT mint skipped - credentials not configured' });
           }
         } catch (e: unknown) {
           send('status', { message: `NFT mint failed: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}` });
@@ -482,7 +482,7 @@ export async function POST(request: Request) {
         // Fine-tuning
         if (passesQualityGate) {
           try {
-            send('status', { message: `Chain scored ${reviewScores.composite}/100 — qualifies for fine-tuning.` });
+            send('status', { message: `Chain scored ${reviewScores.composite}/100 - qualifies for fine-tuning.` });
             const { listFineTuningProviders, uploadDatasetToTEE, createFineTuningTask } = await import('@receipt/sdk/integrations/0g-fine-tuning');
             const { chainToFineTuningDataset } = await import('@receipt/sdk/integrations/training-data');
             const providers = await listFineTuningProviders('https://evmrpc.0g.ai');
@@ -494,7 +494,7 @@ export async function POST(request: Request) {
           send('fine_tuning', { status: 'quality-gate', score: reviewScores.composite, threshold: qualityThreshold });
         }
 
-        // ERC-8004 Validation Registry — post usefulness attestation
+        // ERC-8004 Validation Registry - post usefulness attestation
         let erc8004Result: any = null;
         if (passesQualityGate && rootHash) {
           try {

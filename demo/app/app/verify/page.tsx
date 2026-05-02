@@ -160,7 +160,7 @@ async function generateValidExample(): Promise<ValidChainResult> {
   const r4 = await makeReceipt('researcher', r3.id, 'decision', 'Research verdict', 'SDK: @receipt/sdk, Contract: 0x73B9A776... on 0G Mainnet (16661). Code review via 0g-compute (TEE: verified). No critical vulnerabilities.', 'Research complete. Safe to hand off to Builder for deployment and anchoring.', null, now, 3000);
   receipts.push(r4);
 
-  const r5 = await makeReceipt('researcher', r4.id, 'output', 'Research report — SDK reviewed, contract verified', 'Research report — SDK reviewed, contract verified', JSON.stringify({ sdk: '@receipt/sdk', contractDeployed: true, contractAddress: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651', codeReviewSource: '0g-compute', teeAttested: true, verdict: 'No critical issues.' }), null, now, 3500);
+  const r5 = await makeReceipt('researcher', r4.id, 'output', 'Research report - SDK reviewed, contract verified', 'Research report - SDK reviewed, contract verified', JSON.stringify({ sdk: '@receipt/sdk', contractDeployed: true, contractAddress: '0x73B9A7768679B154D7E1eC5F2570a622A3b49651', codeReviewSource: '0g-compute', teeAttested: true, verdict: 'No critical issues.' }), null, now, 3500);
   receipts.push(r5);
 
   const r6 = await makeReceipt('builder', r5.id, 'file_read', 'Read research handoff', 'research-handoff.json', JSON.stringify({ from: 'researcher', receiptsReceived: 5, chainVerified: true }), null, now, 5000);
@@ -172,10 +172,10 @@ async function generateValidExample(): Promise<ValidChainResult> {
   const r8 = await makeReceipt('builder', r7.id, 'decision', 'Deployment decision', 'Researcher verified 5 actions. Contract confirmed on 0G Mainnet. Code review via 0g-compute (TEE: verified). Proceeding with chain anchoring.', 'Deploy: anchor receipt chain on 0G Storage + Chain. Mint agent identity (ERC-7857).', null, now, 6000);
   receipts.push(r8);
 
-  const r9 = await makeReceipt('builder', r8.id, 'output', 'Deployment manifest — anchoring receipt chain', 'Deployment manifest — anchoring receipt chain', JSON.stringify({ researchVerified: 5, builderActions: 5, totalChain: 10, deployments: ['0G Storage', '0G Chain', 'ERC-7857'] }), null, now, 6500);
+  const r9 = await makeReceipt('builder', r8.id, 'output', 'Deployment manifest - anchoring receipt chain', 'Deployment manifest - anchoring receipt chain', JSON.stringify({ researchVerified: 5, builderActions: 5, totalChain: 10, deployments: ['0G Storage', '0G Chain', 'ERC-7857'] }), null, now, 6500);
   receipts.push(r9);
 
-  const r10 = await makeReceipt('builder', r9.id, 'usefulness_review', 'Usefulness review — TEE-attested quality assessment', receipts.map(r => `[${r.action.type}] ${r.action.description}`).join('\n'), JSON.stringify({ alignment: 88, substance: 82, quality: 85, composite: 85, reasoning: 'Chain demonstrates real 0G integration with verified contract interactions and TEE-attested inference.' }), { provider: '0G Compute', type: 'tee' }, now, 8000);
+  const r10 = await makeReceipt('builder', r9.id, 'usefulness_review', 'Usefulness review - TEE-attested quality assessment', receipts.map(r => `[${r.action.type}] ${r.action.description}`).join('\n'), JSON.stringify({ alignment: 88, substance: 82, quality: 85, composite: 85, reasoning: 'Chain demonstrates real 0G integration with verified contract interactions and TEE-attested inference.' }), { provider: '0G Compute', type: 'tee' }, now, 8000);
   receipts.push(r10);
 
   return { receipts, publicKeyHex: pubHex };
@@ -523,9 +523,9 @@ export default function VerifyPage() {
   const friendlyFailReason = (raw: string): string => {
     const parts = raw.split(' | ');
     return parts.map(p => {
-      if (p.includes('signature mismatch')) return 'Signature is invalid — the receipt was modified or signed with a different key';
-      if (p.includes('broken chain link')) return 'Chain link is broken — this receipt does not connect to the previous one';
-      if (p.includes('timestamp outside valid range')) return 'Timestamp is invalid — outside the acceptable range';
+      if (p.includes('signature mismatch')) return 'Signature is invalid - the receipt was modified or signed with a different key';
+      if (p.includes('broken chain link')) return 'Chain link is broken - this receipt does not connect to the previous one';
+      if (p.includes('timestamp outside valid range')) return 'Timestamp is invalid - outside the acceptable range';
       return p;
     }).join('. ');
   };
@@ -716,7 +716,7 @@ export default function VerifyPage() {
                 type="text"
                 value={publicKeyHex}
                 onChange={(e) => setPublicKeyHex(e.target.value)}
-                placeholder="64 hex chars — leave empty to skip signature verification"
+                placeholder="64 hex chars - leave empty to skip signature verification"
                 style={{
                   width: '100%',
                   maxWidth: '500px',
@@ -762,7 +762,7 @@ export default function VerifyPage() {
         {/* Results */}
         {cards.length > 0 && (
           <div ref={resultsRef}>
-            {/* Summary banner — appears when done */}
+            {/* Summary banner - appears when done */}
             {phase === 'done' && chainValid !== null && (
               <div
                 className="slide-up verify-summary"
@@ -827,7 +827,7 @@ export default function VerifyPage() {
               </div>
             )}
 
-            {/* 0G on-chain links — shown when chain is valid */}
+            {/* 0G on-chain links - shown when chain is valid */}
             {phase === 'done' && chainValid && (
               <div className="slide-up" style={{
                 display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1rem',
@@ -938,7 +938,7 @@ export default function VerifyPage() {
                     ...(card.status === 'fail' ? { animation: 'shake 0.5s ease-out' } : {}),
                   }}
                 >
-                  {/* Primary line: Receipt #N: [action] — status */}
+                  {/* Primary line: Receipt #N: [action] - status */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.3rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{
@@ -1004,7 +1004,7 @@ export default function VerifyPage() {
                     )}
                   </div>
 
-                  {/* Chain link — always visible */}
+                  {/* Chain link - always visible */}
                   <div style={{
                     marginTop: '0.2rem', paddingLeft: '1.9rem',
                     fontSize: '0.55rem', color: 'var(--text-dim)',
@@ -1017,7 +1017,7 @@ export default function VerifyPage() {
                     )}
                   </div>
 
-                  {/* Failure reason — always visible in plain english */}
+                  {/* Failure reason - always visible in plain english */}
                   {card.checks.failReason && (
                     <div style={{
                       marginTop: '0.35rem',
