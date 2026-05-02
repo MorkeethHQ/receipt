@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { readdir, readFile } from 'fs/promises';
+import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { homedir } from 'os';
+import { homedir, tmpdir } from 'os';
 
 interface ChainSummary {
   id: string;
@@ -17,15 +17,37 @@ interface ChainSummary {
 const VPS_HOST = process.env.OPENCLAW_HOST ?? 'http://204.168.133.192:18789';
 const VPS_TOKEN = process.env.OPENCLAW_TOKEN ?? '';
 
-// In-memory chain store. Vercel serverless has ephemeral filesystem, so we use
-// a module-level Map instead. Keeps last MAX_CHAINS entries. This is fine for a
-// hackathon demo — production would use 0G Storage.
+// In-memory chain store + /tmp persistence. Vercel keeps /tmp within a single
+// serverless instance, which survives across invocations on the same instance.
 const MAX_CHAINS = 100;
 const chainStore = new Map<string, ChainSummary>();
+const TMP_CHAINS_DIR = join(tmpdir(), 'receipt-chains');
+let tmpLoaded = false;
+
+async function loadFromTmp() {
+  if (tmpLoaded) return;
+  tmpLoaded = true;
+  try {
+    const files = await readdir(TMP_CHAINS_DIR);
+    for (const f of files.filter(f => f.endsWith('.json')).slice(0, MAX_CHAINS)) {
+      try {
+        const raw = await readFile(join(TMP_CHAINS_DIR, f), 'utf-8');
+        const chain: ChainSummary = JSON.parse(raw);
+        if (chain.id && !chainStore.has(chain.id)) chainStore.set(chain.id, chain);
+      } catch {}
+    }
+  } catch {}
+}
+
+async function saveToTmp(chain: ChainSummary) {
+  try {
+    await mkdir(TMP_CHAINS_DIR, { recursive: true });
+    await writeFile(join(TMP_CHAINS_DIR, `${chain.id}.json`), JSON.stringify(chain));
+  } catch {}
+}
 
 function pruneStore() {
   if (chainStore.size <= MAX_CHAINS) return;
-  // Remove oldest entries (Map iterates in insertion order)
   const excess = chainStore.size - MAX_CHAINS;
   const keys = chainStore.keys();
   for (let i = 0; i < excess; i++) {
@@ -115,7 +137,9 @@ export async function GET(req: Request) {
   const source = searchParams.get('source');
   const id = searchParams.get('id');
 
-  // Single-chain lookup by ID — check in-memory store first
+  await loadFromTmp();
+
+  // Single-chain lookup by ID
   if (id) {
     const chain = chainStore.get(id);
     if (chain) {
@@ -124,8 +148,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Chain not found' }, { status: 404 });
   }
 
-  // Merge every backend first, then apply ?source= filter (previously filtering
-  // discarded POST /api/chains rows when source=claude-code, hiding Claude hooks).
   const inMemoryChains = Array.from(chainStore.values());
   const [openclaw, claudeFilesystem] = await Promise.all([
     fetchOpenClawChains(),
@@ -189,6 +211,7 @@ export async function POST(req: Request) {
 
     chainStore.set(chainId, chain);
     pruneStore();
+    await saveToTmp(chain);
 
     const baseUrl = getBaseUrl(req);
     const verifyUrl = `${baseUrl}/verify?id=${chainId}&auto=1`;
