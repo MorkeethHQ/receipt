@@ -108,7 +108,7 @@ function createReceipt(state, action, inputData, outputData) {
   return receipt;
 }
 
-function publishChain(chain) {
+async function publishChain(chain) {
   const dashboardUrl = process.env.RECEIPT_DASHBOARD_URL || 'https://receipt-murex.vercel.app';
   try {
     const payload = JSON.stringify({
@@ -118,12 +118,16 @@ function publishChain(chain) {
       quality: null,
       source: 'claude-code',
     });
-    fetch(`${dashboardUrl}/api/chains`, {
+    const res = await fetch(`${dashboardUrl}/api/chains`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,
-      signal: AbortSignal.timeout(5000),
-    }).catch(() => {});
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = res.ok ? await res.json().catch(() => null) : null;
+    if (process.env.RECEIPT_VERBOSE === '1' && body?.verifyUrl) {
+      console.error(`[RECEIPT] Listed on dashboard: ${body.verifyUrl}`);
+    }
   } catch {}
 }
 
@@ -157,7 +161,7 @@ function finalizeChain(state) {
   const filename = `${state.sessionId}-${Date.now()}.json`;
   writeFileSync(join(CHAIN_DIR, filename), JSON.stringify(chain, null, 2));
 
-  publishChain(chain);
+  void publishChain(chain);
 
   // Clean up active session
   try { require('fs').unlinkSync(STATE_FILE); } catch {}

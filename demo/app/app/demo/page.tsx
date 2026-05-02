@@ -783,18 +783,22 @@ export default function Demo() {
             )}
             {receipt.action.type === 'usefulness_review' && reviewScores && (
               <div style={{ marginTop: '0.15rem' }}>
-                {(['alignment', 'substance', 'quality'] as const).map(axis => (
-                  <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.1rem' }}>
-                    <span style={{ color: 'var(--text-dim)', width: '40px', textTransform: 'uppercase', fontSize: '0.5rem' }}>{axis.slice(0, 5)}</span>
+                {([
+                  { key: 'alignment' as const, label: 'Instructions' },
+                  { key: 'substance' as const, label: 'Real data' },
+                  { key: 'quality' as const, label: 'Output' },
+                ]).map(({ key, label }) => (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.1rem' }}>
+                    <span style={{ color: 'var(--text-dim)', width: '55px', fontSize: '0.5rem' }}>{label}</span>
                     <div style={{ flex: 1, height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', borderRadius: '2px',
-                        width: `${reviewScores[axis]}%`,
-                        background: reviewScores[axis] >= 70 ? 'var(--green)' : reviewScores[axis] >= 40 ? 'var(--amber)' : 'var(--red)',
+                        width: `${reviewScores[key]}%`,
+                        background: reviewScores[key] >= 70 ? 'var(--green)' : reviewScores[key] >= 40 ? 'var(--amber)' : 'var(--red)',
                         transition: 'width 1s ease-out',
                       }} />
                     </div>
-                    <span style={{ fontSize: '0.5rem', fontWeight: 600, width: '20px', textAlign: 'right' }}>{reviewScores[axis]}</span>
+                    <span style={{ fontSize: '0.5rem', fontWeight: 600, width: '20px', textAlign: 'right' }}>{reviewScores[key]}</span>
                   </div>
                 ))}
               </div>
@@ -1346,7 +1350,7 @@ export default function Demo() {
           </div>
         )}
 
-        {/* Usefulness scores */}
+        {/* Quality Score */}
         {reviewScores && (
           <div style={{
             padding: '0.5rem', borderRadius: '6px',
@@ -1354,54 +1358,42 @@ export default function Demo() {
             marginBottom: '0.4rem',
           }}>
             <div style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.3rem', textAlign: 'center' }}>
-              Usefulness
+              Quality Score
             </div>
-            {(['alignment', 'substance', 'quality'] as const).map(axis => (
-              <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
-                <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--text-dim)', width: '40px', textTransform: 'uppercase' }}>{axis.slice(0, 5)}</span>
+            {([
+              { key: 'alignment' as const, label: 'Follow instructions?' },
+              { key: 'substance' as const, label: 'Real data used?' },
+              { key: 'quality' as const, label: 'Output good?' },
+            ]).map(({ key, label }) => (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+                <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-muted)', width: '100px' }}>{label}</span>
                 <div style={{ flex: 1, height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: '3px',
-                    width: `${reviewScores[axis]}%`,
-                    background: reviewScores[axis] >= 70 ? 'var(--green)' : reviewScores[axis] >= 40 ? 'var(--amber)' : 'var(--red)',
+                    width: `${reviewScores[key]}%`,
+                    background: reviewScores[key] >= 70 ? 'var(--green)' : reviewScores[key] >= 40 ? 'var(--amber)' : 'var(--red)',
                     transition: 'width 1.2s ease-out',
                   }} />
                 </div>
-                <span style={{ ...mono, fontSize: '0.58rem', fontWeight: 700, width: '20px', textAlign: 'right', color: 'var(--text)' }}>{reviewScores[axis]}</span>
+                <span style={{ ...mono, fontSize: '0.58rem', fontWeight: 700, width: '20px', textAlign: 'right', color: 'var(--text)' }}>{reviewScores[key]}</span>
               </div>
             ))}
-            {/* Composite with threshold line */}
-            <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
-              <div style={{ position: 'relative', height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'visible', marginBottom: '0.2rem' }}>
-                <div style={{
-                  height: '100%', borderRadius: '4px',
-                  width: `${reviewScores.composite}%`,
-                  background: reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)',
-                  transition: 'width 1.5s ease-out',
-                }} />
-                {/* Threshold marker at 60% */}
-                <div style={{
-                  position: 'absolute', left: '60%', top: '-2px', bottom: '-2px',
-                  width: '2px', background: 'var(--text)', borderRadius: '1px',
-                }} />
-                <div style={{
-                  position: 'absolute', left: '60%', top: '-12px', transform: 'translateX(-50%)',
-                  ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', whiteSpace: 'nowrap',
-                }}>
-                  gate
-                </div>
-              </div>
+            {/* Overall score */}
+            <div style={{ textAlign: 'center', marginTop: '0.4rem' }}>
               <AnimatedCounter
                 target={reviewScores.composite}
                 color={reviewScores.composite >= 70 ? 'var(--green)' : reviewScores.composite >= 40 ? 'var(--amber)' : 'var(--red)'}
               />
-              <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>COMPOSITE</div>
+              <div style={{ ...mono, fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>OVERALL</div>
               <div style={{
                 ...mono, fontSize: '0.5rem', marginTop: '0.15rem',
                 color: reviewScores.composite >= 60 ? 'var(--green)' : 'var(--red)',
                 fontWeight: 700,
               }}>
-                {reviewScores.composite >= 60 ? 'GATE PASSED - anchored on-chain' : 'GATE FAILED - not anchored'}
+                {reviewScores.composite >= 60 ? 'PASSED - anchored on-chain' : 'FAILED - not anchored'}
+              </div>
+              <div style={{ ...mono, fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
+                min 60 to anchor
               </div>
               {scoreDelta !== null && (
                 <div style={{
@@ -1419,7 +1411,7 @@ export default function Demo() {
                 background: 'var(--bg)', borderRadius: '4px',
                 border: '1px solid var(--border)',
               }}>
-                <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)', marginBottom: '0.15rem', fontWeight: 600 }}>TEE REVIEWER SAYS</div>
+                <div style={{ ...mono, fontSize: '0.48rem', color: 'var(--text-dim)', marginBottom: '0.15rem', fontWeight: 600 }}>INDEPENDENT REVIEW (TEE)</div>
                 <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.55rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                   {reviewScores.reasoning.slice(0, 150)}{reviewScores.reasoning.length > 150 ? '...' : ''}
                 </div>

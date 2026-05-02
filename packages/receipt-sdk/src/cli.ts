@@ -69,15 +69,20 @@ ${readFileSync(join(dirname(new URL(import.meta.url).pathname), '..', 'examples'
 
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
 
+  const dash = process.env.RECEIPT_DASHBOARD_URL ?? 'https://receipt-murex.vercel.app';
   console.log(BANNER);
   console.log('  ✓ Hooks installed for Claude Code');
   console.log('');
   console.log('  Files:');
   console.log('    .receipt/receipt-hook.mjs  hook script');
-  console.log('    .claude/settings.json     hooks config');
+  console.log('    .claude/settings.json      hooks config');
   console.log('');
-  console.log('  Chains → .receipt/chains/ (on session end)');
-  console.log('  Verify → npx receipt verify .receipt/chains/<file>.json');
+  console.log('  On Claude Code SessionStop, the hook:');
+  console.log('    • Saves a signed chain → .receipt/chains/<session>.json');
+  console.log(`    • POSTs to ${dash}/api/chains (see ${dash}/team after Refresh)`);
+  console.log('');
+  console.log('  Register on 0G: open /team → Connect wallet → Register on a chain row');
+  console.log('  Verify locally: npx receipt verify .receipt/chains/<file>.json');
 }
 
 function initCursor() {
@@ -167,9 +172,12 @@ process.on('SIGINT', () => {
   fetch(dashboardUrl + '/api/chains', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ receipts: state.receipts, agentId: 'cursor', rootHash, source: 'cursor' }),
-    signal: AbortSignal.timeout(5000),
-  }).catch(() => {});
-  setTimeout(() => process.exit(0), 1000);
+    signal: AbortSignal.timeout(15000),
+  }).then(r => r.ok ? r.json() : null).then(body => {
+    if (body?.verifyUrl) console.log('  Published to dashboard: ' + body.verifyUrl);
+    else console.log('  Published to dashboard');
+  }).catch(() => { console.log('  Dashboard publish failed (chain saved locally)'); });
+  setTimeout(() => process.exit(0), 2000);
 });
 `;
 
@@ -182,10 +190,14 @@ process.on('SIGINT', () => {
   console.log('');
   console.log('  Usage:');
   console.log('    1. node .receipt/cursor-watcher.mjs');
-  console.log('    2. Use Cursor — every edit becomes a receipt');
-  console.log('    3. Ctrl+C to finalize the chain');
+  console.log('    2. Use Cursor - every edit becomes a receipt');
+  console.log('    3. Ctrl+C to finalize and publish');
   console.log('');
-  console.log('  Chains → .receipt/chains/');
+  console.log('  On finalize:');
+  console.log('    - Chain saved to .receipt/chains/');
+  console.log('    - Published to dashboard (receipt-murex.vercel.app/team)');
+  console.log('    - Connect wallet + Register On-Chain for permanent proof');
+  console.log('');
 }
 
 function initOpenClaw() {

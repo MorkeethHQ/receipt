@@ -23,20 +23,20 @@ Screenshots to capture from production (`receipt-murex.vercel.app/demo`, Chrome 
 ## SHORT DESCRIPTION (100 chars max)
 
 ```
-The evaluation layer for AI agents -- cryptographic proof that agent outputs were actually useful.
+Cryptographic proof layer for AI agents. Every action signed, every output verified, on-chain.
 ```
-98 characters.
+95 characters.
 
 ---
 
 ## LONG DESCRIPTION (min 200 words)
 
 ```
-The problem with AI agents today isn't capability -- it's trust. Claude Code, Cursor, OpenClaw -- agents are shipping everywhere. But when you deploy an agent to do research, execute transactions, analyze data, or generate content, you're taking the agent's word for it. Did it actually read the right file, or did it hallucinate the contents? Did it call the real API, or skip the call and fabricate a response? And even if it did the work honestly -- was the output worth what you paid?
+Enterprises will spend $100B+ on AI agents by 2028. Agents are already executing trades, deploying code, managing infrastructure, and making decisions that move real money. The problem: none of it is provable. There is zero cryptographic evidence that an agent actually did what it claims. No proof the data it read was real. No proof the API it called returned what it says. No proof the LLM output came from the model it claims to have used.
 
-There's no standard way to measure whether agent work was useful. No verification layer that works across tools. No metric that tells you which agents earned their keep and which ones burned tokens for nothing. That's the gap RECEIPT fills.
+This isn't a convenience gap. It's a systemic risk. An agent that fabricates an API response can trigger a bad trade. An agent that hallucinates file contents can deploy broken code to production. In multi-agent pipelines, one lying agent poisons every agent downstream. And all of this unverified output is feeding back into model training, compounding the problem. The industry is building on top of work it cannot verify, with money it cannot account for.
 
-RECEIPT is the evaluation and measurement layer for agent harnesses. It introduces a new metric: verification rate -- what percentage of agent-claimed actions pass independent multi-agent verification. When the Builder receives work from the Researcher, it independently checks every receipt. The verification rate tells you how much of the claimed work actually survived scrutiny. RECEIPT catches fabrication, measures quality, and proves both on-chain.
+RECEIPT closes this gap. It is the cryptographic proof layer for AI agents. Every agent action produces a signed, hash-linked receipt. A second agent independently verifies every receipt before continuing. An independent model scores how useful the output actually was. The result is the first verifiable cost-per-useful-output metric for AI agents.
 
 How it works -- two layers:
 

@@ -238,13 +238,13 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error('Failed to encode transaction');
       const { txData } = await res.json();
 
+      const toAddr = REGISTRY_ADDRESS.trim();
       const txHash = await eth.request({
         method: 'eth_sendTransaction',
         params: [{
           from: wallet,
-          to: REGISTRY_ADDRESS,
+          to: toAddr,
           data: txData,
-          chainId: OG_CHAIN_ID,
         }],
       });
 

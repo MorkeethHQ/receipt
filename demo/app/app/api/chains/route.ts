@@ -103,6 +103,13 @@ async function fetchClaudeCodeChains(): Promise<ChainSummary[]> {
   return chains;
 }
 
+function countSource(merged: ChainSummary[], src: ChainSummary['source']): SourceCount {
+  const n = merged.filter((c) => c.source === src).length;
+  return { available: n > 0, count: n };
+}
+
+type SourceCount = { available: boolean; count: number };
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const source = searchParams.get('source');
@@ -117,26 +124,33 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Chain not found' }, { status: 404 });
   }
 
-  // List all chains
+  // Merge every backend first, then apply ?source= filter (previously filtering
+  // discarded POST /api/chains rows when source=claude-code, hiding Claude hooks).
   const inMemoryChains = Array.from(chainStore.values());
-
-  const [openclaw, claudeCode] = await Promise.all([
-    source === 'claude-code' || source === 'demo' ? Promise.resolve([]) : fetchOpenClawChains(),
-    source === 'openclaw' || source === 'demo' ? Promise.resolve([]) : fetchClaudeCodeChains(),
+  const [openclaw, claudeFilesystem] = await Promise.all([
+    fetchOpenClawChains(),
+    fetchClaudeCodeChains(),
   ]);
 
-  const demoChains = source === 'openclaw' || source === 'claude-code' ? [] : inMemoryChains;
+  const merged = [...openclaw, ...claudeFilesystem, ...inMemoryChains].sort(
+    (a, b) => b.timestamp - a.timestamp,
+  );
 
-  const all: ChainSummary[] = [...openclaw, ...claudeCode, ...demoChains]
-    .sort((a, b) => b.timestamp - a.timestamp);
+  let chainsOut = merged;
+  if (source) {
+    chainsOut = merged.filter((c) => c.source === source);
+  }
+
+  const sourcesPayload: Record<string, SourceCount> = {
+    openclaw: countSource(merged, 'openclaw'),
+    claudeCode: countSource(merged, 'claude-code'),
+    demo: countSource(merged, 'demo'),
+    cursor: countSource(merged, 'cursor'),
+  };
 
   return NextResponse.json({
-    chains: all,
-    sources: {
-      openclaw: { available: openclaw.length > 0, count: openclaw.length },
-      claudeCode: { available: claudeCode.length > 0, count: claudeCode.length },
-      demo: { available: demoChains.length > 0, count: demoChains.length },
-    },
+    chains: chainsOut,
+    sources: sourcesPayload,
   });
 }
 
