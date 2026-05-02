@@ -21,7 +21,7 @@ interface OnChainEntry {
 
 interface ChainSummary {
   id: string;
-  source: 'claude-code' | 'openclaw' | 'demo';
+  source: 'claude-code' | 'openclaw' | 'cursor' | 'demo';
   agentId: string;
   receiptCount: number;
   rootHash: string;
@@ -39,6 +39,7 @@ interface SourceStatus {
 const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   'claude-code': { label: 'Claude Code', color: '#c084fc', bg: 'rgba(192,132,252,0.08)' },
   'openclaw': { label: 'OpenClaw', color: '#60a5fa', bg: 'rgba(96,165,250,0.08)' },
+  'cursor': { label: 'Cursor', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
   'demo': { label: 'Demo', color: 'var(--text-dim)', bg: 'var(--surface)' },
   'sdk': { label: 'SDK', color: 'var(--green)', bg: 'rgba(34,197,94,0.08)' },
 };
@@ -348,7 +349,7 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="team-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
           {[
-            { label: 'Chains', value: chains.length, sub: wallet ? 'your chains' : 'total' },
+            { label: 'Chains', value: chains.length, sub: wallet ? 'linked to wallet' : 'from all sources' },
             { label: 'Receipts', value: totalReceipts, sub: 'across all chains' },
             { label: 'Avg Quality', value: chains.some(c => c.quality !== null) ? Math.round(avgQuality) : '—', sub: '/100', color: chains.some(c => c.quality !== null) ? qualityColor(avgQuality) : undefined },
             { label: 'On-Chain', value: onChainCount, sub: totalOnChain !== null ? `of ${totalOnChain} total` : '0G Mainnet', color: onChainCount > 0 ? 'var(--green)' : undefined },
@@ -437,52 +438,85 @@ export default function DashboardPage() {
         {/* Empty state */}
         {!loading && !error && chains.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3rem 1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-            <div style={{ ...mono, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>No chains yet</div>
-            <p style={{ ...inter, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '440px', margin: '0 auto 1.5rem' }}>
-              {wallet
-                ? 'No chains registered for this wallet. Run the demo or connect an agent to get started.'
-                : 'Connect your wallet to see your on-chain chains, or run the demo to generate one.'}
+            <div style={{ ...mono, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>
+              {filter ? `No ${SOURCE_LABELS[filter]?.label ?? filter} chains` : 'No chains yet'}
+            </div>
+            <p style={{ ...inter, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '480px', margin: '0 auto 1.5rem' }}>
+              {filter
+                ? `No chains from ${SOURCE_LABELS[filter]?.label ?? filter} found. Try running a chain with that agent, or clear the filter to see all chains.`
+                : 'Run the demo to generate your first chain, then connect your wallet to register it on 0G Mainnet.'}
             </p>
-            <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <div style={{ textAlign: 'left', padding: '1rem 1.2rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '260px' }}>
-                <div style={{ ...mono, fontSize: '0.6rem', color: '#c084fc', fontWeight: 700, marginBottom: '0.4rem' }}>Claude Code</div>
-                <code style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.8, display: 'block' }}>
-                  npm i -g agenticproof<br />
-                  receipt init --claude-code
-                </code>
-                <div style={{ ...inter, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>Every tool call gets a receipt</div>
-              </div>
-              <div style={{ textAlign: 'left', padding: '1rem 1.2rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '260px' }}>
-                <div style={{ ...mono, fontSize: '0.6rem', color: '#60a5fa', fontWeight: 700, marginBottom: '0.4rem' }}>OpenClaw</div>
-                <code style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.8, display: 'block' }}>
-                  npm i agenticproof<br />
-                  # add plugin to openclaw.json
-                </code>
-                <div style={{ ...inter, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>Every agent run gets a chain</div>
-              </div>
-              <div style={{ textAlign: 'left', padding: '1rem 1.2rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '260px' }}>
-                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--green)', fontWeight: 700, marginBottom: '0.4rem' }}>Any Agent (SDK)</div>
-                <code style={{ ...mono, fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.8, display: 'block', whiteSpace: 'pre-wrap' }}>
-{`import { ReceiptAgent }
-  from 'agenticproof';
-const agent =
-  ReceiptAgent.create('my-agent');
-// ... do work ...
-await fetch('/api/chains', {
-  method: 'POST',
-  body: JSON.stringify({
-    receipts: agent.getReceipts()
-  })
-});`}
-                </code>
-                <div style={{ ...inter, fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>3 lines to publish a chain</div>
-              </div>
-            </div>
-            <div style={{ marginTop: '1.5rem' }}>
-              <a href="/demo" style={{ ...mono, fontSize: '0.72rem', color: 'var(--researcher)', textDecoration: 'none', fontWeight: 600 }}>
-                Or run the Live demo to generate a chain now &rarr;
-              </a>
-            </div>
+            {!filter && (
+              <>
+                {/* Step-by-step guide */}
+                <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.6rem 1rem', background: 'var(--bg)', borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                  }}>
+                    <span style={{ ...mono, fontSize: '0.7rem', fontWeight: 700, color: 'var(--researcher)', width: '1.3rem', height: '1.3rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--researcher)' }}>1</span>
+                    <a href="/demo" style={{ ...mono, fontSize: '0.72rem', color: 'var(--researcher)', textDecoration: 'none', fontWeight: 600 }}>Run the Demo</a>
+                  </div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.6rem 1rem', background: 'var(--bg)', borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                  }}>
+                    <span style={{ ...mono, fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', width: '1.3rem', height: '1.3rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}>2</span>
+                    <span style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-muted)' }}>Chain appears here</span>
+                  </div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.6rem 1rem', background: 'var(--bg)', borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                  }}>
+                    <span style={{ ...mono, fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', width: '1.3rem', height: '1.3rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}>3</span>
+                    <span style={{ ...mono, fontSize: '0.72rem', color: 'var(--text-muted)' }}>Register On-Chain</span>
+                  </div>
+                </div>
+
+                {/* Agent setup cards */}
+                <div style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.8rem' }}>Or connect an agent</div>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ textAlign: 'left', padding: '0.8rem 1rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '220px', width: '100%' }}>
+                    <div style={{ ...mono, fontSize: '0.6rem', color: '#c084fc', fontWeight: 700, marginBottom: '0.3rem' }}>Claude Code</div>
+                    <code style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.7, display: 'block' }}>
+                      npx receipt init --claude-code
+                    </code>
+                    <div style={{ ...inter, fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>Chains publish to dashboard automatically</div>
+                  </div>
+                  <div style={{ textAlign: 'left', padding: '0.8rem 1rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '220px', width: '100%' }}>
+                    <div style={{ ...mono, fontSize: '0.6rem', color: '#60a5fa', fontWeight: 700, marginBottom: '0.3rem' }}>OpenClaw</div>
+                    <code style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.7, display: 'block' }}>
+                      openclaw plugins install<br />
+                      openclaw-plugin-receipt
+                    </code>
+                    <div style={{ ...inter, fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>Every agent run publishes a chain</div>
+                  </div>
+                  <div style={{ textAlign: 'left', padding: '0.8rem 1rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)', maxWidth: '220px', width: '100%' }}>
+                    <div style={{ ...mono, fontSize: '0.6rem', color: '#f59e0b', fontWeight: 700, marginBottom: '0.3rem' }}>Cursor</div>
+                    <code style={{ ...mono, fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.7, display: 'block' }}>
+                      npx receipt init --cursor
+                    </code>
+                    <div style={{ ...inter, fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>File watcher creates receipts</div>
+                  </div>
+                </div>
+              </>
+            )}
+            {filter && (
+              <button
+                onClick={() => setFilter(null)}
+                style={{
+                  ...mono, fontSize: '0.72rem', fontWeight: 600,
+                  padding: '0.5rem 1.2rem', borderRadius: '6px',
+                  border: '1px solid var(--border)', background: 'transparent',
+                  color: 'var(--text-muted)', cursor: 'pointer',
+                }}
+              >
+                Clear filter
+              </button>
+            )}
           </div>
         )}
 

@@ -16,7 +16,7 @@ interface Receipt {
   attestation: { provider: string; type: string } | null;
 }
 
-type CheckStatus = 'pending' | 'checking' | 'pass' | 'fail';
+type CheckStatus = 'pending' | 'checking' | 'pass' | 'fail' | 'skipped';
 
 interface CheckResult {
   signature: CheckStatus;
@@ -439,12 +439,12 @@ export default function VerifyPage() {
 
       // Set card to "checking"
       setCards(prev => prev.map((c, idx) =>
-        idx === i ? { ...c, status: 'checking', checks: { signature: canVerifySig ? 'checking' : 'pending', chainLink: 'checking', timestamp: 'checking' } } : c
+        idx === i ? { ...c, status: 'checking', checks: { signature: canVerifySig ? 'checking' : 'skipped', chainLink: 'checking', timestamp: 'checking' } } : c
       ));
       await new Promise((r) => setTimeout(r, 200));
 
       // Check signature
-      let sigResult: CheckStatus = 'pending';
+      let sigResult: CheckStatus = 'skipped';
       if (canVerifySig) {
         const payload = getSignaturePayload(receipt);
         const valid = await verifyEd25519(payload, receipt.signature, pubKeyBytes!);
@@ -472,7 +472,7 @@ export default function VerifyPage() {
       if (!chainLinkValid) errors.push(`broken chain link: prevId="${receipt.prevId?.slice(0, 16) ?? 'null'}" expected="${expectedPrevId?.slice(0, 16) ?? 'null'}"`);
       if (!tsValid) errors.push('timestamp outside valid range');
 
-      const cardValid = chainLinkValid && tsValid && (sigResult === 'pending' || sigResult === 'pass');
+      const cardValid = chainLinkValid && tsValid && (sigResult === 'skipped' || sigResult === 'pass');
       if (!cardValid) allValid = false;
 
       setCards(prev => prev.map((c, idx) =>
@@ -504,6 +504,7 @@ export default function VerifyPage() {
   const checkStatusIcon = (s: CheckStatus) => {
     switch (s) {
       case 'pending': return <span style={{ color: 'var(--text-dim)' }}>--</span>;
+      case 'skipped': return <span style={{ color: 'var(--text-dim)', fontSize: '0.55em' }}>SKIP</span>;
       case 'checking': return <span className="typing-indicator" style={{ color: 'var(--amber)' }}></span>;
       case 'pass': return <span style={{ color: 'var(--green)', fontWeight: 700 }}>OK</span>;
       case 'fail': return <span style={{ color: 'var(--red)', fontWeight: 700 }}>FAIL</span>;
