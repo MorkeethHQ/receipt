@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         agentId,
         standard: 'ERC-7857',
         status: 'no-wallet',
-        reason: 'PRIVATE_KEY or AGENT_NFT_ADDRESS not configured — on-chain minting unavailable',
+        reason: 'PRIVATE_KEY or AGENT_NFT_ADDRESS not configured: on-chain minting unavailable',
         iDatas: [
           { dataDescription: 'receipt-agent-v1', dataHash: metadataHash },
           { dataDescription: 'chain-root', dataHash: chainRootHash?.startsWith('0x') ? chainRootHash : `0x${chainRootHash ?? '0'.repeat(64)}` },

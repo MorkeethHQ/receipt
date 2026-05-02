@@ -66,7 +66,7 @@ export class ReceiptAgent {
   }
 
   reviewUsefulness(chainSummary: string, reviewResult: string, attestation: Attestation | null = null): Receipt {
-    return this.act('usefulness_review', 'Usefulness review — TEE-attested quality assessment', chainSummary, reviewResult, attestation);
+    return this.act('usefulness_review', 'Usefulness review: TEE-attested quality assessment', chainSummary, reviewResult, attestation);
   }
 
   contextRead(source: string, content: string): Receipt {
