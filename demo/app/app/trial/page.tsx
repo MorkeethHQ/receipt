@@ -351,6 +351,7 @@ export default function TrialPage() {
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
           <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
+          <a href="/trial" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Replay</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
       </nav>
@@ -607,7 +608,7 @@ export default function TrialPage() {
 
       <footer style={{ marginTop: 'auto', padding: '0.8rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ display: 'flex', gap: '1.2rem' }}>
-          {[['Live', '/demo'], ['Team', '/team'], ['Verify', '/verify'], ['Eval', '/eval']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
+          {[['Live', '/demo'], ['Team', '/team'], ['Verify', '/verify'], ['Eval', '/eval'], ['Replay', '/trial']].map(([label, href]) => <a key={href} href={href} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{label}</a>)}
         </div>
         <span style={{ ...mono, fontSize: '0.6rem' }}>Execution Replay</span>
       </footer>
