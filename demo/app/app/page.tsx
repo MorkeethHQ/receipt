@@ -321,7 +321,7 @@ export default function LandingPage() {
             'Ed25519 signatures', 'SHA-256 hash chains', 'TEE enclaves (Intel TDX)',
             '0G Mainnet (16661)', 'ERC-7857 Agentic ID', 'ERC-8004 Validation',
             'WebCrypto client-side verify', 'Gensyn AXL P2P mesh',
-            'agenticproof@0.1.2 on npm', '4 smart contracts live', '47 SDK tests passing',
+            'agenticproof@0.1.3 on npm', '4 smart contracts live', '47 SDK tests passing',
           ].map(tag => (
             <span key={tag} style={{ ...mono, fontSize: '0.52rem', padding: '0.2rem 0.45rem', borderRadius: '3px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
               {tag}
@@ -344,7 +344,7 @@ export default function LandingPage() {
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
         <a href="https://www.npmjs.com/package/agenticproof" target="_blank" rel="noopener noreferrer" style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', textDecoration: 'none' }}>
-          agenticproof@0.1.2
+          agenticproof@0.1.3
         </a>
       </footer>
     </div>

@@ -1,6 +1,6 @@
 {
   "name": "agenticproof",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "description": "Cryptographic proof layer for AI agent work — signed, hash-linked receipts with TEE-attested quality scoring and on-chain anchoring.",
   "main": "dist/index.js",
@@ -44,6 +44,7 @@
   },
   "files": [
     "dist",
+    "examples",
     "scripts/postinstall.cjs",
     "LICENSE"
   ],
