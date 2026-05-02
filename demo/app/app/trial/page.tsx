@@ -174,7 +174,7 @@ function RunColumn({ label, data, hov, setHov }: { label: string; data: RunData;
   );
 }
 
-/* Live Agent mode — fetch real chains from OpenClaw plugin */
+/* Live Agent mode - fetch real chains from OpenClaw plugin */
 async function fetchLiveChain(): Promise<RunData | null> {
   const res = await fetch('/api/live-chain?mode=latest');
   if (!res.ok) return null;
@@ -298,7 +298,7 @@ export default function TrialPage() {
     try {
       const [chain, chains] = await Promise.all([fetchLiveChain(), fetchLiveChainsList()]);
       setLiveChains(chains);
-      if (!chain) { setPhase('error'); status('No chain available — send Bagel a task via Telegram first'); return; }
+      if (!chain) { setPhase('error'); status('No chain available - send Bagel a task via Telegram first'); return; }
       setTrialReceipts(chain.receipts);
       setTotalTimeMs(chain.totalMs);
       setTotalTokens(chain.tokens);
@@ -306,7 +306,7 @@ export default function TrialPage() {
       setRootHash(chain.rootHash);
       setPhase('done');
       status(`Loaded ${chain.receipts.length} receipts from live agent`);
-    } catch { setPhase('error'); status('Failed to reach OpenClaw — is the VPS running?'); }
+    } catch { setPhase('error'); status('Failed to reach OpenClaw - is the VPS running?'); }
   }, [status, resetState]);
 
   const submitHuman = useCallback(async () => {
@@ -350,6 +350,7 @@ export default function TrialPage() {
           <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Dashboard</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Verify</a>
+          <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>GitHub</a>
         </div>
       </nav>
@@ -407,7 +408,7 @@ export default function TrialPage() {
             <div style={sectionLabel}>0G Verification</div>
             {verifs.map(v => (
               <div key={v.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                <span style={{ ...mono, fontSize: '0.8rem', color: v.ok ? 'var(--green)' : 'var(--text-dim)', width: '16px', textAlign: 'center' }}>{v.ok ? '✓' : '—'}</span>
+                <span style={{ ...mono, fontSize: '0.8rem', color: v.ok ? 'var(--green)' : 'var(--text-dim)', width: '16px', textAlign: 'center' }}>{v.ok ? '✓' : '-'}</span>
                 <div>
                   <div style={{ ...mono, fontSize: '0.75rem', fontWeight: 600 }}>{v.label}</div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'Inter, sans-serif' }}>{v.desc}</div>
@@ -584,7 +585,7 @@ export default function TrialPage() {
                   padding: '0.4rem 0.6rem', borderBottom: '1px solid var(--border)',
                   cursor: 'pointer', fontSize: '0.7rem', ...mono,
                 }}>
-                  <span>{c.receipts} receipts — {c.toolCalls?.join(', ') || 'no tools'}</span>
+                  <span>{c.receipts} receipts - {c.toolCalls?.join(', ') || 'no tools'}</span>
                   <span style={{ color: c.valid ? 'var(--green)' : 'var(--red)', fontSize: '0.6rem' }}>{c.valid ? 'VALID' : 'INVALID'}</span>
                   <span style={{ color: 'var(--text-dim)', fontSize: '0.55rem' }}>{new Date(c.completedAt).toLocaleTimeString()}</span>
                 </div>

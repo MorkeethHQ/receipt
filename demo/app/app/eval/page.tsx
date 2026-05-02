@@ -51,6 +51,7 @@ function Nav() {
         <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Dashboard</a>
         <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Demo</a>
         <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Verify</a>
+        <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text)', textDecoration: 'none', ...inter, fontWeight: 600 }}>Eval</a>
         <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>GitHub</a>
       </div>
     </nav>
@@ -501,7 +502,7 @@ export default function EvalPage() {
                 <>
                   <P>
                     These cases had the biggest score spreads (&gt;20 points) between models.
-                    This is where multi-model consensus matters most — a single model would have gotten it wrong.
+                    This is where multi-model consensus matters most - a single model would have gotten it wrong.
                   </P>
                   {report.interestingDisagreements.map((d) => {
                     const scores = d.scores.map(s => s.revised ?? s.score);
@@ -524,7 +525,7 @@ export default function EvalPage() {
                         <div style={{ ...inter, fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.6rem', fontStyle: 'italic', lineHeight: 1.5 }}>
                           &ldquo;{d.workProductPreview}...&rdquo;
                         </div>
-                        {/* Score comparison — visual */}
+                        {/* Score comparison - visual */}
                         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
                           {d.scores.map(s => {
                             const finalScore = s.revised ?? s.score;
@@ -560,8 +561,8 @@ export default function EvalPage() {
               <P>
                 {(() => {
                   const allFP = Object.values(report.falsePositives).reduce((a, b) => a + b, 0);
-                  if (allFP === 0) return 'No false positives detected across all models — adversarial and mediocre cases were correctly identified.';
-                  return `${allFP} false positive(s) detected — cases where useless work was scored as useful. These represent the most dangerous failure mode: an agent producing jargon-filled, substanceless output that passes quality review.`;
+                  if (allFP === 0) return 'No false positives detected across all models - adversarial and mediocre cases were correctly identified.';
+                  return `${allFP} false positive(s) detected - cases where useless work was scored as useful. These represent the most dangerous failure mode: an agent producing jargon-filled, substanceless output that passes quality review.`;
                 })()}
               </P>
               <P>
@@ -587,8 +588,8 @@ export default function EvalPage() {
               </P>
               <P>
                 Importantly: only TEE-attested scores (DeepSeek V3, GLM-5 via 0G Compute) go on-chain.
-                Claude scores are used for evaluation comparison only. This separation — trustless scoring for the chain,
-                comprehensive scoring for the audit — is intentional.
+                Claude scores are used for evaluation comparison only. This separation - trustless scoring for the chain,
+                comprehensive scoring for the audit - is intentional.
               </P>
             </Section>
           </>

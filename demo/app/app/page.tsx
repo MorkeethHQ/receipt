@@ -43,6 +43,7 @@ export default function LandingPage() {
           <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Dashboard</a>
           <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Demo</a>
           <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Verify</a>
+          <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>GitHub</a>
         </div>
       </nav>
@@ -214,6 +215,7 @@ export default function LandingPage() {
           <a href="/team" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</a>
           <a href="/demo" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Demo</a>
           <a href="/verify" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Verify</a>
+          <a href="/eval" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Eval</a>
           <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>GitHub</a>
         </div>
         <a href="https://www.npmjs.com/package/agenticproof" target="_blank" rel="noopener noreferrer" style={{ ...mono, fontSize: '0.58rem', color: 'var(--text-dim)', textDecoration: 'none' }}>

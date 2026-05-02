@@ -213,7 +213,7 @@ After wallet connects, show the green 0G Mainnet badge and wallet address.
 **Action:** Make sure HONEST mode is selected (green). Click "Start Demo". Full screen. Receipts appear one by one in left panel.
 
 As receipt #1 (file_read) appears:
-> "First action. The Researcher reads a file. The contents are hashed into a signed receipt. If it later claims it read something different, the hash won't match."
+> "First action. The Researcher reads a file. The contents are hashed into a signed receipt. If it  later claims it read something different, the hash won't match."
 
 As receipt #2 (api_call) appears:
 > "Now it queries the 0G Mainnet smart contract. The exact API response is locked into the receipt."

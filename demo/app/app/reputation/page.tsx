@@ -37,6 +37,7 @@ function Nav() {
         <a href="/team" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Dashboard</a>
         <a href="/demo" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Demo</a>
         <a href="/verify" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Verify</a>
+        <a href="/eval" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>Eval</a>
         <a href="https://github.com/MorkeethHQ/receipt" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', ...inter }}>GitHub</a>
       </div>
     </nav>
@@ -133,7 +134,7 @@ function DegradationTracker({ chains }: { chains: ChainSummary[] }) {
   let dropNote = '';
   for (let i = 1; i < runs.length; i++) {
     if (runs[i - 1].verRate >= 80 && runs[i].verRate < 80) {
-      dropNote = `Verification rate dropped from ${runs[i - 1].verRate}% to ${runs[i].verRate}% on run #${runs[i].index} — fabrication detected`;
+      dropNote = `Verification rate dropped from ${runs[i - 1].verRate}% to ${runs[i].verRate}% on run #${runs[i].index} - fabrication detected`;
       break;
     }
   }

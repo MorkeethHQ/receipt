@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'R.E.C.E.I.P.T. — Proof Layer for Agent Work',
+  title: 'R.E.C.E.I.P.T. - Proof Layer for Agent Work',
   description: 'Two-layer proof for AI agent work: tamper-proof receipt chains (ed25519 + SHA-256) with TEE-attested usefulness scoring via 0G Compute.',
   openGraph: {
     title: 'R.E.C.E.I.P.T.',
