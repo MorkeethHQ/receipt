@@ -1774,37 +1774,8 @@ export default function Demo() {
             <>
               <button
                 onClick={() => {
-                  if (publishedVerifyUrl) {
-                    window.open(publishedVerifyUrl, '_blank');
-                  } else {
-                    // Fallback: publish chain first, then redirect
-                    const chainJson = JSON.stringify(receipts);
-                    fetch('/api/chains', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        receipts,
-                        agentId: adversarial ? 'demo-adversarial' : 'demo-honest',
-                        rootHash: chainRootHash,
-                        quality: reviewScores?.composite ?? null,
-                      }),
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.verifyUrl) {
-                          setPublishedVerifyUrl(data.verifyUrl);
-                          window.open(data.verifyUrl, '_blank');
-                        } else {
-                          // Final fallback: sessionStorage
-                          sessionStorage.setItem('receipt-verify-chain', chainJson);
-                          window.open('/verify?from=session&auto=1', '_blank');
-                        }
-                      })
-                      .catch(() => {
-                        sessionStorage.setItem('receipt-verify-chain', chainJson);
-                        window.open('/verify?from=session&auto=1', '_blank');
-                      });
-                  }
+                  sessionStorage.setItem('receipt-verify-chain', JSON.stringify(receipts));
+                  window.open('/verify?from=session&auto=1', '_blank');
                 }}
                 style={{
                   padding: '0.35rem 0.8rem', borderRadius: '6px',

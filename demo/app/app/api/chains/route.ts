@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
+import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
-import { homedir, tmpdir } from 'os';
+import { homedir } from 'os';
+import seedChainsData from './seed-chains.json';
 
 interface ChainSummary {
   id: string;
@@ -17,33 +18,16 @@ interface ChainSummary {
 const VPS_HOST = process.env.OPENCLAW_HOST ?? 'http://204.168.133.192:18789';
 const VPS_TOKEN = process.env.OPENCLAW_TOKEN ?? '';
 
-// In-memory chain store + /tmp persistence. Vercel keeps /tmp within a single
-// serverless instance, which survives across invocations on the same instance.
 const MAX_CHAINS = 100;
 const chainStore = new Map<string, ChainSummary>();
-const TMP_CHAINS_DIR = join(tmpdir(), 'receipt-chains');
-let tmpLoaded = false;
 
-async function loadFromTmp() {
-  if (tmpLoaded) return;
-  tmpLoaded = true;
-  try {
-    const files = await readdir(TMP_CHAINS_DIR);
-    for (const f of files.filter(f => f.endsWith('.json')).slice(0, MAX_CHAINS)) {
-      try {
-        const raw = await readFile(join(TMP_CHAINS_DIR, f), 'utf-8');
-        const chain: ChainSummary = JSON.parse(raw);
-        if (chain.id && !chainStore.has(chain.id)) chainStore.set(chain.id, chain);
-      } catch {}
-    }
-  } catch {}
-}
-
-async function saveToTmp(chain: ChainSummary) {
-  try {
-    await mkdir(TMP_CHAINS_DIR, { recursive: true });
-    await writeFile(join(TMP_CHAINS_DIR, `${chain.id}.json`), JSON.stringify(chain));
-  } catch {}
+// Seed chains are embedded at build time - always available regardless of cold starts
+const seedChains: ChainSummary[] = (seedChainsData as any[]).map(c => ({
+  ...c,
+  source: c.source as ChainSummary['source'],
+}));
+for (const sc of seedChains) {
+  chainStore.set(sc.id, sc);
 }
 
 function pruneStore() {
@@ -52,7 +36,7 @@ function pruneStore() {
   const keys = chainStore.keys();
   for (let i = 0; i < excess; i++) {
     const next = keys.next();
-    if (!next.done) chainStore.delete(next.value);
+    if (!next.done && !next.value.startsWith('seed-')) chainStore.delete(next.value);
   }
 }
 
@@ -137,8 +121,6 @@ export async function GET(req: Request) {
   const source = searchParams.get('source');
   const id = searchParams.get('id');
 
-  await loadFromTmp();
-
   // Single-chain lookup by ID
   if (id) {
     const chain = chainStore.get(id);
@@ -211,7 +193,6 @@ export async function POST(req: Request) {
 
     chainStore.set(chainId, chain);
     pruneStore();
-    await saveToTmp(chain);
 
     const baseUrl = getBaseUrl(req);
     const verifyUrl = `${baseUrl}/verify?id=${chainId}&auto=1`;

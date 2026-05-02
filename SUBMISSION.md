@@ -166,9 +166,9 @@ Voiceover recorded separately over screen recording. Conversational, not a pitch
 ### BEAT 1 -- Hook (0:00-0:08)
 
 **Screen:** Landing page hero at `receipt-murex.vercel.app`
-**Action:** Page is already loaded. Hold for 2 seconds, then scroll down slowly past "Did your AI agent actually do the work?" headline.
+**Action:** Page is already loaded. Hold for 2 seconds, then scroll down slowly past the hero.
 
-> "AI agents say they did the work. But did they? RECEIPT is the proof layer. Let me show you."
+> "AI agents are making decisions worth millions. None of it is provable. RECEIPT changes that. Let me show you."
 
 ### BEAT 2 -- SDK install flash (0:08-0:22)
 
