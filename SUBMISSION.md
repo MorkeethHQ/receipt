@@ -32,7 +32,7 @@ The evaluation layer for AI agents -- cryptographic proof that agent outputs wer
 ## LONG DESCRIPTION (min 200 words)
 
 ```
-The problem with AI agents today isn't capability -- it's trust. Claude Code, Cursor, OpenClaw, Hermes -- agents are shipping everywhere. But when you deploy an agent to do research, execute transactions, analyze data, or generate content, you're taking the agent's word for it. Did it actually read the right file, or did it hallucinate the contents? Did it call the real API, or skip the call and fabricate a response? And even if it did the work honestly -- was the output worth what you paid?
+The problem with AI agents today isn't capability -- it's trust. Claude Code, Cursor, OpenClaw -- agents are shipping everywhere. But when you deploy an agent to do research, execute transactions, analyze data, or generate content, you're taking the agent's word for it. Did it actually read the right file, or did it hallucinate the contents? Did it call the real API, or skip the call and fabricate a response? And even if it did the work honestly -- was the output worth what you paid?
 
 There's no standard way to measure whether agent work was useful. No verification layer that works across tools. No metric that tells you which agents earned their keep and which ones burned tokens for nothing. That's the gap RECEIPT fills.
 
@@ -80,7 +80,7 @@ Every agent harness needs an evaluation layer. RECEIPT is that layer -- agent-ag
 ## HOW IT'S MADE
 
 ```
-RECEIPT is the evaluation layer for agent harnesses. As agents ship in production across Claude Code, Cursor, OpenClaw, and Hermes, every harness needs an eval layer that proves work quality. RECEIPT is agent-agnostic -- it plugs into any tool via a single SDK and measures whether agent work was actually useful, with cryptographic verification rates.
+RECEIPT is the evaluation layer for agent harnesses. As agents ship in production across Claude Code, Cursor, and OpenClaw, every harness needs an eval layer that proves work quality. RECEIPT is agent-agnostic -- it plugs into any tool via a single SDK and measures whether agent work was actually useful, with cryptographic verification rates.
 
 The core SDK (agenticproof, published on npm) is TypeScript. Each agent action produces a receipt signed with Ed25519 and hashed with SHA-256. Receipts hash-link: each points to the previous receipt's ID, creating a tamper-evident chain. Multi-agent verification happens at handoff -- the receiving agent independently checks every receipt's signature, hash chain, and timestamp order before continuing.
 
