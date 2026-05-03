@@ -6,6 +6,8 @@
 
 **[Live Demo](https://receipt-murex.vercel.app)** | [Demo](https://receipt-murex.vercel.app/demo) | [Verify](https://receipt-murex.vercel.app/verify) | [Eval](https://receipt-murex.vercel.app/eval) | [Trial](https://receipt-murex.vercel.app/trial) | [Team Feed](https://receipt-murex.vercel.app/team)
 
+![RECEIPT Demo: Two agents verify each other's work with cryptographic proof](docs/demo-screenshot.png)
+
 **The evaluation layer every agent harness needs.** Claude Code, Cursor, OpenClaw: agents are shipping everywhere. RECEIPT measures whether their work was actually useful. Signed, hash-linked receipts for verifiable AI agent handoffs with TEE-attested quality scoring.
 
 **Layer 1: Proof of Action.** Every agent action (reading a file, calling an API, running inference, making a decision) produces a cryptographically signed receipt (ed25519 + SHA-256). Receipts hash-link into a tamper-proof chain. Any modification breaks the chain. When The Builder receives work from The Researcher, it independently verifies every receipt before continuing.
@@ -236,19 +238,26 @@ const allValid = results.every(r => r.valid); // true
 ## Quick Start
 
 ```bash
-# Install SDK
-npm install agenticproof
+# Clone and install
+git clone https://github.com/MorkeethHQ/receipt.git
+cd receipt
+npm install
 
-# Run tests (47 passing)
-cd packages/receipt-sdk && npm test
+# Run SDK tests (47 passing)
+cd packages/receipt-sdk && npm install && npm test
 
-# Run demo app
+# Run the demo app locally
 cd demo/app && npm install && npm run dev
-
-# CLI
-npx receipt verify chain.json
-npx receipt inspect chain.json
+# Open http://localhost:3000
 ```
+
+Or use the SDK directly in your own project:
+
+```bash
+npm install agenticproof
+```
+
+See [AGENT.md](AGENT.md) for a full setup guide after installing the SDK.
 
 ## Examples
 
