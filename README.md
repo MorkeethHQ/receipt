@@ -2,9 +2,9 @@
 
 ### Record of Every Computational Event with Immutable Proof and Trust
 
-> Built at ETHGlobal Open Agents 2026 | **[Live Demo](https://receipt-murex.vercel.app)** | `npm install agenticproof`
+> Built at ETHGlobal Open Agents 2026 | **[Live Demo](https://receipt-murex.vercel.app)** | **[Demo Video](https://youtu.be/AZo7oDprjFU)** | `npm install agenticproof`
 
-**[Live Demo](https://receipt-murex.vercel.app)** | [Demo](https://receipt-murex.vercel.app/demo) | [Verify](https://receipt-murex.vercel.app/verify) | [Eval](https://receipt-murex.vercel.app/eval) | [Trial](https://receipt-murex.vercel.app/trial) | [Team Feed](https://receipt-murex.vercel.app/team)
+**[Live Demo](https://receipt-murex.vercel.app)** | [Demo Video](https://youtu.be/AZo7oDprjFU) | [Demo](https://receipt-murex.vercel.app/demo) | [Verify](https://receipt-murex.vercel.app/verify) | [Eval](https://receipt-murex.vercel.app/eval) | [Trial](https://receipt-murex.vercel.app/trial) | [Team Feed](https://receipt-murex.vercel.app/team)
 
 ![RECEIPT Demo: Two agents verify each other's work with cryptographic proof](docs/demo-screenshot.png)
 
