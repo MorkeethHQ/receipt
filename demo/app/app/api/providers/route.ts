@@ -77,7 +77,7 @@ export async function GET() {
         }
         const { url: endpoint, model } = entry;
         try {
-          // Lightweight ping — small completion request with minimal tokens
+          // Lightweight ping: small completion request with minimal tokens
           const pingRes = await fetch(`${endpoint}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -103,7 +103,7 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 export async function POST(request: Request) {
   const { adversarial } = await request.json().catch(() => ({}));
-  const axlResearcherUrl = process.env.AXL_BASE_URL || process.env.AXL_RESEARCHER_URL || 'http://127.0.0.1:9002';
+  const axlResearcherUrl = process.env.AXL_BASE_URL || process.env.AXL_RESEARCHER_URL || 'http://204.168.133.192:9080/researcher';
   const axlAuthToken = process.env.AXL_AUTH_TOKEN || '';
   const builderPeerKey = process.env.AXL_BUILDER_KEY || '';
   const axlHeaders: Record<string, string> = axlAuthToken ? { Authorization: `Bearer ${axlAuthToken}` } : {};

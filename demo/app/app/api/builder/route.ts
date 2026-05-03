@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   const directChain = body.receipts as any[] | undefined;
   const directPublicKey = body.publicKey as string | undefined;
 
-  const axlBaseUrl = process.env.AXL_BASE_URL?.replace(/\/researcher\/?$/, '/builder') || process.env.AXL_BUILDER_URL || 'http://127.0.0.1:9012';
+  const axlBaseUrl = process.env.AXL_BASE_URL?.replace(/\/researcher\/?$/, '/builder') || process.env.AXL_BUILDER_URL || 'http://204.168.133.192:9080/builder';
   const axlAuthToken = process.env.AXL_AUTH_TOKEN || '';
   const axlHeaders: Record<string, string> = axlAuthToken ? { Authorization: `Bearer ${axlAuthToken}` } : {};
 

@@ -7,8 +7,8 @@ export async function GET(request: Request) {
 
   const baseUrl = process.env.AXL_BASE_URL || '';
   const urls: Record<string, string> = {
-    researcher: process.env.AXL_RESEARCHER_URL || baseUrl || 'http://127.0.0.1:9002',
-    builder: process.env.AXL_BUILDER_URL || baseUrl.replace('/researcher', '/builder') || 'http://127.0.0.1:9012',
+    researcher: process.env.AXL_RESEARCHER_URL || baseUrl || 'http://204.168.133.192:9080/researcher',
+    builder: process.env.AXL_BUILDER_URL || baseUrl.replace('/researcher', '/builder') || 'http://204.168.133.192:9080/builder',
   };
 
   const url = urls[node || ''];

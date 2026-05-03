@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         uploaded = true;
       }
     } catch {
-      // Upload failed — root hash still valid
+      // Upload failed, root hash still valid
     }
 
     return NextResponse.json({ rootHash, uploaded, txHash });
