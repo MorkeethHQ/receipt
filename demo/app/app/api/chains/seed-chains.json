@@ -5,7 +5,7 @@
     "agentId": "claude-code-hooks",
     "receiptCount": 12,
     "rootHash": "622d3c14cef21cdebb0ad7103d24f11fdbd221af84aa609d8f82e9c08d24fa78",
-    "quality": null,
+    "quality": 76,
     "timestamp": 1777636416815,
     "receipts": [
       {
@@ -18,8 +18,8 @@
         },
         "inputHash": "a295d17dbf4025d064df0dec7b519210eafbd67f482544ef435d4493800aefef",
         "outputHash": "5c9e17611923b5030408025f5841c4bd11546d750a85e9a4b5630b7aa6f2d0b2",
-        "previousReceiptId": null,
-        "signature": "G33uSrvkeOTP6Ap/9C9Zl9iDIYmVx2CXC+QZogUnw188YQ4ZMkU/fKiI3EBv88jQp3D4Gvsw+o8qAlkLjsgmpw=="
+        "signature": "G33uSrvkeOTP6Ap/9C9Zl9iDIYmVx2CXC+QZogUnw188YQ4ZMkU/fKiI3EBv88jQp3D4Gvsw+o8qAlkLjsgmpw==",
+        "prevId": null
       },
       {
         "id": "802174a1-fb5f-4afd-a1e8-a9ed7c73378c",
@@ -31,8 +31,8 @@
         },
         "inputHash": "591420238a92cdf9e9bc61088a13c4cabd8acfaa780cd79b00d09e22ffc02a5b",
         "outputHash": "5bcc6790b1c52d70026869a7e263469bdbafe618ac27349b47fddccfbace5a00",
-        "previousReceiptId": "376f29d8-33eb-4dd2-9e71-02624e159c85",
-        "signature": "b/+YRZtFRd0d2H7+W7DXPeA5M0Ab0U3gf/E/dGYJ65u6iia14zpI7ZbTjDBG0iPxPD0+aS4V5u9suJimjtJtww=="
+        "signature": "b/+YRZtFRd0d2H7+W7DXPeA5M0Ab0U3gf/E/dGYJ65u6iia14zpI7ZbTjDBG0iPxPD0+aS4V5u9suJimjtJtww==",
+        "prevId": "376f29d8-33eb-4dd2-9e71-02624e159c85"
       },
       {
         "id": "1eba2d76-e68c-4d2b-b451-5e7ba0c3f8bf",
@@ -44,8 +44,8 @@
         },
         "inputHash": "68accef42d2f4b738f591d87a9344df8586653681e7e16b15bdd065fa178307e",
         "outputHash": "00e050a576cfcb43a9524fb1e448d9257b41230a520e4c31ccc96684cb9d2ac0",
-        "previousReceiptId": "802174a1-fb5f-4afd-a1e8-a9ed7c73378c",
-        "signature": "7njyIYEVFRNr1DONac+Gw5LberpxAMFwBncONAgnEGjoeQZrpaC3MDfbTUQyThfi5H8CWREuEKVzRs7t21oUQA=="
+        "signature": "7njyIYEVFRNr1DONac+Gw5LberpxAMFwBncONAgnEGjoeQZrpaC3MDfbTUQyThfi5H8CWREuEKVzRs7t21oUQA==",
+        "prevId": "802174a1-fb5f-4afd-a1e8-a9ed7c73378c"
       },
       {
         "id": "df803d49-3552-4bc5-a13b-08e1a774d90d",
@@ -57,8 +57,8 @@
         },
         "inputHash": "72d5638fc606425452b11c955ad69e50e821b4d08720eed1b70682377dbc4a1a",
         "outputHash": "b4eee062a6dc3ea3868854d4e209eee5c0485f66889bb3854cc0bc30ef16247a",
-        "previousReceiptId": "1eba2d76-e68c-4d2b-b451-5e7ba0c3f8bf",
-        "signature": "dUBu27CB71Rv6O0WQxqYNpxSRVcbE9gqDlP+JxVwz8Z/nFU4oYxUUz4eB4IllQv7HJY0lYECHN2FhwetuX93Ug=="
+        "signature": "dUBu27CB71Rv6O0WQxqYNpxSRVcbE9gqDlP+JxVwz8Z/nFU4oYxUUz4eB4IllQv7HJY0lYECHN2FhwetuX93Ug==",
+        "prevId": "1eba2d76-e68c-4d2b-b451-5e7ba0c3f8bf"
       },
       {
         "id": "e2884f6b-55cc-4efa-a30c-13ac6e4cd425",
@@ -70,8 +70,8 @@
         },
         "inputHash": "66fc8e4bb29c7dc0bff1937ccec725cbe0b119d82135a5ee122d1f47dfa87a5d",
         "outputHash": "82279ba01dd069f8ff4d4bdd5025b02b2597c93ed6fc4034b926cf9105ae8cb9",
-        "previousReceiptId": "df803d49-3552-4bc5-a13b-08e1a774d90d",
-        "signature": "kiqYun5LddfNpQ7KRj9BoMr/iynLq/1xEh/bfxw1T9uS+eUNRyRdVNWa/BQDyT3s9aus79ApIHryMG/YQCL1Kw=="
+        "signature": "kiqYun5LddfNpQ7KRj9BoMr/iynLq/1xEh/bfxw1T9uS+eUNRyRdVNWa/BQDyT3s9aus79ApIHryMG/YQCL1Kw==",
+        "prevId": "df803d49-3552-4bc5-a13b-08e1a774d90d"
       },
       {
         "id": "ffa17f72-39c1-428d-8c92-6e21984f49fc",
@@ -83,8 +83,8 @@
         },
         "inputHash": "c6b4edbf20b7ede62c06807c88565bd84f1bfec1a2d1793b9efe0f6272bdc2e8",
         "outputHash": "d886fa645d77243639f849ef48f4dd222b48163a16b4ddd3c7a9789d1dfd2aa2",
-        "previousReceiptId": "e2884f6b-55cc-4efa-a30c-13ac6e4cd425",
-        "signature": "UUHH3w0govkyreKixhUMPNdeVyhVxDd5oCVd3SMToIeTYAleRiJapglhgGwl2rvyqYpM/wxatSnwIRulyCI/Kw=="
+        "signature": "UUHH3w0govkyreKixhUMPNdeVyhVxDd5oCVd3SMToIeTYAleRiJapglhgGwl2rvyqYpM/wxatSnwIRulyCI/Kw==",
+        "prevId": "e2884f6b-55cc-4efa-a30c-13ac6e4cd425"
       },
       {
         "id": "20d146f6-6d73-4bc4-8019-ca5e38f651b3",
@@ -96,8 +96,8 @@
         },
         "inputHash": "74dd62eebb6bd50ea4247b57121db12aef6a44f34f4b06ebbd5e4ff0fb086144",
         "outputHash": "d9e27cf05e396359490dcd207a661a2b0da8d0a8e6e7adfd63d8b817f19a149c",
-        "previousReceiptId": "ffa17f72-39c1-428d-8c92-6e21984f49fc",
-        "signature": "m4X17Uwylsa5olc8YJgujzX0Yj3sO8GD/cCbDG2XSebHx8JvvLRM/b6mFBryMkZQw6Dqb59V7gIjThWDpWMFNA=="
+        "signature": "m4X17Uwylsa5olc8YJgujzX0Yj3sO8GD/cCbDG2XSebHx8JvvLRM/b6mFBryMkZQw6Dqb59V7gIjThWDpWMFNA==",
+        "prevId": "ffa17f72-39c1-428d-8c92-6e21984f49fc"
       },
       {
         "id": "30062567-5db3-43bc-b6ef-42ec4b215220",
@@ -109,8 +109,8 @@
         },
         "inputHash": "1c3c33a7fc859f10d752ae777c8620120338aef6edb0ce6022ba0cdc7462326d",
         "outputHash": "17482a805559af87ac6ccb493354679a90340b7a5bc7bccdabe0368bd55a6f01",
-        "previousReceiptId": "20d146f6-6d73-4bc4-8019-ca5e38f651b3",
-        "signature": "VQT/k8/XuqSlCmhim/cyqGuiknRZAS1XLn5h2pBi2eGViRBBzbs0UMGKUb/xFqHjXfGxlKItA3ijctgs2Golcg=="
+        "signature": "VQT/k8/XuqSlCmhim/cyqGuiknRZAS1XLn5h2pBi2eGViRBBzbs0UMGKUb/xFqHjXfGxlKItA3ijctgs2Golcg==",
+        "prevId": "20d146f6-6d73-4bc4-8019-ca5e38f651b3"
       },
       {
         "id": "da7fe920-7a3f-4b3c-9d84-5d765a7b71b8",
@@ -122,8 +122,8 @@
         },
         "inputHash": "fd68869c20a28c722bcdabd0fbbdfe0a7d70cc34ab914a862f9b56bd29e62a64",
         "outputHash": "cebbc351a240be9f9ac9d8c314123d3b4a4c7ecb8aa36d79c9709a559d7e6c8d",
-        "previousReceiptId": "30062567-5db3-43bc-b6ef-42ec4b215220",
-        "signature": "q8qw5n+lQkJWU7N70wdAXRysx9iL11J3fEaBhR+tMnQGLTYcpdxmBRL6mzSN/VnB/uG17uiwXwEp8vdcamjuDQ=="
+        "signature": "q8qw5n+lQkJWU7N70wdAXRysx9iL11J3fEaBhR+tMnQGLTYcpdxmBRL6mzSN/VnB/uG17uiwXwEp8vdcamjuDQ==",
+        "prevId": "30062567-5db3-43bc-b6ef-42ec4b215220"
       },
       {
         "id": "9554da53-f9b3-4241-a850-799fe4f3e361",
@@ -135,8 +135,8 @@
         },
         "inputHash": "c103ce9bf193d0b01220cf65f55047656a5060ac9a9b4b1026994e7b9ae9dc79",
         "outputHash": "36210161407901cc35875f77d6513267269e0984a6f48dc7bf7dc69d2ab607ce",
-        "previousReceiptId": "da7fe920-7a3f-4b3c-9d84-5d765a7b71b8",
-        "signature": "CaTl3Ta9mmgkXIJWVxAk2XqXVInolzXF9N0NMgit68lgvYgmnR1CY3i4JmX6zPYW2cR9fl1qbGUB9zBBiuhrCA=="
+        "signature": "CaTl3Ta9mmgkXIJWVxAk2XqXVInolzXF9N0NMgit68lgvYgmnR1CY3i4JmX6zPYW2cR9fl1qbGUB9zBBiuhrCA==",
+        "prevId": "da7fe920-7a3f-4b3c-9d84-5d765a7b71b8"
       },
       {
         "id": "db98658b-faea-45c3-9149-66ced267e218",
@@ -148,8 +148,8 @@
         },
         "inputHash": "6ed9a34cc3daca9f192ca53e6c4d9410a3b9bcc69292d996c57ac8efc3b781a3",
         "outputHash": "54b972ba6cee240be073003aeb713db41548a443f496e94a69505da4dfaabe93",
-        "previousReceiptId": "9554da53-f9b3-4241-a850-799fe4f3e361",
-        "signature": "WyFvVMqjrXDLszA2ZzTkcUhQ6dQ5pqfPzq9SSa/HaJwITJub0OfJirMkSlr42b8r6iuM1wn/SrigL7p7nF5hsg=="
+        "signature": "WyFvVMqjrXDLszA2ZzTkcUhQ6dQ5pqfPzq9SSa/HaJwITJub0OfJirMkSlr42b8r6iuM1wn/SrigL7p7nF5hsg==",
+        "prevId": "9554da53-f9b3-4241-a850-799fe4f3e361"
       },
       {
         "id": "8c1eeb0c-dd8e-4b48-8421-9cf570fbdf7c",
@@ -161,8 +161,8 @@
         },
         "inputHash": "41363abbee1966d2203612ac966b7d5072a3ba43af5f6e07a4f40be0c540486a",
         "outputHash": "8decde2aae050ff5a187733052c0d68ef4b6393b71ae717ecdcdbb1b7bcb32a5",
-        "previousReceiptId": "db98658b-faea-45c3-9149-66ced267e218",
-        "signature": "qBs45L0RNu7fLLNgfpwpDusYKGVbxmmiVPRqr27UrZX1hAL3BAFR3+O82XwnCWhorraGmuVMstdsiBDCAoe+gQ=="
+        "signature": "qBs45L0RNu7fLLNgfpwpDusYKGVbxmmiVPRqr27UrZX1hAL3BAFR3+O82XwnCWhorraGmuVMstdsiBDCAoe+gQ==",
+        "prevId": "db98658b-faea-45c3-9149-66ced267e218"
       }
     ]
   },
@@ -172,7 +172,7 @@
     "agentId": "claude-code-hooks",
     "receiptCount": 12,
     "rootHash": "a6dfb7f514c1d6ed77130017f9612f5f618da0d6e6372a12dbec2718422304a5",
-    "quality": null,
+    "quality": 82,
     "timestamp": 1777636491788,
     "receipts": [
       {
@@ -185,8 +185,8 @@
         },
         "inputHash": "8a406e0afbd55d6de1f035e5e507a084ef703bbfb5d6943c19f4336a4e4ac902",
         "outputHash": "3cf8137ce46924b3636200426305ea021637b11de36a1a16b79e07c87f7d0398",
-        "previousReceiptId": null,
-        "signature": "KcXxVJgb45R0DGyPP6+HYgMjQKp5SZlb/ZbP2dJ0aSqfksefhZdfB3t+ZoqR1xwxhlEeEUam1MPV2SWZwgb8hw=="
+        "signature": "KcXxVJgb45R0DGyPP6+HYgMjQKp5SZlb/ZbP2dJ0aSqfksefhZdfB3t+ZoqR1xwxhlEeEUam1MPV2SWZwgb8hw==",
+        "prevId": null
       },
       {
         "id": "d4231e2e-2ed8-4840-9bb0-52c304f69860",
@@ -198,8 +198,8 @@
         },
         "inputHash": "5fbbe6ccf560f2a11fd234043ed0535caa9ed9ca0c9358701cf6814144e96c33",
         "outputHash": "d706f9f168e0e994f191fe8d4f3b4440806b56dfe159225c4a0e7653d155f0ad",
-        "previousReceiptId": "a1931e44-59c8-42b0-9028-9ca648cdffa1",
-        "signature": "3aEvOvlZLehHaXrQRzhd3b5jQZt3o/GAiA0i8zx0EVGJlW2HJAGHoOhK/4i/3+fNJbEm4sa98XOD6UEkkQNRyg=="
+        "signature": "3aEvOvlZLehHaXrQRzhd3b5jQZt3o/GAiA0i8zx0EVGJlW2HJAGHoOhK/4i/3+fNJbEm4sa98XOD6UEkkQNRyg==",
+        "prevId": "a1931e44-59c8-42b0-9028-9ca648cdffa1"
       },
       {
         "id": "292c5013-00aa-4c45-8343-1ff9dedd4a19",
@@ -211,8 +211,8 @@
         },
         "inputHash": "4d25dbf72edfa0ebbb4b6b134c2187a714336e3ee592989551f9dd751b9f27ab",
         "outputHash": "97f8a064642b28876ed6a0c6a422a69be1e11c5dc239be09b4a74503be132468",
-        "previousReceiptId": "d4231e2e-2ed8-4840-9bb0-52c304f69860",
-        "signature": "DzpCyd3SUxemdEwXjLPjKFcDHq6dDRW8XdeK0bog9Ll5wNjfOqU7+Y9Ul6vtm6G1Z9MaSYhtBJj6CJU1mAOYUQ=="
+        "signature": "DzpCyd3SUxemdEwXjLPjKFcDHq6dDRW8XdeK0bog9Ll5wNjfOqU7+Y9Ul6vtm6G1Z9MaSYhtBJj6CJU1mAOYUQ==",
+        "prevId": "d4231e2e-2ed8-4840-9bb0-52c304f69860"
       },
       {
         "id": "69ba6cd3-cc79-4f92-a7b0-9dfc483d7097",
@@ -224,8 +224,8 @@
         },
         "inputHash": "f294a5aefa6ab648e9f082f50d52954801b26d67427704608af884d3fdc3fd03",
         "outputHash": "53c74935445f0066fadd02fff3f0a6573471a2d64d6411c1c17a36eccb42a2c5",
-        "previousReceiptId": "292c5013-00aa-4c45-8343-1ff9dedd4a19",
-        "signature": "KAjPBVg2y+jzcfccA7QKBWv3EJGJYOMiPIdE0y0uEvydIqsE/mPguhY9RIjNrpGQpYaMSYZ61WLJv5LJtqeZsQ=="
+        "signature": "KAjPBVg2y+jzcfccA7QKBWv3EJGJYOMiPIdE0y0uEvydIqsE/mPguhY9RIjNrpGQpYaMSYZ61WLJv5LJtqeZsQ==",
+        "prevId": "292c5013-00aa-4c45-8343-1ff9dedd4a19"
       },
       {
         "id": "c4e9fc0f-74b2-46d8-b17e-250a4d8222c8",
@@ -237,8 +237,8 @@
         },
         "inputHash": "43db65a698a0d0bfbee23014b6b9c44c5c2679977a82497e0d8640ff5fc5edb1",
         "outputHash": "b3196118289ec5cfb3c9f441544d0370c4ef24477fdc529de950437933441025",
-        "previousReceiptId": "69ba6cd3-cc79-4f92-a7b0-9dfc483d7097",
-        "signature": "A/rJDDU7+cT/iyz/oEVZcKhRFGTPxK5iBuuL3q6B5etYPkL8mrFc1lQ3Ql2hgm/s68yKTOccNwWfW602ZdKiPg=="
+        "signature": "A/rJDDU7+cT/iyz/oEVZcKhRFGTPxK5iBuuL3q6B5etYPkL8mrFc1lQ3Ql2hgm/s68yKTOccNwWfW602ZdKiPg==",
+        "prevId": "69ba6cd3-cc79-4f92-a7b0-9dfc483d7097"
       },
       {
         "id": "4ad479d5-f61b-4582-bdfb-f24f17dea362",
@@ -250,8 +250,8 @@
         },
         "inputHash": "343200b2dcb050205e12fe3cb1aab701e824db6fea6c85549a4e941dbf300bfd",
         "outputHash": "d9b5db51059b6281a38c270942637fdcee1051342eca53ee28845703adec712f",
-        "previousReceiptId": "c4e9fc0f-74b2-46d8-b17e-250a4d8222c8",
-        "signature": "mAJDFI8/uVso/92JR2eUjOr70iOeJDJDkmTvSnbN2oR0rPYbydZDMQElTqLLXdHsTsTA8X6UInk9CCPSUCE3OQ=="
+        "signature": "mAJDFI8/uVso/92JR2eUjOr70iOeJDJDkmTvSnbN2oR0rPYbydZDMQElTqLLXdHsTsTA8X6UInk9CCPSUCE3OQ==",
+        "prevId": "c4e9fc0f-74b2-46d8-b17e-250a4d8222c8"
       },
       {
         "id": "6aa8bb35-3707-4768-90d1-963483ef1fa6",
@@ -263,8 +263,8 @@
         },
         "inputHash": "4f5e10ea8db106a06027fa7536719db15df40edea528b64e00df8c84f3d19c40",
         "outputHash": "8cf25ffe071959ae399ccf4c152fcb7228336b7735c8fe7ce656cdcc4716ee37",
-        "previousReceiptId": "4ad479d5-f61b-4582-bdfb-f24f17dea362",
-        "signature": "9laSHufMX0cGqvW83FasBqqE7LAPtnXcvZrymZocEzUPDlOpbd9jS082T/xBd0wwhoMclyu6DPdRZ+3E5nNjqQ=="
+        "signature": "9laSHufMX0cGqvW83FasBqqE7LAPtnXcvZrymZocEzUPDlOpbd9jS082T/xBd0wwhoMclyu6DPdRZ+3E5nNjqQ==",
+        "prevId": "4ad479d5-f61b-4582-bdfb-f24f17dea362"
       },
       {
         "id": "2c00e1a3-814b-404b-80d6-d5cc4a8f82e6",
@@ -276,8 +276,8 @@
         },
         "inputHash": "7989b2ce4c788a4ecf8e6bf9dc31c6b1221a24a1fa60b8e65690e8742b201c50",
         "outputHash": "0bf7309979291fab3456bd44289f8c89e1bf6f012e76befff84eecacc8066716",
-        "previousReceiptId": "6aa8bb35-3707-4768-90d1-963483ef1fa6",
-        "signature": "nt61cmb3AeUf6Kyf75kLL+x0sb+j7+oh5J76zmd+H+gFq6q05SMDjeFIr7/Oi/aY4hfJz5awMpYylaExq00ArQ=="
+        "signature": "nt61cmb3AeUf6Kyf75kLL+x0sb+j7+oh5J76zmd+H+gFq6q05SMDjeFIr7/Oi/aY4hfJz5awMpYylaExq00ArQ==",
+        "prevId": "6aa8bb35-3707-4768-90d1-963483ef1fa6"
       },
       {
         "id": "db67398b-d706-408a-8711-c1c56788cb71",
@@ -289,8 +289,8 @@
         },
         "inputHash": "68b6517b606917728cc2b05c73e04af74d72b291235b0cc8cc2d90e2689461e9",
         "outputHash": "2a091cca86fba64c25caf60ff29b65764c539d61ae1916e0030820cd2e692e99",
-        "previousReceiptId": "2c00e1a3-814b-404b-80d6-d5cc4a8f82e6",
-        "signature": "MuPW94IpSprciSQ6ZPbUZ8F2yCcJ+dngAWaN03+nqTYiVnBYQdkkoXPXX32vKznlJdbFKaxp5WkLKbVPKmmlDg=="
+        "signature": "MuPW94IpSprciSQ6ZPbUZ8F2yCcJ+dngAWaN03+nqTYiVnBYQdkkoXPXX32vKznlJdbFKaxp5WkLKbVPKmmlDg==",
+        "prevId": "2c00e1a3-814b-404b-80d6-d5cc4a8f82e6"
       },
       {
         "id": "8a5cb35b-38d2-40f6-81f2-4cdcd055d140",
@@ -302,8 +302,8 @@
         },
         "inputHash": "b90e898fb842affc477eef9594cd384d423ae2bf8184d1bfb5eba5287eca2d3f",
         "outputHash": "074da73676674814702d11361cf694bfe8a49cc8163f15ad491a847c9ab7b913",
-        "previousReceiptId": "db67398b-d706-408a-8711-c1c56788cb71",
-        "signature": "JCLFEWWJE1NFwtzbFVj7jC10woJc9g5bpy7abgqVWnj2NnI0H99PUpUIavfqqhUrqTIYhyKxXWWXQIEBB6Zdcg=="
+        "signature": "JCLFEWWJE1NFwtzbFVj7jC10woJc9g5bpy7abgqVWnj2NnI0H99PUpUIavfqqhUrqTIYhyKxXWWXQIEBB6Zdcg==",
+        "prevId": "db67398b-d706-408a-8711-c1c56788cb71"
       },
       {
         "id": "e7b3fa86-62b8-43c1-85ae-72d12f9d4b1f",
@@ -315,8 +315,8 @@
         },
         "inputHash": "45b66711ce3666589f09e14dd12ec3fb356add4fe8978019966ca9a556fb136d",
         "outputHash": "55a5e6aab61fd97a4794b3601d294ddaf7b5665cf4d367bf0827adcb5e18a13f",
-        "previousReceiptId": "8a5cb35b-38d2-40f6-81f2-4cdcd055d140",
-        "signature": "cqgVmpzm5pAyyof6rCu4/VLKNzhwoUvq1ozUW3x0E3gb9EheKUyMQ58o/JxinsC6uxplyPkBiYSoouCvsq0IaA=="
+        "signature": "cqgVmpzm5pAyyof6rCu4/VLKNzhwoUvq1ozUW3x0E3gb9EheKUyMQ58o/JxinsC6uxplyPkBiYSoouCvsq0IaA==",
+        "prevId": "8a5cb35b-38d2-40f6-81f2-4cdcd055d140"
       },
       {
         "id": "aba5f198-54a5-407f-b17d-d501f2149f6c",
@@ -328,8 +328,8 @@
         },
         "inputHash": "be1288329fe3e285be80dacec3b9b7eb090e5e012e16cd9b49cfbbad4af587ec",
         "outputHash": "39bafe25df4a2494fa1a358eb91e2d1a8214f7700cb9e43c5649040ee59484da",
-        "previousReceiptId": "e7b3fa86-62b8-43c1-85ae-72d12f9d4b1f",
-        "signature": "xOJfVTdK9+0D60bymx+e6136t1/WUlMG6/YMC9YkqxPaKTAxfVjc64tk23FjVhGgIeIkBlxtn4jpHQPdfQLXRA=="
+        "signature": "xOJfVTdK9+0D60bymx+e6136t1/WUlMG6/YMC9YkqxPaKTAxfVjc64tk23FjVhGgIeIkBlxtn4jpHQPdfQLXRA==",
+        "prevId": "e7b3fa86-62b8-43c1-85ae-72d12f9d4b1f"
       }
     ]
   },
@@ -339,7 +339,7 @@
     "agentId": "claude-code-hooks",
     "receiptCount": 10,
     "rootHash": "0c6015f0df55ab712f22c22a89dc717190a0df5fa5f3cada0b840406b0e607c2",
-    "quality": null,
+    "quality": 71,
     "timestamp": 1777634616815,
     "receipts": [
       {
@@ -352,8 +352,8 @@
         },
         "inputHash": "4913a9a6baa57a35f80007a4678a1b761629a2ef6e5f95e9713ce71a644313f5",
         "outputHash": "1f63a7bfb06e109a2ec065a9b93ccbf995ec5d985dcfd674868f8f3eb4ba61ce",
-        "previousReceiptId": null,
-        "signature": "SwNzkgTrWwG5h31TeZQqjhyf/exQu0mDlwep71Jk+vvBXD4NNRoHT7epUuJkOyE4bZLz7L+9gW0vf2BoI4WCQA=="
+        "signature": "SwNzkgTrWwG5h31TeZQqjhyf/exQu0mDlwep71Jk+vvBXD4NNRoHT7epUuJkOyE4bZLz7L+9gW0vf2BoI4WCQA==",
+        "prevId": null
       },
       {
         "id": "da5921c1-f3a3-4c5e-b424-7a591223c257",
@@ -365,8 +365,8 @@
         },
         "inputHash": "c7d0495758dc70e9871f9e32325b100da9d7a4f0e54a989c94b3fab982485dc0",
         "outputHash": "e7f00aac6c50cf5ab7d51f5bff6955d49d286bcee37d4cf8dd3a2c09fe5990c2",
-        "previousReceiptId": "5c770014-2ba5-4d81-937e-e97b900cffd8",
-        "signature": "vvbnkbvthuoLURe9LDXhfGN5nLKCkNOqcLY22in+SYCurVOZ4K1e2n2A2GsOzatiReCCicYM6vEAQJCWmWdOnw=="
+        "signature": "vvbnkbvthuoLURe9LDXhfGN5nLKCkNOqcLY22in+SYCurVOZ4K1e2n2A2GsOzatiReCCicYM6vEAQJCWmWdOnw==",
+        "prevId": "5c770014-2ba5-4d81-937e-e97b900cffd8"
       },
       {
         "id": "b75fa134-f002-45df-9e88-a45fb3195715",
@@ -378,8 +378,8 @@
         },
         "inputHash": "4e340503b8bd63a102e712ed6cedceeb2798ead5d1215ec148471a6dd6612232",
         "outputHash": "4c0e103e862211361796dc5f2d8d9e9fb08707dba771b42b503eb0e492a5505d",
-        "previousReceiptId": "da5921c1-f3a3-4c5e-b424-7a591223c257",
-        "signature": "RSgRrHH0uc3/oW7iFsk8Bj3EJ4i13UuA9d/R5UcUwjObM0nKtsXElJIpyrBTFNM8xigETtlDlXRmmWtt8+aq7A=="
+        "signature": "RSgRrHH0uc3/oW7iFsk8Bj3EJ4i13UuA9d/R5UcUwjObM0nKtsXElJIpyrBTFNM8xigETtlDlXRmmWtt8+aq7A==",
+        "prevId": "da5921c1-f3a3-4c5e-b424-7a591223c257"
       },
       {
         "id": "ba11dab7-b40c-443b-a961-bacb5e769e27",
@@ -391,8 +391,8 @@
         },
         "inputHash": "607dc9b9bbaeb2952d1a6cc49e038df5ecee525341b73a548aa9261c44f8df7e",
         "outputHash": "f7a0dba2cbe884f46ad3ab6075c5751526d39dcb49918c5cc6752aff6ab8eeac",
-        "previousReceiptId": "b75fa134-f002-45df-9e88-a45fb3195715",
-        "signature": "VpdIkrgmwk94HlT6ECWbXpvVywC5i8/75zvoqFuSPwiAHzEsD083lNtvpvpf703SaT4lCMwfw+DebVLnGnHGOA=="
+        "signature": "VpdIkrgmwk94HlT6ECWbXpvVywC5i8/75zvoqFuSPwiAHzEsD083lNtvpvpf703SaT4lCMwfw+DebVLnGnHGOA==",
+        "prevId": "b75fa134-f002-45df-9e88-a45fb3195715"
       },
       {
         "id": "33ccf2d0-142d-42e7-9726-75b341cd362c",
@@ -404,8 +404,8 @@
         },
         "inputHash": "a77bdfa17293f830f76c8fcc6e21d78d3cd5ae8f04a57047b115c1d423817f36",
         "outputHash": "d20f6e7e2ffc84fe70e367e8b29052f000b58a333a477073b4a3b7beaca5148d",
-        "previousReceiptId": "ba11dab7-b40c-443b-a961-bacb5e769e27",
-        "signature": "fIvItnWsobYr3RKXBU7hHvD71ZCQNBcAguv15ABDIGPQnGjpRkKM352/QZpANAvoDXfNV/QZ9+Du/s/ECu2uKg=="
+        "signature": "fIvItnWsobYr3RKXBU7hHvD71ZCQNBcAguv15ABDIGPQnGjpRkKM352/QZpANAvoDXfNV/QZ9+Du/s/ECu2uKg==",
+        "prevId": "ba11dab7-b40c-443b-a961-bacb5e769e27"
       },
       {
         "id": "36c336b6-756b-4326-8522-847260b7fee1",
@@ -417,8 +417,8 @@
         },
         "inputHash": "04c5a8c1878cde9a41052736a2b9841447cc1473d37b96d35743a8acfa47f639",
         "outputHash": "f88200d340a0d9b77fde150adc81fc7e195e6115c97e28365b2cae85b6bf6158",
-        "previousReceiptId": "33ccf2d0-142d-42e7-9726-75b341cd362c",
-        "signature": "A4nwxK1EvGqhQAT/1IKgrfnNbkjPQRJUNL5ElFbnuG83DlO323P7uBbhPUEzvnOqaa6m/2KVXWyP8gYte+VAHA=="
+        "signature": "A4nwxK1EvGqhQAT/1IKgrfnNbkjPQRJUNL5ElFbnuG83DlO323P7uBbhPUEzvnOqaa6m/2KVXWyP8gYte+VAHA==",
+        "prevId": "33ccf2d0-142d-42e7-9726-75b341cd362c"
       },
       {
         "id": "26d705f3-4d8c-4165-9a45-675aad358a2d",
@@ -430,8 +430,8 @@
         },
         "inputHash": "51d095e9f4760c266e04ed7e244f1a92e340ee7745841eb6c8740688009502cc",
         "outputHash": "795bc445cf3f78869bfb4493bec33df0f1b0e2217cfb86cd76cc59192030430d",
-        "previousReceiptId": "36c336b6-756b-4326-8522-847260b7fee1",
-        "signature": "VgTFkf6zh+Qw7NQguR+DqbstH+9u1S7BBOYX5lYPNYdl2gfLGRB+SPDVjP7pngilEz/0pGw5tFb0YtKZcxWfgA=="
+        "signature": "VgTFkf6zh+Qw7NQguR+DqbstH+9u1S7BBOYX5lYPNYdl2gfLGRB+SPDVjP7pngilEz/0pGw5tFb0YtKZcxWfgA==",
+        "prevId": "36c336b6-756b-4326-8522-847260b7fee1"
       },
       {
         "id": "970cefc7-c9a9-457b-b5dd-b0b0b07ad8b4",
@@ -443,8 +443,8 @@
         },
         "inputHash": "4bfe8e019ed1b1a26a36b65561ac84f15436350a9f2d09cbea9b7659c5425567",
         "outputHash": "ce6d88ad4ae69aac04a935c579983bec3bf957e96d2b78b4f33730efea843150",
-        "previousReceiptId": "26d705f3-4d8c-4165-9a45-675aad358a2d",
-        "signature": "04GwzmMTCclxf7CU5r2dbDvv9FiVkYygAYIcGx9ZNAnN0Gf+PNqy1YqbTdrxHaafGkIJBb9FP+XutI8P0xREkQ=="
+        "signature": "04GwzmMTCclxf7CU5r2dbDvv9FiVkYygAYIcGx9ZNAnN0Gf+PNqy1YqbTdrxHaafGkIJBb9FP+XutI8P0xREkQ==",
+        "prevId": "26d705f3-4d8c-4165-9a45-675aad358a2d"
       },
       {
         "id": "b66e4332-7d80-4ecc-b2c4-0f110c396fd2",
@@ -456,8 +456,8 @@
         },
         "inputHash": "3e3575f64a7497afac45ba297221929778e01386ddeddae459b1a59279c0ed3e",
         "outputHash": "b7baa3c63165513fcf7d8ee065c242a60e1cc65c19b52ec0a9863fc0ff09ef4e",
-        "previousReceiptId": "970cefc7-c9a9-457b-b5dd-b0b0b07ad8b4",
-        "signature": "5JopqeiiK1QMsax1SbWF876dplRs1ojSBFPfs3fxuPhFrOz71/mHG7QYdXyNy2CyfNZF/vLt2wgP1rsOjeiGrQ=="
+        "signature": "5JopqeiiK1QMsax1SbWF876dplRs1ojSBFPfs3fxuPhFrOz71/mHG7QYdXyNy2CyfNZF/vLt2wgP1rsOjeiGrQ==",
+        "prevId": "970cefc7-c9a9-457b-b5dd-b0b0b07ad8b4"
       },
       {
         "id": "21bc10d6-106b-4f63-b846-fc4715d1d719",
@@ -469,8 +469,8 @@
         },
         "inputHash": "051c2fceef3768605381d9ce3ea8be4c69f2973de13cc39be3ba3c0cd268d4e2",
         "outputHash": "ff3139d42600b1c4754e9d19a4312580d120f2cc09d06dcb95cee0ee6e3392ac",
-        "previousReceiptId": "b66e4332-7d80-4ecc-b2c4-0f110c396fd2",
-        "signature": "nxVqCEFs6jLbfca21oHRhmg/egMMYQqGthZ10vZM0DaZ//5bl1tESD5ymUqL2KWq64IpHHsaMlrmErYFWn2zww=="
+        "signature": "nxVqCEFs6jLbfca21oHRhmg/egMMYQqGthZ10vZM0DaZ//5bl1tESD5ymUqL2KWq64IpHHsaMlrmErYFWn2zww==",
+        "prevId": "b66e4332-7d80-4ecc-b2c4-0f110c396fd2"
       }
     ]
   },
@@ -480,7 +480,7 @@
     "agentId": "claude-code-hooks",
     "receiptCount": 10,
     "rootHash": "9c4170fb19c026c88080a6f4e59a43aa3a1689a07f8f388c785489f5a2439b49",
-    "quality": null,
+    "quality": 84,
     "timestamp": 1777634691788,
     "receipts": [
       {
@@ -493,8 +493,8 @@
         },
         "inputHash": "8e6fe380bce8be08ebad151c3021b9a38d3f21af077de86c525a70d6d301c39c",
         "outputHash": "384a89e1994f8f1aa7a40340b7e387d95db6cb845fe8d71ba3c29d5a832e6d67",
-        "previousReceiptId": null,
-        "signature": "QGQma42/A3CHFij8kTemcCBHwXdkMPrXQ/hwRLD3w20vh07UjZCwJ+k00BGMOac/e01s+vchJl9IRLW2H7w3Ug=="
+        "signature": "QGQma42/A3CHFij8kTemcCBHwXdkMPrXQ/hwRLD3w20vh07UjZCwJ+k00BGMOac/e01s+vchJl9IRLW2H7w3Ug==",
+        "prevId": null
       },
       {
         "id": "f83b65b6-364f-4d22-89ee-d8f9afdf9204",
@@ -506,8 +506,8 @@
         },
         "inputHash": "fdeda342849e9afd5cb9bd6e44a1f8e6965f83bd95b9cf3d2c785f9651dc9cce",
         "outputHash": "b6eeb2eb8550388d1dc97bd62a4074d204784756d685ba884fe0896f0054a1ab",
-        "previousReceiptId": "c04501dd-a6f1-4d65-ab4f-cb0c531b3f78",
-        "signature": "iJUXHrRyWTfGbMLK1pljE/02JMqsnH1/YMiJRGJXuYzoDqv1IMXK0JpnddRfOykl1YbzSsQR60Yv7cI8iv49dw=="
+        "signature": "iJUXHrRyWTfGbMLK1pljE/02JMqsnH1/YMiJRGJXuYzoDqv1IMXK0JpnddRfOykl1YbzSsQR60Yv7cI8iv49dw==",
+        "prevId": "c04501dd-a6f1-4d65-ab4f-cb0c531b3f78"
       },
       {
         "id": "efd8b0cc-a9d8-4b02-9df7-ba91e2a8c152",
@@ -519,8 +519,8 @@
         },
         "inputHash": "aacd9baf80b0044778bb868c17867901b67d7e06f3c056d749cc2f4aa7e18bcc",
         "outputHash": "7e2978a306883180b89b30adb9a49288ae68607310d5ce7813a96997e688783c",
-        "previousReceiptId": "f83b65b6-364f-4d22-89ee-d8f9afdf9204",
-        "signature": "K/QPWxXusvZ++Yj6VKFuv75ppuWnEQWmTFoPfFk5p847d2//IW7gQrkMQf/7vpEC1di12OMtg5sjcIAeHcL7HA=="
+        "signature": "K/QPWxXusvZ++Yj6VKFuv75ppuWnEQWmTFoPfFk5p847d2//IW7gQrkMQf/7vpEC1di12OMtg5sjcIAeHcL7HA==",
+        "prevId": "f83b65b6-364f-4d22-89ee-d8f9afdf9204"
       },
       {
         "id": "898dd402-6b49-43d0-9fe9-2308ae778a07",
@@ -532,8 +532,8 @@
         },
         "inputHash": "ca4d7a1633719a381861c4065871d76c5becff8287863deded46eba4aa0f15d2",
         "outputHash": "4870f38e9f827454e2fe1130f992040c04a32945e4635c0cddef226ee57eea8a",
-        "previousReceiptId": "efd8b0cc-a9d8-4b02-9df7-ba91e2a8c152",
-        "signature": "Mr+E2lVjkIURojB2QaLP4ul6z7UE5sP17hDDrvw/HKV00+4GNWbwW9xXf9UbyRNAla056+RSBE5ykMnDkTYqeQ=="
+        "signature": "Mr+E2lVjkIURojB2QaLP4ul6z7UE5sP17hDDrvw/HKV00+4GNWbwW9xXf9UbyRNAla056+RSBE5ykMnDkTYqeQ==",
+        "prevId": "efd8b0cc-a9d8-4b02-9df7-ba91e2a8c152"
       },
       {
         "id": "390fdeec-31fc-4f78-b74c-68c51c49968c",
@@ -545,8 +545,8 @@
         },
         "inputHash": "53f32ec935a64e41db2b04635cd8324a4f38203f5b5ecda6343e9bf4bf7f978a",
         "outputHash": "54d06dc1d94c500cf5e9ebd303f9d35ff2ad5620c431fa79ab362a9c0bc23cb7",
-        "previousReceiptId": "898dd402-6b49-43d0-9fe9-2308ae778a07",
-        "signature": "35B9gKAbsUiIDLeaZZCTa4/vSrkURQ/wjmc66U+QAurQnm5jzgswAgpMUIM2252mN5oUxy6Itqkxcgu7i13B+Q=="
+        "signature": "35B9gKAbsUiIDLeaZZCTa4/vSrkURQ/wjmc66U+QAurQnm5jzgswAgpMUIM2252mN5oUxy6Itqkxcgu7i13B+Q==",
+        "prevId": "898dd402-6b49-43d0-9fe9-2308ae778a07"
       },
       {
         "id": "ea069096-0a2e-458f-b658-e51ee0506c4d",
@@ -558,8 +558,8 @@
         },
         "inputHash": "1cc784b9cfb9997ab347dec9f25a26076efd9f9afec58f8c2385193b974e57d1",
         "outputHash": "d311e5db71ff501ba7ca3ed0ee7b5aefd65cadd18ceaf04e5d649fcc34f2a005",
-        "previousReceiptId": "390fdeec-31fc-4f78-b74c-68c51c49968c",
-        "signature": "s4aPHBPi3kGcM+D1u/9AL4o5cGbQ2jMKE/mzsam7uR3S0RoompuHol+L9J1yaDTF1UkofZUM8QuOPwFnBvPttw=="
+        "signature": "s4aPHBPi3kGcM+D1u/9AL4o5cGbQ2jMKE/mzsam7uR3S0RoompuHol+L9J1yaDTF1UkofZUM8QuOPwFnBvPttw==",
+        "prevId": "390fdeec-31fc-4f78-b74c-68c51c49968c"
       },
       {
         "id": "aaeb9c14-00ca-4908-9dba-006bc4b12a0f",
@@ -571,8 +571,8 @@
         },
         "inputHash": "00f95ba88eded87c6cf094e5a82dc927317db723632ec8fcd4b0316c1274a331",
         "outputHash": "80b856a047bd6f4af35c67ef967d315d00487f010c2983eb6e38d202c8179d89",
-        "previousReceiptId": "ea069096-0a2e-458f-b658-e51ee0506c4d",
-        "signature": "faQZzC0rCVSFO7LynkX/x6P9zTbY4Ze8m0el8lHxgov0LCIOjS7LfttPfmy7dm7MX73RisvRu/PN2eAMxaoaVA=="
+        "signature": "faQZzC0rCVSFO7LynkX/x6P9zTbY4Ze8m0el8lHxgov0LCIOjS7LfttPfmy7dm7MX73RisvRu/PN2eAMxaoaVA==",
+        "prevId": "ea069096-0a2e-458f-b658-e51ee0506c4d"
       },
       {
         "id": "1bd17c78-30a8-4635-b8ec-380d6706691d",
@@ -584,8 +584,8 @@
         },
         "inputHash": "a56c43b508c29a5c98bcf61740541d9ff936682af7b67491f55c848bf3fa9e70",
         "outputHash": "5caaf27ccc7aa8d0c733a6c71bf08cea4f3298c74c594a3b2e7d6c78975ca797",
-        "previousReceiptId": "aaeb9c14-00ca-4908-9dba-006bc4b12a0f",
-        "signature": "TlGE4+S9aT1SUoljtRErN2OGUWp0mpw1u7ESk5WKE1h48ju/M/Oj95ePR0zBt8C7SEHK74PGMGjZjQpcH7Folw=="
+        "signature": "TlGE4+S9aT1SUoljtRErN2OGUWp0mpw1u7ESk5WKE1h48ju/M/Oj95ePR0zBt8C7SEHK74PGMGjZjQpcH7Folw==",
+        "prevId": "aaeb9c14-00ca-4908-9dba-006bc4b12a0f"
       },
       {
         "id": "426f45ba-2ffb-4a47-9706-fa9565ecddef",
@@ -597,8 +597,8 @@
         },
         "inputHash": "036cef3471feab10e2f962a1f64db17652f0298079fe4c4e1755bef32066a7dc",
         "outputHash": "c978b5efce79f754dfc08b6fe8fce1b36652651c86f68f106ce77fe4af9e9656",
-        "previousReceiptId": "1bd17c78-30a8-4635-b8ec-380d6706691d",
-        "signature": "ch14PVO6iJttFPl7wq8DE7ffL6mpdtm8/tnyR/JhyNgQsYBncPpuaLV9u+qyftLqfRY4Xzmg0mx6t4vPmnUyCA=="
+        "signature": "ch14PVO6iJttFPl7wq8DE7ffL6mpdtm8/tnyR/JhyNgQsYBncPpuaLV9u+qyftLqfRY4Xzmg0mx6t4vPmnUyCA==",
+        "prevId": "1bd17c78-30a8-4635-b8ec-380d6706691d"
       },
       {
         "id": "4b7a5cb4-7f52-4968-a6ae-db8b9843e25c",
@@ -610,8 +610,8 @@
         },
         "inputHash": "69894f63d3534e52deab36f15bfbc96318d7dd9ec6b1cb925bbfc3e78b743127",
         "outputHash": "2b2d061f25a12f6320ccf1e9cf15fce9da7a16aae41300f7e34e2c25347d162a",
-        "previousReceiptId": "426f45ba-2ffb-4a47-9706-fa9565ecddef",
-        "signature": "BbObfZQipuT++eoH9xv8/deU+RQH8LLTmQEs2xbEtBb3MfCDX105LwP+XBlaI1eCh6oZYsyKSvOUc19AqOj9bw=="
+        "signature": "BbObfZQipuT++eoH9xv8/deU+RQH8LLTmQEs2xbEtBb3MfCDX105LwP+XBlaI1eCh6oZYsyKSvOUc19AqOj9bw==",
+        "prevId": "426f45ba-2ffb-4a47-9706-fa9565ecddef"
       }
     ]
   },
